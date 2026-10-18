@@ -1,0 +1,79 @@
+Fix the manual wallet-address testing flow in CHOG MATE.
+
+Current situation:
+- User can manually enter a wallet address.
+- The app successfully scans the address.
+- Real Chog NFTs are displayed.
+- BUT after selecting a Chog NFT, the "Create Profile" flow does not appear.
+
+Implement this exact flow:
+
+Manual Wallet Address
+→ Scan Chog NFTs
+→ Show Chog NFTs
+→ Select Chog
+→ Continue
+→ CREATE YOUR PROFILE
+→ Save profile
+→ Show the created profile
+
+Requirements:
+
+1. When the user clicks/selects a Chog NFT, show a clear CTA:
+   "Continue with Chog #TOKEN_ID"
+
+2. Clicking that CTA must open the existing profile creation screen/form.
+
+3. The profile creation form should contain:
+   - Profile picture = selected real Chog NFT image
+   - Chog #Token ID
+   - Name
+   - Username
+   - Age
+   - Gender
+   - Bio
+   - Location
+   - Looking For
+   - Interests
+   - Hobbies
+   - Skills
+   - Languages
+
+4. Save the selected Chog NFT information together with the profile.
+
+5. Since this is TEST MODE using a manually entered wallet address:
+   - Do NOT require wallet connection.
+   - Do NOT require wallet signature.
+   - Do NOT require private key/seed phrase.
+   - Do NOT send any transaction.
+   - Keep the "TEST MODE" indicator visible.
+
+6. After profile creation:
+   - Show the user's newly created profile.
+   - Show the selected Chog NFT as profile picture.
+   - Show Chog #TOKEN_ID.
+   - Keep all entered profile information.
+
+7. IMPORTANT:
+   - Reuse the existing CHOG MATE profile creation UI/design.
+   - Do NOT create a completely new design.
+   - Do NOT rebuild the application.
+   - Connect the existing NFT selection screen to the existing profile creation flow.
+
+8. Make sure the selected NFT data is passed correctly from:
+   NFT Scan → NFT Selection → Profile Creation.
+
+9. If the app refreshes during testing, preserve the selected test wallet and selected Chog where appropriate.
+
+10. Do not use fake/mock NFT data.
+
+Acceptance test:
+Enter wallet address
+→ Scan
+→ Chog NFT appears
+→ Select Chog
+→ "Continue with Chog #..."
+→ Profile creation form opens
+→ Fill profile
+→ Create Profile
+→ Profile appears with the selected real Chog NFT.

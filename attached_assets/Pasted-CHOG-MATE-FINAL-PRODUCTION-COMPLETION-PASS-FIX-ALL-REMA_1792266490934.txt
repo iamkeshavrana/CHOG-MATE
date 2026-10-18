@@ -1,0 +1,1201 @@
+CHOG MATE — FINAL PRODUCTION COMPLETION PASS
+FIX ALL REMAINING FEATURES, KNOWN BUGS, SECURITY ISSUES, AND VERIFY THE COMPLETE APP
+
+IMPORTANT:
+This is the EXISTING CHOG MATE application.
+
+DO NOT rebuild the project.
+DO NOT replace the existing architecture.
+DO NOT create a new app.
+DO NOT duplicate existing systems.
+DO NOT remove working functionality.
+DO NOT use fake production data.
+DO NOT use mock blockchain transactions.
+DO NOT claim something is complete unless it has actually been tested.
+
+Your task is to finish ALL remaining work and fix ALL known issues.
+
+============================================================
+CURRENT WORKING SYSTEMS — PRESERVE THEM
+============================================================
+
+The existing project already contains:
+
+- React/Vite frontend
+- Express API
+- pnpm workspace
+- Chog NFT scanning
+- Real Chog NFT ownership validation
+- Chog selection
+- Connected-wallet authentication
+- Address-only onboarding/session implementation
+- Profile system
+- Public Discover
+- Like / Pass
+- Swipe API integration
+- Incoming Likes
+- Like Back / Ignore
+- Mutual Like → Match
+- Text chat
+- Image/media attachments
+- Secure uploads
+- Voice notes
+- Notifications infrastructure
+- Block / Report endpoints
+- Transaction verification infrastructure
+- Super Like UI/modal
+- Supabase integration
+- TypeScript typecheck
+- API build
+- Frontend build
+
+Previous fixes already made include:
+
+- Swipe buttons were connected to the API
+- Super Like modal was mounted
+- Notification re-subscription bug was identified/fixed
+- TypeScript/import issues were fixed
+- Response-field typos were fixed
+- Image preview was added
+- Frontend/API build configuration was fixed
+- Address-only sign-in/session architecture was added
+- Public Discover was made available without an account
+
+DO NOT rebuild these systems.
+
+First inspect the CURRENT implementation and continue from it.
+
+============================================================
+PART 1 — FIX ADDRESS-ONLY ONBOARDING END-TO-END
+============================================================
+
+This is currently the highest-priority bug.
+
+CURRENT FLOW:
+
+User enters a public wallet address
+→ Scan Chog NFTs
+→ Real Chog NFT is found
+→ User selects Chog
+→ User clicks "Continue with Chog"
+→ ERROR:
+
+"We couldn't verify or open this account right now. Please try again shortly."
+
+The NFT scan itself WORKS.
+
+The bug is after NFT selection.
+
+FIX THE ROOT CAUSE.
+
+Do not modify the working NFT scanning logic unnecessarily.
+
+Trace the exact flow:
+
+Frontend
+→ Continue with Chog
+→ API request
+→ session/account creation
+→ Supabase
+→ selected Chog validation
+→ profile creation
+
+Find the exact endpoint/function/database operation causing the failure.
+
+Do not hide the real error behind a generic message.
+
+Log the actual development error so the root cause can be identified.
+
+============================================================
+ADDRESS-ONLY ACCOUNT REQUIREMENT
+============================================================
+
+A user may enter a PUBLIC wallet address that owns a real Chog NFT.
+
+The user does NOT need to connect that wallet just to create their social profile.
+
+Required:
+
+Public wallet address
+→ verify real Chog ownership
+→ select Chog
+→ create/open CHOG MATE account
+→ create profile
+→ persist account in Supabase
+→ profile becomes a real production social profile
+
+Do NOT make this a browser-only draft.
+
+Do NOT store it only in localStorage.
+
+Do NOT label it as Test Mode.
+
+Do NOT require a wallet signature for this onboarding path.
+
+The account should be server-backed and persistent.
+
+The address is an NFT-owner-verified identity, but NOT a connected transaction wallet.
+
+============================================================
+ADDRESS-ONLY SECURITY
+============================================================
+
+IMPORTANT:
+
+A public wallet address does NOT prove that the current person controls the wallet.
+
+Therefore address-only accounts may:
+
+- create a social profile
+- appear in Discover
+- receive Likes
+- receive Super Likes
+- receive Matches
+- chat
+- receive $CHOG
+
+But address-only accounts MUST NOT be allowed to sign blockchain transactions.
+
+For:
+
+- Super Like
+- $CHOG Gift
+- any future blockchain payment
+
+the user must connect the actual wallet.
+
+Show:
+
+"Connect your wallet to continue."
+
+Never:
+- request private keys
+- request seed phrases
+- fake wallet connection
+- sign using an entered address
+- pretend an address-only account is connected
+
+============================================================
+PART 2 — COMPLETE PROFILE CREATION FLOW
+============================================================
+
+After:
+
+Address
+→ Scan Chogs
+→ Select Chog
+→ Continue with Chog
+
+the EXISTING Create Profile screen must open.
+
+Do not create a second profile UI.
+
+Use the existing profile creation system.
+
+Fields:
+
+- Name
+- Username
+- Age
+- Gender
+- Bio
+- Location
+- Looking For
+- Interests
+- Hobbies
+- Skills
+- Languages
+
+Selected Chog becomes the profile NFT.
+
+Save:
+
+- wallet address
+- Chog contract
+- token ID
+- image
+- tier
+- metadata
+- traits
+- profile fields
+
+After Save:
+
+→ profile persists
+→ reload page
+→ account remains
+→ selected Chog remains
+→ profile can appear in Discover
+
+If the wallet address already has an account:
+
+→ load existing account
+→ do NOT create duplicate account.
+
+Normalize wallet addresses consistently.
+
+============================================================
+PART 3 — SUPABASE SERVER CONFIGURATION
+============================================================
+
+The previous implementation could not fully exercise live account persistence because the environment was missing the server-side Supabase service key.
+
+Verify that the server has:
+
+SUPABASE_SERVICE_ROLE_KEY
+
+configured securely.
+
+IMPORTANT:
+
+It must ONLY exist server-side.
+
+Never put it in:
+
+- VITE variables
+- frontend code
+- browser bundle
+- client-side environment
+
+If it is missing:
+
+DO NOT invent it.
+
+DO NOT hardcode it.
+
+Clearly report that configuration is required.
+
+If it exists, actually test live profile/account persistence.
+
+============================================================
+PART 4 — TEST ADDRESS ONBOARDING WITH REAL FLOW
+============================================================
+
+Actually test:
+
+1. Enter valid public Chog-holder address
+2. Scan Chog NFTs
+3. Confirm real NFT appears
+4. Select NFT
+5. Click Continue
+6. Create Profile opens
+7. Fill profile
+8. Save
+9. Confirm Supabase save succeeds
+10. Refresh browser
+11. Confirm account/profile persists
+12. Confirm selected Chog persists
+13. Open Discover
+14. Confirm profile can appear there
+
+Do NOT stop at "NFT found".
+
+The complete flow must work.
+
+============================================================
+PART 5 — MY CHOG / MULTIPLE NFT SUPPORT
+============================================================
+
+Verify My Chog.
+
+If wallet owns multiple Chogs:
+
+→ show all owned Chogs.
+
+Switching active Chog changes ONLY:
+
+- profile image
+- token ID
+- tier
+- metadata
+- traits
+
+It must NOT reset:
+
+- name
+- username
+- age
+- gender
+- bio
+- location
+- looking for
+- interests
+- hobbies
+- skills
+- languages
+
+Revalidate ownership before switching.
+
+Do not create duplicate accounts when switching Chogs.
+
+============================================================
+PART 6 — DISCOVER FINAL QA
+============================================================
+
+Verify public Discover.
+
+Unauthenticated users can browse profiles.
+
+Unauthenticated users cannot:
+
+- Like
+- Pass
+- Super Like
+- Message
+- Gift
+
+They should be prompted to onboard/connect when attempting interactions.
+
+Exclude:
+
+- current user
+- blocked users
+- users who blocked current user
+- incomplete profiles
+- invalid profiles
+- invalid Chog ownership
+
+Address-only production accounts MUST be eligible for Discover once profile setup is complete.
+
+The current user's own profile must never appear in their own Discover.
+
+============================================================
+PART 7 — LIKE / PASS / MATCH FINAL QA
+============================================================
+
+Preserve existing implementation.
+
+Verify:
+
+A Likes B
+→ B receives notification
+
+B Likes Back
+→ Match created
+→ Chat unlocked
+
+B Ignores
+→ request handled correctly
+
+Pass
+→ user is excluded appropriately.
+
+Prevent:
+
+- duplicate Like
+- duplicate Pass
+- self-Like
+- blocked interaction
+- invalid-user interaction
+
+Do not rebuild the system.
+
+Fix only actual bugs.
+
+============================================================
+PART 8 — REAL $CHOG BALANCE
+============================================================
+
+Use the REAL ERC-20 token.
+
+$CHOG contract:
+
+0x350035555e10d9afaf1566aaebfced5ba6c27777
+
+Use:
+
+balanceOf(wallet)
+
+Never hardcode balances.
+
+Handle:
+
+- loading
+- zero balance
+- insufficient balance
+- RPC failure
+- wrong network
+- disconnected wallet
+
+Refresh after:
+
+- wallet connection
+- account change
+- Super Like
+- Gift
+
+============================================================
+PART 9 — COMPLETE REAL SUPER LIKE
+============================================================
+
+Super Like costs:
+
+100 $CHOG
+
+Token:
+
+0x350035555e10d9afaf1566aaebfced5ba6c27777
+
+Recipient:
+
+recipient's verified wallet address stored in their CHOG MATE account.
+
+REQUIRED FLOW:
+
+Sender clicks Super Like
+→ confirmation modal
+→ show 100 $CHOG
+→ verify sender has actual connected wallet
+→ verify network
+→ verify balance
+→ verify recipient wallet
+→ execute ERC-20 transfer
+→ sender signs
+→ send exactly 100 $CHOG
+→ wait for blockchain confirmation
+→ verify receipt
+→ ONLY AFTER SUCCESS:
+   - create Super Like
+   - save transaction
+   - save tx hash
+   - create notification
+   - unlock direct DM
+
+The 100 $CHOG must go DIRECTLY to the recipient's wallet.
+
+Do NOT send to:
+- platform wallet
+- treasury
+- random address
+- arbitrary frontend-provided address
+
+Recipient wallet must come from the recipient's verified account data.
+
+If transaction fails/rejects/reverts:
+
+DO NOT:
+- create Super Like
+- unlock DM
+- create success notification
+- create fake transaction
+- save fake transaction hash
+
+Show clear failure state.
+
+After success:
+
+- show tx hash
+- show "View on Monad"
+- show success state
+
+Do not claim success before confirmation.
+
+============================================================
+PART 10 — SUPER LIKE DIRECT DM
+============================================================
+
+Normal flow:
+
+Like
+→ Like Back
+→ Match
+→ Chat
+
+Super Like flow:
+
+Super Like
+→ successful 100 $CHOG transfer
+→ direct DM access
+
+Super Like does NOT automatically create Match.
+
+Recipient can:
+
+- Reply
+- Like Back
+- Ignore
+- Block
+- Report
+
+If recipient Likes Back:
+→ Match created.
+
+If transaction failed:
+→ no direct DM.
+
+Test both success and failure paths.
+
+============================================================
+PART 11 — REAL $CHOG GIFTS
+============================================================
+
+Implement/finalize real gifts.
+
+Amounts:
+
+- 50 $CHOG
+- 100 $CHOG
+- 500 $CHOG
+- 1000 $CHOG
+- Custom amount
+
+FLOW:
+
+Match/Chat
+→ Gift
+→ amount
+→ confirmation
+→ connected wallet check
+→ balance check
+→ recipient wallet check
+→ ERC-20 transfer
+→ sender signs
+→ wait confirmation
+→ verify receipt
+→ save Gift
+→ create chat gift message
+→ notification
+→ Chog-themed success animation
+
+Gift message example:
+
+"[Username] sent you 500 $CHOG 🎁"
+
+Show:
+
+- amount
+- tx hash
+- timestamp
+- status
+- View on Monad
+
+If transaction fails:
+
+- no successful Gift
+- no fake message
+- no success notification
+- no fake tx hash
+
+Address-only users can RECEIVE gifts.
+
+Address-only users cannot SEND gifts.
+
+============================================================
+PART 12 — TRANSACTION VERIFICATION
+============================================================
+
+Every Super Like/Gift transaction must be verified.
+
+Never trust frontend-provided:
+
+- success
+- tx status
+- amount
+- recipient
+- sender
+
+Verify actual blockchain receipt/on-chain transaction.
+
+Save:
+
+- sender
+- recipient
+- token contract
+- amount
+- tx hash
+- type
+- status
+- created_at
+- confirmed_at
+
+Types:
+
+super_like
+gift
+
+Prevent duplicate processing of the same transaction hash.
+
+============================================================
+PART 13 — REALTIME NOTIFICATIONS
+============================================================
+
+Finish and verify Supabase Realtime.
+
+Notifications required for:
+
+- Like
+- Super Like
+- Match
+- Message
+- Gift
+- Incoming call
+- Missed call
+
+Must work without refresh.
+
+Verify the previously discovered notification subscription bug is actually fixed.
+
+No:
+- recursive subscriptions
+- duplicate subscriptions
+- duplicate notifications
+- memory leaks
+
+Clean up listeners when components unmount.
+
+============================================================
+PART 14 — CHAT FINAL QA
+============================================================
+
+Verify existing chat.
+
+Required:
+
+- text
+- emoji
+- image
+- voice note
+- unread count
+- seen/unseen
+- typing indicator
+- realtime messages
+- Super Like direct conversation
+- Gift messages
+
+Prevent duplicate realtime messages.
+
+Private messages must be protected by RLS.
+
+============================================================
+PART 15 — AUDIO CALLS
+============================================================
+
+Implement/finalize REAL WebRTC audio calls.
+
+Required:
+
+Caller:
+→ Start call
+→ recipient receives incoming call
+→ Accept / Reject
+→ connected
+→ mute/unmute
+→ End
+
+Recipient:
+→ incoming call
+→ Accept
+→ Reject
+→ Missed call
+
+Persist:
+
+- caller
+- receiver
+- call type
+- status
+- started_at
+- answered_at
+- ended_at
+- duration
+
+Use existing realtime/backend signaling.
+
+Handle:
+
+- microphone permission denied
+- no microphone
+- recipient offline
+- network failure
+- connection failure
+- call rejection
+
+Do NOT create fake UI-only calls.
+
+============================================================
+PART 16 — VIDEO CALLS
+============================================================
+
+Implement/finalize REAL WebRTC video calls.
+
+Required:
+
+- Start video call
+- Incoming call
+- Accept
+- Reject
+- End
+- Mute/unmute
+- Camera on/off
+- Connection state
+- Duration
+- Missed call
+
+Persist call records.
+
+Handle:
+
+- camera permission denied
+- microphone permission denied
+- no camera
+- network failure
+- WebRTC failure
+- recipient offline
+
+Do NOT fake calls.
+
+If production TURN configuration is required and missing:
+
+Do not fake production reliability.
+
+Use STUN where appropriate and clearly identify required TURN environment configuration.
+
+============================================================
+PART 17 — BLOCK / REPORT ENFORCEMENT
+============================================================
+
+Existing Block/Report functionality must be fully enforced server-side.
+
+If A blocks B:
+
+B cannot:
+
+- Discover A
+- Like A
+- Super Like A
+- Message A
+- Call A
+- Gift A
+
+Also remove blocked users from relevant existing conversations/discovery surfaces as appropriate.
+
+Report should securely save:
+
+- reporter
+- reported user
+- reason
+- description
+- timestamp
+
+Prevent abuse/duplicate spam where appropriate.
+
+============================================================
+PART 18 — RLS / SECURITY AUDIT
+============================================================
+
+A previous audit found that some interaction tables allowed direct client writes.
+
+Fix this completely.
+
+Protect:
+
+- users
+- profiles
+- chogs
+- chog_traits
+- preferences
+- likes
+- passes
+- super_likes
+- matches
+- messages
+- message_attachments
+- notifications
+- reports
+- blocks
+- calls
+- gifts
+- transactions
+
+A client must NOT be able to directly forge:
+
+- Super Likes
+- Gifts
+- Transactions
+- Matches
+- wallet ownership
+- another user's profile
+- another user's messages
+- notification records
+- private media
+
+Sensitive actions must go through trusted server-side logic.
+
+Verify RLS with actual negative tests.
+
+Do not only inspect the SQL.
+
+Actually attempt unauthorized operations and confirm they are rejected.
+
+============================================================
+PART 19 — WALLET SECURITY
+============================================================
+
+Connected wallet:
+
+- connect
+- disconnect
+- account changed
+- chain changed
+- reconnect
+
+Address-only wallet:
+
+- social identity only
+- NFT ownership verified
+- no transaction signing
+
+Never mix the two states.
+
+When address-only user clicks Super Like/Gift:
+
+show:
+
+"Connect your wallet to continue."
+
+Do not attempt transaction.
+
+============================================================
+PART 20 — ENVIRONMENT / CONFIGURATION
+============================================================
+
+Verify all required configuration.
+
+Frontend:
+
+VITE_SUPABASE_URL
+VITE_SUPABASE_ANON_KEY
+VITE_WALLETCONNECT_PROJECT_ID
+VITE_MONAD_RPC_URL
+VITE_CHOG_CONTRACT_ADDRESS
+VITE_CHOG_TOKEN_ADDRESS
+
+Server:
+
+SUPABASE_SERVICE_ROLE_KEY
+
+Any WebRTC/TURN production secrets must remain server-side.
+
+Do not invent missing values.
+
+Do not hardcode secrets.
+
+If something is missing:
+
+continue all work that does not depend on it
+AND provide the exact missing variable at the end.
+
+============================================================
+PART 21 — DATABASE / MIGRATIONS
+============================================================
+
+Inspect current Supabase schema before changing it.
+
+Reuse existing tables.
+
+Do not create duplicate systems.
+
+If migrations are needed:
+
+- make them safe
+- make them idempotent
+- do not destroy existing data
+- add required indexes
+- verify RLS
+
+Important indexes should include appropriate indexes for:
+
+- wallet address
+- username
+- likes
+- passes
+- matches
+- messages
+- notifications
+- blocks
+- super_likes
+- gifts
+- transactions
+
+============================================================
+PART 22 — ERROR HANDLING
+============================================================
+
+Fix the generic error problem.
+
+Do not hide all failures behind:
+
+"We couldn't verify or open this account right now."
+
+Use specific user-friendly errors.
+
+Examples:
+
+Invalid address:
+"Please enter a valid wallet address."
+
+No Chog:
+"No Chog NFTs were found in this wallet."
+
+Ownership changed:
+"This Chog is no longer owned by this wallet."
+
+Supabase failure:
+"Unable to save your profile right now. Please try again."
+
+Wallet required:
+"Connect your wallet to continue."
+
+Insufficient balance:
+"You don't have enough $CHOG for this action."
+
+Transaction rejected:
+"Transaction was rejected in your wallet."
+
+Transaction failed:
+"The $CHOG transaction failed. No action was created."
+
+Wrong network:
+"Please switch to the supported network."
+
+Call permission:
+"Microphone permission is required for audio calls."
+
+Camera permission:
+"Camera permission is required for video calls."
+
+Every async operation must have:
+
+- loading
+- success
+- error
+- retry where appropriate
+
+Never leave the user stuck on an infinite spinner.
+
+============================================================
+PART 23 — MOBILE QA
+============================================================
+
+Verify the entire application on mobile-sized screens.
+
+Check:
+
+- Landing
+- Discover
+- Profile
+- Chog selection
+- Profile creation
+- Matches
+- Chat
+- Notifications
+- Super Like modal
+- Gift modal
+- Incoming call
+- Active call
+- Wallet UI
+
+Fix:
+
+- horizontal overflow
+- clipped buttons
+- broken modals
+- unreadable text
+- overlapping elements
+- broken navigation
+- keyboard/input issues
+
+Preserve the current CHOG MATE design.
+
+============================================================
+PART 24 — FINAL FULL QA
+============================================================
+
+DO NOT finish after only building the project.
+
+Run:
+
+- TypeScript typecheck
+- frontend build
+- API build
+- lint if configured
+- database migration validation
+- production preview
+
+Then test:
+
+1. Address onboarding
+2. NFT scan
+3. Chog selection
+4. Continue
+5. Profile creation
+6. Profile save
+7. Browser reload
+8. Existing profile loads
+9. Discover
+10. Like
+11. Pass
+12. Incoming Like
+13. Like Back
+14. Match
+15. Chat
+16. Image
+17. Voice note
+18. Notification
+19. Connected wallet
+20. $CHOG balance
+21. Super Like
+22. Real 100 $CHOG transfer
+23. Super Like confirmation
+24. Direct DM
+25. Gift
+26. Real $CHOG gift transfer
+27. Gift message
+28. Audio call
+29. Video call
+30. Block
+31. Report
+32. RLS unauthorized-write tests
+33. Multiple Chog switching
+34. Mobile UI
+
+Also inspect browser console and API logs.
+
+Fix:
+
+- runtime errors
+- failed requests
+- unhandled promises
+- duplicate realtime subscriptions
+- database errors
+- transaction errors
+- WebRTC errors
+- wallet errors
+
+============================================================
+PART 25 — DO NOT STOP AND ASK ME WHAT TO DO NEXT
+============================================================
+
+The complete remaining scope is already defined above.
+
+Do NOT stop with:
+
+"Which feature should I implement next?"
+
+Instead:
+
+1. Inspect existing implementation.
+2. Complete the address onboarding bug.
+3. Verify live Supabase persistence.
+4. Complete $CHOG utility.
+5. Complete Super Like.
+6. Complete direct DM.
+7. Complete Gifts.
+8. Complete notifications.
+9. Complete audio calls.
+10. Complete video calls.
+11. Complete security/RLS.
+12. Complete mobile QA.
+13. Run full production QA.
+
+If something is already complete:
+→ verify it
+→ preserve it
+→ move on.
+
+If something is partially complete:
+→ finish it.
+
+If you find an error:
+→ fix the root cause.
+
+If a required secret is missing:
+→ do not guess it
+→ clearly report it
+→ continue everything else.
+
+============================================================
+FINAL ACCEPTANCE CRITERIA
+============================================================
+
+Do not declare CHOG MATE production-ready until all applicable requirements are verified:
+
+- Address onboarding works
+- NFT scan works
+- Chog selection works
+- Continue with Chog works
+- Create Profile opens
+- Profile saves to Supabase
+- Profile persists after reload
+- Address-only account works as a real social account
+- Connected wallet works
+- Discover works
+- Like works
+- Pass works
+- Match works
+- Chat works
+- Images work
+- Voice notes work
+- Notifications work realtime
+- Real $CHOG balance works
+- Real 100 $CHOG Super Like works
+- Super Like goes directly to recipient wallet
+- Super Like only saves after blockchain confirmation
+- Super Like unlocks direct DM
+- Real $CHOG Gifts work
+- Gift transaction is verified
+- Gift message works
+- Audio calls work
+- Video calls work
+- Block works
+- Report works
+- RLS blocks unauthorized actions
+- Transaction verification cannot be bypassed
+- Multiple Chog switching works
+- Mobile UI works
+- No critical runtime errors remain
+- Frontend build passes
+- API build passes
+- Typecheck passes
+- Production preview works
+
+============================================================
+FINAL REPORT
+============================================================
+
+When finished, provide a concise but complete report:
+
+1. What was already working and preserved
+2. What was fixed
+3. What was newly implemented
+4. Address onboarding result
+5. Supabase persistence result
+6. $CHOG balance result
+7. Super Like result
+8. Direct DM result
+9. Gift result
+10. Notification result
+11. Audio call result
+12. Video call result
+13. RLS/security result
+14. Mobile QA result
+15. Typecheck/build result
+16. Exact environment variables still required, if any
+17. Exact migrations/SQL I must run, if any
+18. Any remaining issue
+
+IMPORTANT:
+
+Do not say "complete" if only code was written.
+
+Only mark a feature COMPLETE after testing it.
+
+Do not use fake NFTs.
+Do not use fake balances.
+Do not use fake transaction hashes.
+Do not use mock blockchain success.
+Do not expose service-role keys.
+Do not request private keys or seed phrases.
+Do not break existing working features.
+
+Finish the application systematically and verify the complete user journey.

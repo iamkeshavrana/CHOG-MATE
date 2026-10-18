@@ -1,0 +1,30 @@
+modules = ["nodejs-20", "web"]
+
+[deployment]
+router = "application"
+deploymentTarget = "autoscale"
+
+[deployment.postBuild]
+args = ["pnpm", "store", "prune"]
+env = { "CI" = "true" }
+
+[workflows]
+runButton = "Project"
+
+[agent]
+stack = "PNPM_WORKSPACE"
+expertMode = true
+
+[postMerge]
+path = "scripts/post-merge.sh"
+timeoutMs = 20000
+
+[userenv]
+
+[userenv.shared]
+VITE_SUPABASE_URL = "https://opkiqyiuduxpawpoqznc.supabase.co"
+VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9wa2lxeWl1ZHV4cGF3cG9xem5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIxNzQyNjIsImV4cCI6MjEwNzc1MDI2Mn0.TBuzdPK7srCWKreIv_Sj5QzGUmrh4u8hPnf4sXDV2Us"
+VITE_WALLETCONNECT_PROJECT_ID = "371cd4b37d231592ce0ee8ee8dee6ba4"
+
+[nix]
+channel = "stable-25_05"

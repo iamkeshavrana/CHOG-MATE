@@ -1,0 +1,696 @@
+CHOG MATE — COMPLETE IMPLEMENTATION FROM STEP 9 ONWARD
+
+IMPORTANT:
+This is an EXISTING CHOG MATE project.
+
+Steps 1–8 are already completed.
+
+DO NOT rebuild the project.
+DO NOT create a new application.
+DO NOT replace the existing UI/design.
+DO NOT remove working functionality from Steps 1–8.
+
+First inspect the existing codebase and understand the current implementation.
+
+Continue from the current state and implement the remaining functionality described below.
+
+==================================================
+CORE PRODUCT DIRECTION
+==================================================
+
+CHOG MATE is a Tinder-style social/dating discovery platform built around Chog NFTs.
+
+The experience should be:
+
+Wallet
+→ Chog NFT
+→ Create Profile
+→ Normal Discover
+→ Like / Pass / Super Like
+→ Match
+→ Chat
+→ Calls
+→ $CHOG interactions
+
+IMPORTANT:
+
+CHOG MATE DOES NOT USE BLIND DATE / BLIND CHOG.
+
+Do NOT hide:
+- Profile photos
+- Chog NFT images
+- Chog token IDs
+- Chog tiers
+
+Do NOT create:
+- Blind Date mode
+- Blind Chog mode
+- Reveal the Chog feature
+- Hidden NFT matching
+
+Normal Discover should always show the user's real profile and actual Chog NFT.
+
+==================================================
+STEP 9 — LIKE + PASS
+==================================================
+
+Implement real Like and Pass functionality.
+
+NORMAL LIKE:
+
+User A clicks Like on User B.
+
+Save the Like in Supabase.
+
+User B should receive a Like notification/request.
+
+A normal Like does NOT immediately unlock DM.
+
+A normal Like does NOT create a Match unless User B also Likes User A.
+
+FLOW:
+
+LIKE
+→ REQUEST
+→ LIKE BACK
+→ MATCH
+
+PASS:
+
+When User A clicks Pass:
+- Save Pass in Supabase.
+- Remove that profile from User A's Discover feed.
+- Persist the Pass after refresh.
+
+Prevent:
+- Self-like
+- Duplicate Like
+- Duplicate Pass
+- Interactions with blocked users
+
+Use existing Supabase tables where possible.
+
+Do not create unnecessary duplicate tables.
+
+==================================================
+STEP 10 — MATCH SYSTEM
+==================================================
+
+Implement mutual Like → Match.
+
+FLOW:
+
+User A Likes User B
+↓
+User B Likes User A
+↓
+MATCH CREATED
+
+When mutual Like occurs:
+
+- Create exactly one Match.
+- Prevent duplicate matches.
+- Show a polished Match success animation/state.
+- Add both users to their Matches list.
+- Enable DM between them.
+
+Match card should show:
+
+- Profile photo
+- Name
+- Username
+- Chog NFT image
+- Chog #Token ID
+- Chog tier
+- Compatibility score
+
+Clicking Match opens the user's profile/chat options.
+
+IMPORTANT:
+
+Normal Like alone does NOT unlock DM.
+
+Only mutual Match unlocks normal DM.
+
+Super Like has separate direct-DM behavior described later.
+
+==================================================
+STEP 11 — REAL $CHOG BALANCE
+==================================================
+
+Implement real $CHOG balance reading.
+
+$CHOG CONTRACT:
+
+0x350035555e10d9afaf1566aaebfced5ba6c27777
+
+Use wagmi/viem and ERC-20 balanceOf().
+
+Display the actual connected wallet's $CHOG balance.
+
+Requirements:
+
+- Correct decimals
+- Loading state
+- Error state
+- Refresh balance when appropriate
+- No fake/mock balances
+
+This step is READ ONLY.
+
+Do NOT send tokens yet.
+
+Do NOT implement gifts yet.
+
+Do NOT implement Super Like transaction yet.
+
+Never request private keys or seed phrases.
+
+==================================================
+STEP 12 — SUPER LIKE
+==================================================
+
+Implement REAL Super Like functionality.
+
+NORMAL LIKE:
+Free.
+
+SUPER LIKE:
+Costs 100 $CHOG by default.
+
+FLOW:
+
+User clicks Super Like
+↓
+Confirmation:
+"Send 100 $CHOG Super Like?"
+↓
+Check actual $CHOG balance
+↓
+User signs transaction through wallet
+↓
+Wait for blockchain confirmation
+↓
+Save Super Like
+↓
+Notify recipient
+↓
+Grant direct DM access
+
+IMPORTANT:
+
+Super Like does NOT automatically create a Match.
+
+Super Like gives the sender direct DM access to the receiver.
+
+Receiver can:
+
+- Reply
+- Like Back
+- Ignore
+- Block
+- Report
+
+If receiver Likes Back:
+→ normal Match is created.
+
+If the blockchain transaction fails/reverts/is rejected:
+- Do NOT save the Super Like as successful.
+- Show proper error.
+
+Show transaction hash after successful transaction.
+
+Never request:
+- Private key
+- Seed phrase
+
+Do not fake the transaction.
+
+==================================================
+STEP 13 — REALTIME NOTIFICATIONS
+==================================================
+
+Implement Supabase Realtime notifications.
+
+Notifications should support:
+
+- New Like
+- New Super Like
+- New Match
+- New Message
+- Incoming Call
+- $CHOG Gift
+
+Notification UI:
+
+- Unread count
+- Notification list
+- Read/unread state
+- Mark as read
+- Click notification to navigate to relevant content
+
+Notifications should arrive without page refresh.
+
+Use Supabase Realtime.
+
+Users must only receive their own notifications.
+
+Respect RLS.
+
+==================================================
+STEP 14 — REALTIME CHAT
+==================================================
+
+Implement real-time messaging.
+
+Chat access:
+
+1. Mutual Match
+OR
+2. Successful Super Like
+
+Normal Like alone does NOT unlock DM.
+
+Chat features:
+
+- Text messages
+- Emoji
+- Realtime receiving
+- Seen/unseen
+- Unread count
+- Typing indicator
+- Online/offline where possible
+- Message timestamps
+- Delete own message
+
+Use Supabase Realtime.
+
+Persist messages in Supabase.
+
+Secure messages using RLS.
+
+Test with two separate users.
+
+Do not implement image messages, voice notes, calls or gifts in this step; those are handled below.
+
+==================================================
+STEP 15 — IMAGE MESSAGES + VOICE NOTES
+==================================================
+
+Add media messaging to the existing chat.
+
+IMAGE:
+
+- Select image
+- Upload to Supabase Storage
+- Send image message
+- Receiver can view image
+- Show upload/loading state
+- Handle upload errors
+
+VOICE NOTE:
+
+- Record from supported browser/device
+- Stop recording
+- Upload securely
+- Send voice message
+- Receiver can play/pause it
+
+SECURITY:
+
+Use proper Supabase Storage policies.
+
+Users should only access media they are authorized to access.
+
+Do not break existing text chat.
+
+==================================================
+STEP 16 — AUDIO + VIDEO CALLS
+==================================================
+
+Implement real audio/video calling.
+
+Use:
+
+WebRTC for media.
+
+Use Supabase Realtime or appropriate signaling for call negotiation.
+
+Call types:
+
+- Audio
+- Video
+
+Requirements:
+
+- Call button inside chat
+- Incoming call screen
+- Caller information
+- Accept
+- Reject
+- End call
+- Microphone mute/unmute
+- Camera on/off
+- Call status
+- Permission handling
+- Connection failure handling
+
+Calls are allowed only between:
+
+- Matched users
+OR
+- Users with active Super Like conversation
+
+Blocked users must not be able to call each other.
+
+Do not create fake/mock call functionality.
+
+==================================================
+STEP 17 — REAL $CHOG GIFTS
+==================================================
+
+Implement real $CHOG gifting inside Match/Chat.
+
+Gift button should be available in authorized conversations.
+
+Preset amounts:
+
+- 50 $CHOG
+- 100 $CHOG
+- 500 $CHOG
+- 1000 $CHOG
+- Custom amount
+
+FLOW:
+
+Click Gift
+↓
+Choose amount
+↓
+Confirmation
+↓
+Check balance
+↓
+User signs transaction
+↓
+Wait for blockchain confirmation
+↓
+Save successful transaction
+↓
+Show gift message in chat
+
+After successful gift:
+
+"Keshav sent you 500 $CHOG"
+
+Show:
+
+- Amount
+- Transaction status
+- Transaction hash
+- "View on Monad"
+
+Add a polished Chog-themed success animation.
+
+IMPORTANT:
+
+Use REAL $CHOG.
+
+Never fake transactions.
+
+Never request private keys or seed phrases.
+
+If transaction fails or is rejected:
+- Do not record it as successful.
+- Show the correct error.
+
+==================================================
+STEP 18 — BLOCK + REPORT
+==================================================
+
+Implement Block and Report.
+
+BLOCK:
+
+When User A blocks User B:
+
+- B disappears from A's Discover.
+- A disappears from B's Discover.
+- Prevent Likes.
+- Prevent Super Likes.
+- Prevent Messages.
+- Prevent Calls.
+- Hide/disable existing interaction appropriately.
+
+REPORT:
+
+Allow reporting users.
+
+Report reasons:
+
+- Spam
+- Harassment
+- Fake profile
+- Inappropriate content
+- Scam
+- Other
+
+Store reports securely.
+
+Do not expose private reports to normal users.
+
+Add confirmation before Block/Report.
+
+Respect RLS.
+
+==================================================
+STEP 19 — SECURITY + SUPABASE RLS
+==================================================
+
+Perform a full security audit.
+
+Do not add unrelated features.
+
+Check RLS and authorization for:
+
+- users
+- profiles
+- chogs
+- chog_traits
+- preferences
+- likes
+- passes
+- super_likes
+- matches
+- messages
+- message_attachments
+- notifications
+- blocks
+- reports
+- calls
+- gifts
+- transactions
+
+Rules must prevent users from modifying another user's private data.
+
+Users should only be able to:
+
+- Edit their own profile
+- Access authorized conversations
+- Access their own notifications
+- Manage their own likes/passes where appropriate
+- Manage their own blocks
+- Create legitimate reports
+
+Security requirements:
+
+- Supabase service role key MUST remain server-side.
+- Never expose service role through VITE variables.
+- Never expose private keys.
+- Never request seed phrases.
+- Never store private keys.
+- Never accept private keys from users.
+
+Review frontend environment variables for accidentally exposed secrets.
+
+==================================================
+STEP 20 — MOBILE + UI POLISH
+==================================================
+
+Now polish the existing CHOG MATE UI.
+
+DO NOT redesign the entire application.
+
+Keep the current CHOG MATE visual identity:
+
+- Purple
+- Warm cream
+- Glassmorphism
+- Chog-inspired
+- Premium
+- Modern
+- Futuristic
+- Playful but professional
+
+Improve:
+
+- Mobile responsiveness
+- Tablet layout
+- Desktop layout
+- Discover cards
+- Swipe interactions
+- Buttons
+- Chat
+- Match cards
+- Notifications
+- Profile
+- Wallet screens
+
+Add/fix:
+
+- Loading states
+- Skeletons
+- Empty states
+- Error states
+- Toast messages
+- Smooth transitions
+- Small useful animations
+- Touch interactions
+
+Do not turn the app into a generic Web3 dashboard.
+
+Keep existing navigation and design language.
+
+==================================================
+STEP 21 — FINAL QA + BUG FIX
+==================================================
+
+Perform a complete QA pass.
+
+Do NOT rebuild the project.
+
+Test this complete flow:
+
+1. Open CHOG MATE
+2. Connect wallet
+3. Detect correct network
+4. Scan Chog NFTs
+5. Select Chog
+6. Create profile
+7. Enter Discover
+8. See real users
+9. See real profile photos
+10. See real Chog NFT images
+11. See Chog #Token ID
+12. See Chog tier/traits
+13. See compatibility score
+14. See "Why you match"
+15. Pass a user
+16. Verify Pass persists
+17. Like a user
+18. Verify Like is saved
+19. User Likes back
+20. Verify Match is created
+21. Open Match
+22. Send message
+23. Verify realtime message
+24. Send image
+25. Send voice note
+26. Test audio call
+27. Test video call
+28. Test Super Like
+29. Verify real $CHOG transaction
+30. Verify Super Like direct DM access
+31. Test $CHOG Gift
+32. Verify real gift transaction
+33. Test Block
+34. Test Report
+35. Refresh page
+36. Verify important data persists
+37. Test mobile layout
+
+Also test the TEST WALLET ADDRESS flow:
+
+Enter Wallet Address
+↓
+Scan real Chog NFTs
+↓
+Select Chog
+↓
+Create Profile
+↓
+Enter Discover
+
+TEST MODE RULES:
+
+- Manual wallet address is for testing only.
+- Do not pretend it is a connected wallet.
+- Do not request signature.
+- Do not request private key.
+- Do not send blockchain transactions from the manually entered address.
+- Do not allow real $CHOG transactions using the manually entered address.
+
+Real blockchain transactions should only be possible from an actually connected wallet.
+
+==================================================
+IMPORTANT FINAL PRODUCT RULES
+==================================================
+
+1. NO BLIND DATE.
+2. NO BLIND CHOG.
+3. NO hidden NFT image.
+4. NO hidden profile photo.
+5. NO "Reveal the Chog".
+6. Normal Tinder-style discovery.
+7. Real Chog NFT is the user's identity.
+8. Real Chog data must be used.
+9. No fake production data.
+10. Real $CHOG transactions only when the wallet is actually connected.
+11. No private keys or seed phrases.
+12. Preserve the existing UI.
+13. Do not rebuild the application.
+14. Do not break Steps 1–8.
+15. Keep the app responsive.
+16. Use Supabase persistence and Realtime.
+17. Respect RLS and authorization.
+
+FINAL USER EXPERIENCE:
+
+CONNECT WALLET
+        ↓
+SCAN CHOG NFT
+        ↓
+CHOOSE CHOG
+        ↓
+CREATE PROFILE
+        ↓
+NORMAL DISCOVER
+        ↓
+┌─────────────────────────┐
+│ REAL PROFILE            │
+│ REAL CHOG NFT            │
+│ NAME / AGE / BIO         │
+│ INTERESTS / SKILLS       │
+│ COMPATIBILITY            │
+└─────────────────────────┘
+        ↓
+PASS / LIKE / SUPER LIKE
+        ↓
+MUTUAL LIKE
+        ↓
+MATCH
+        ↓
+CHAT
+        ↓
+AUDIO / VIDEO CALL
+        ↓
+$CHOG GIFTS
+
+After completing the implementation, provide a concise summary of:
+- What was implemented
+- What was already working
+- What was fixed
+- Any remaining errors/issues
+- Any environment variables or setup still required
+
+Do not claim a feature is working unless it was actually tested.

@@ -1,0 +1,295 @@
+CHOG MATE — FIX NAVBAR AUTHENTICATION / PUBLIC VS AUTHENTICATED ACCESS
+
+Implement the existing product requirement for navigation visibility and access control.
+
+IMPORTANT:
+Do not rebuild the navbar or redesign the UI.
+Preserve the existing Chog Mate navbar styling.
+Only fix the visibility/routing/access logic.
+
+==================================================
+PUBLIC / NOT LOGGED IN
+==================================================
+
+When the visitor has NO active CHOG MATE account/session:
+
+Navbar should show ONLY:
+
+- Home / Landing
+- Discover
+- Connect Wallet
+
+Do NOT show authenticated navigation items such as:
+
+- My Profile
+- Messages
+- My Chog
+- Matches
+- Notifications
+- Settings
+- other private/account navigation
+
+The user must be able to browse:
+Landing/Home
+Discover
+
+without creating an account.
+
+==================================================
+PUBLIC DISCOVER
+==================================================
+
+Discover must remain publicly browsable without login.
+
+Anonymous users can:
+- view real registered Chog holder profiles
+- view real Chog NFT image
+- view profile information
+- view Chog number/tier where appropriate
+- browse discovery cards
+
+Anonymous users CANNOT:
+- Like
+- Pass
+- Super Like
+- Message
+- Match
+- Gift $CHOG
+- Call
+- access private account pages
+
+If an anonymous user attempts an authenticated action, show a professional Connect Wallet / Create Account prompt.
+
+Do not create an account merely because someone opens Discover.
+
+==================================================
+AUTHENTICATED / ACCOUNT SESSION
+==================================================
+
+Once a real CHOG MATE account/session exists after:
+
+Connected wallet onboarding
+OR
+Manual public wallet-address onboarding
+
+show the authenticated navbar.
+
+Authenticated navigation can include the existing:
+
+- Home
+- Discover
+- Matches
+- Messages
+- My Chog
+- My Profile
+- Notifications
+- Settings
+
+Use the existing application's actual route names/components where possible.
+
+Do not create duplicate pages if they already exist.
+
+==================================================
+IMPORTANT — ADDRESS-ONLY ACCOUNTS
+==================================================
+
+Manual wallet-address onboarding creates a REAL persistent CHOG MATE social account.
+
+Therefore:
+
+Before account creation:
+→ only Home + Discover + Connect Wallet
+
+After successful address-only account creation/session:
+→ authenticated navbar becomes available
+
+However, address-only accounts are NOT connected blockchain wallets.
+
+Therefore:
+- social/profile/discovery features can work
+- paid blockchain actions still require actual connected wallet
+
+For:
+Super Like
+$CHOG Gift
+any blockchain transaction
+
+show:
+"Connect your wallet to continue."
+
+Never treat the manually entered address as a signer.
+
+==================================================
+SESSION STATE
+==================================================
+
+Navbar visibility must be based on the actual CHOG MATE authentication/session state.
+
+Do NOT use:
+- arbitrary localStorage flags
+- "wallet address exists" alone
+- frontend-only booleans that can become stale
+
+Correct behavior:
+
+NO ACTIVE SESSION
+→ Public navbar
+
+VALID CHOG MATE SESSION
+→ Authenticated navbar
+
+SESSION EXPIRED/LOGGED OUT
+→ Public navbar immediately
+
+If the user refreshes:
+- restore the correct session state
+- show the correct navbar
+
+If the user logs out:
+- private navbar disappears
+- public navbar returns
+
+==================================================
+ROUTE PROTECTION
+==================================================
+
+Do not rely only on hiding navbar items.
+
+Protect private routes too.
+
+If anonymous user manually navigates to:
+
+/profile
+/messages
+/matches
+/my-chog
+/settings
+or equivalent private routes
+
+do not expose private account data.
+
+Redirect/show:
+Connect Wallet / Create Account
+
+Public routes:
+/
+/discover
+
+should remain accessible without login.
+
+Use the existing routing architecture.
+
+==================================================
+DISCOVER → AUTHENTICATION FLOW
+==================================================
+
+Anonymous:
+Discover
+→ click Like / Pass / Super Like / Message
+→ authentication prompt
+
+After successful authentication:
+→ return the user to the relevant Discover/profile context where practical
+
+Do NOT lose the user's current discovery context unnecessarily.
+
+==================================================
+SECURITY
+==================================================
+
+Do not expose private API data to anonymous users just because navbar items are hidden.
+
+Server/API must enforce authentication for:
+- private profile editing
+- messages
+- matches
+- likes/passes
+- notifications
+- My Chog management
+- private account data
+- paid interactions
+
+Public Discover endpoint should return only data intended to be publicly visible.
+
+==================================================
+TEST
+==================================================
+
+Test all of these:
+
+TEST 1:
+Open app in fresh logged-out state.
+Expected navbar:
+Home | Discover | Connect Wallet
+
+TEST 2:
+Open Discover while logged out.
+Expected:
+Discover works.
+
+TEST 3:
+Click Like while logged out.
+Expected:
+Connect Wallet/Create Account prompt.
+
+TEST 4:
+Create/restore a real CHOG MATE account.
+Expected:
+Authenticated navbar appears.
+
+TEST 5:
+Authenticated navbar includes:
+My Profile
+Messages
+My Chog
+Matches
+Notifications
+etc. according to existing app routes.
+
+TEST 6:
+Refresh authenticated page.
+Expected:
+Authenticated navbar remains.
+
+TEST 7:
+Logout.
+Expected:
+Private navbar disappears immediately.
+Public navbar returns.
+
+TEST 8:
+Manually enter a private route while logged out.
+Expected:
+Private content is not accessible.
+
+TEST 9:
+Address-only account:
+Social/private features work after account creation.
+Paid blockchain actions still require connected wallet.
+
+Do not create fake accounts or fake production data.
+
+==================================================
+IMPORTANT
+==================================================
+
+Do this as a focused auth/navigation task.
+
+Do NOT:
+- rebuild the UI
+- change the database schema
+- redo migration 0005
+- modify the working manual Chog onboarding
+- implement Gifts
+- implement Calls
+- implement Super Like payments
+
+First fix and verify the public-vs-authenticated navigation/access behavior.
+
+At the end report:
+- public navbar behavior
+- authenticated navbar behavior
+- route protection
+- address-only account behavior
+- logout behavior
+- any remaining issue

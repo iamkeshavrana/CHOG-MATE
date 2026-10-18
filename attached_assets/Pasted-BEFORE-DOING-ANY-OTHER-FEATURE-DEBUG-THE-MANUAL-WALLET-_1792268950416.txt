@@ -1,0 +1,291 @@
+BEFORE DOING ANY OTHER FEATURE, DEBUG THE MANUAL WALLET ADDRESS PROFILE ERROR.
+
+I suspect the current error is caused by missing/incomplete Supabase tables, columns, migrations, relationships, or RLS policies.
+
+Current error:
+"We couldn't verify or open this account right now. Please try again shortly."
+
+Current flow:
+Manual wallet address
+→ Scan Wallet
+→ Chog NFT found successfully
+→ Choose Chog
+→ Continue with Chog
+→ ERROR
+
+DO NOT assume the NFT scanner is the problem. The scanner already finds the Chog.
+
+==================================================
+STEP 1 — AUDIT SUPABASE FIRST
+==================================================
+
+Inspect the existing Supabase database/schema before changing frontend code.
+
+Verify whether all tables required by the manual address onboarding flow actually exist.
+
+At minimum inspect:
+
+users
+profiles
+chogs
+chog_traits
+preferences
+
+Also inspect any table currently used for:
+- wallet/address authentication
+- sessions
+- account identity
+- selected Chog ownership
+- profile creation
+
+For every relevant table verify:
+- table exists
+- required columns exist
+- correct data types
+- primary keys
+- foreign keys
+- unique constraints
+- indexes
+- nullable/non-nullable fields
+- default values
+
+DO NOT blindly recreate existing tables.
+
+If a required table/column is missing:
+- create a proper Supabase migration
+- apply the migration
+- verify it actually exists in the database
+
+==================================================
+STEP 2 — CHECK THE EXACT DATABASE OPERATION
+==================================================
+
+Trace what happens AFTER the user clicks:
+
+"Continue with Chog"
+
+Find the exact API endpoint/function.
+
+Determine whether it performs operations such as:
+
+INSERT users
+INSERT profiles
+INSERT chogs
+INSERT/update selected Chog
+CREATE address-only session
+etc.
+
+For EACH database operation, verify:
+- correct table name
+- correct column names
+- correct values
+- correct foreign keys
+- correct user/account ID
+- correct wallet address
+- correct token ID
+
+Do not hide database errors.
+
+If Supabase returns an error, log the actual safe error server-side and identify the exact cause.
+
+Examples to check:
+- relation/table does not exist
+- column does not exist
+- foreign key violation
+- duplicate key
+- null value violation
+- RLS policy violation
+- permission denied
+- invalid UUID
+- incorrect wallet address format
+- missing session/account record
+
+==================================================
+STEP 3 — CHECK RLS
+==================================================
+
+Inspect RLS policies for every table involved in:
+
+manual address account creation
+profile creation
+Chog selection
+profile loading
+
+The address-only onboarding is a legitimate production social account flow.
+
+It must be possible for the backend to create the account/profile using the server-side Supabase service role where appropriate.
+
+Do NOT expose the service role key to the frontend.
+
+Do NOT disable RLS globally.
+
+Instead:
+- keep RLS enabled
+- create appropriate policies where needed
+- use server-side service role only for trusted backend operations
+
+Verify that RLS is not silently causing the current error.
+
+==================================================
+STEP 4 — CHECK SUPABASE SERVICE ROLE
+==================================================
+
+Verify that:
+
+SUPABASE_SERVICE_ROLE_KEY
+
+is actually configured in the backend environment.
+
+Do NOT print the secret.
+
+Verify that the backend can successfully connect to Supabase.
+
+Run a safe database health check.
+
+Confirm:
+- Supabase URL works
+- service role authentication works
+- required tables are accessible
+- INSERT/SELECT/UPDATE operations used by onboarding work
+
+If the service role is missing or invalid, report that clearly.
+
+==================================================
+STEP 5 — FIX MANUAL ADDRESS ACCOUNT CREATION
+==================================================
+
+After the database is confirmed/fixed, implement the complete flow:
+
+Public wallet address
+→ validate EVM address
+→ scan real Chog NFTs
+→ select Chog
+→ backend re-validates NFT ownership
+→ find existing CHOG MATE account OR create one
+→ create/open server-side address-only session
+→ create/load profile
+→ open existing Create Profile UI
+→ user fills profile
+→ save profile to Supabase
+→ selected Chog association saved
+→ enter Discover
+
+This must be a REAL persistent account.
+
+Do NOT use localStorage as the database.
+
+==================================================
+STEP 6 — DUPLICATE ACCOUNT HANDLING
+==================================================
+
+One wallet address = one CHOG MATE account.
+
+If the wallet already has an account:
+- load existing account
+- load existing profile
+- do not create duplicate user rows
+
+If new:
+- create account
+- create profile record when appropriate
+- associate selected Chog
+
+Make sure wallet addresses are normalized consistently, preferably lowercase for database uniqueness/comparison.
+
+==================================================
+STEP 7 — VERIFY SELECTED CHOG
+==================================================
+
+Contract:
+
+0xc96d31f8626c6d03fae5dcd3d61e3fb9f4a73763
+
+Before saving the selected Chog:
+- verify wallet owns tokenId
+- fetch/verify metadata
+- save correct token ID
+- save correct contract address
+- save correct owner address
+
+Do not trust only frontend NFT data.
+
+==================================================
+STEP 8 — FIX THE ERROR HANDLING
+==================================================
+
+Do NOT continue showing:
+
+"We couldn't verify or open this account right now."
+
+if the backend knows the actual reason.
+
+Return safe structured errors from the API.
+
+Examples:
+
+DATABASE_TABLE_MISSING
+DATABASE_COLUMN_MISSING
+RLS_DENIED
+ACCOUNT_CREATE_FAILED
+PROFILE_CREATE_FAILED
+CHOG_OWNERSHIP_FAILED
+SESSION_CREATE_FAILED
+
+Frontend should convert these into useful user-facing messages.
+
+Never expose:
+- service role key
+- database password
+- private keys
+- stack traces
+- internal secrets
+
+==================================================
+STEP 9 — ACTUAL END-TO-END TEST
+==================================================
+
+After fixing the database and code, test the EXACT flow:
+
+1. Enter manual wallet address
+2. Scan Wallet
+3. Chog appears
+4. Select Chog
+5. Click Continue with Chog
+6. Create Profile UI opens
+7. Fill profile
+8. Save
+9. Verify profile row exists in Supabase
+10. Verify selected Chog association exists
+11. Refresh browser
+12. Account/profile still exists
+13. Open Discover
+14. Profile is discoverable
+15. Own profile does not appear in own Discover
+16. Enter same wallet again
+17. Existing account loads instead of creating duplicate
+
+==================================================
+VERY IMPORTANT
+==================================================
+
+DO NOT MOVE TO:
+- Super Like
+- Gifts
+- WebRTC Calls
+- advanced chat
+- other unfinished features
+
+until this specific manual address → profile creation problem is fixed and actually tested.
+
+First report:
+
+1. Which Supabase tables already existed
+2. Which tables/columns were missing
+3. Which migration(s) were required
+4. Whether RLS caused the issue
+5. Whether service-role configuration caused the issue
+6. Exact root cause of the original error
+7. What was fixed
+8. Whether the complete manual profile creation flow now works
+
+Only after this is verified should we proceed to the remaining features.

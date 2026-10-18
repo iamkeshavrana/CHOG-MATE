@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "CHOG MATE"
+description = "A premium Chog Genesis NFT social discovery app where verified holders can create profiles, discover real people, match, chat, and connect through calls."
+version = "1.0.0"
+id = "artifacts/chog-mate"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 25724
+
+[services.development]
+run = "pnpm --filter @workspace/chog-mate run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/chog-mate", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/chog-mate/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "25724"
+BASE_PATH = "/"

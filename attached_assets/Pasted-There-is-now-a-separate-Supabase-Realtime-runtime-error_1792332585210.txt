@@ -1,0 +1,68 @@
+There is now a separate Supabase Realtime runtime error in the existing CHOG MATE app.
+
+Error:
+
+[plugin:runtime-error-plugin] cannot add `postgres_changes` callbacks for realtime:user-notifications:<user-id> after `subscribe()`.
+
+Location:
+src/components/notification-center.tsx:49:10
+
+This is a Supabase Realtime channel lifecycle/order bug.
+
+Fix the ROOT CAUSE.
+
+Inspect notification-center.tsx, especially:
+- the channel creation
+- `.on("postgres_changes", ...)`
+- `.subscribe()`
+- cleanup/unsubscribe logic
+- changeUser lifecycle around lines 119 and 139
+
+Correct pattern must be:
+
+const channel = client
+  .channel(channelName)
+  .on("postgres_changes", config, callback);
+
+await channel.subscribe();
+
+Do NOT call `.on()` after the channel has already been subscribed.
+
+Also make sure the same channel is not reused after it has already been subscribed.
+
+Requirements:
+
+1. Create a fresh notification channel when the active user changes.
+2. Register ALL postgres_changes listeners BEFORE calling subscribe().
+3. Subscribe only after all listeners are registered.
+4. Before replacing an existing channel, properly remove/unsubscribe the old channel.
+5. Prevent duplicate subscriptions when React effects rerun.
+6. Handle user login/logout/address-only session changes safely.
+7. Avoid race conditions where an old cleanup removes the new channel.
+8. Do not create multiple notification channels for the same user.
+9. Keep realtime notifications working.
+10. Do not disable Supabase Realtime as a workaround.
+11. Do not remove notifications functionality.
+12. Do not modify unrelated database schema.
+
+After fixing:
+
+- run TypeScript/typecheck
+- run production build
+- open the app
+- verify the notification center no longer throws the runtime overlay
+- verify a notification channel successfully subscribes
+- verify changing user/session does not create duplicate channel errors
+- verify cleanup works on logout/unmount
+
+IMPORTANT:
+Do not touch the already-fixed profiles.photo_url migration.
+Do not redo database migration.
+Do not move to Gifts/Calls/etc. yet.
+
+Report:
+- exact root cause
+- file/lines changed
+- realtime subscription lifecycle after fix
+- whether runtime error is gone
+- whether notifications still work

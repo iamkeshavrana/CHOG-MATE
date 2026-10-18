@@ -1,0 +1,1403 @@
+CHOG MATE — FINAL PRODUCT UPDATE / UI + NFT DATA + PROFILE SYSTEM
+
+IMPORTANT:
+Do NOT rebuild the entire project from scratch.
+Inspect the existing CHOG MATE project first and preserve all working functionality.
+
+Make the following changes carefully.
+
+The website must feel like a polished premium Web3 social platform.
+
+==================================================
+1. LANDING PAGE — REMOVE NFT COLLECTION GRID
+==================================================
+
+IMPORTANT:
+
+Remove the section on the landing page that currently displays:
+- All NFTs
+- NFT collection grid
+- Random/static NFT gallery
+
+Do NOT show all Chog NFTs on the landing page anymore.
+
+Instead, the landing page should focus on:
+
+1. CHOG MATE hero
+2. Live Sales
+3. Chog NFT statistics
+4. How CHOG MATE works
+5. Main CTA
+
+==================================================
+2. HERO NFT IMAGE → CHOG GIF
+==================================================
+
+On the landing page, there is currently a Chog image underneath/after the main heading.
+
+REMOVE that static image.
+
+Replace it with the provided Chog GIF.
+
+The GIF should be displayed in the exact same hero position.
+
+IMPORTANT GIF REQUIREMENTS:
+
+- Transparent background
+- Chog body remains completely stable
+- ONLY the head moves
+- Head movement:
+  LEFT → RIGHT
+  RIGHT → LEFT
+- Smooth slow movement
+- Eyes blink naturally
+- No body movement
+- No shaking
+- No jumping
+- No frame leakage
+- No duplicated body/head
+- No cropped body appearing above the head
+- No visible background
+- Preserve the original Chog proportions
+- Do not stretch the GIF
+- Use object-contain
+- Keep the GIF centered
+
+The GIF should look like a premium idle animation.
+
+Do not add another animation on top of the GIF.
+
+==================================================
+3. LANDING PAGE THEME
+==================================================
+
+Change the overall landing page theme.
+
+BACKGROUND:
+
+Use warm white / warm cream / beige.
+
+Preferred colors:
+
+#FFFDF8
+#FFF7E8
+#F7EBD8
+
+Avoid a dark landing page.
+
+PURPLE should be used for:
+
+- Main headers
+- Section headers
+- Navigation active states
+- Buttons
+- Tabs
+- Important labels
+- Icons where appropriate
+- Borders/accent elements
+
+Primary purple:
+
+#7047FF
+
+Bright purple:
+
+#8A63FF
+
+Deep purple:
+
+#24133F
+
+The result should feel:
+
+Premium
+Warm
+Clean
+Futuristic
+Chog-inspired
+Monad-inspired
+
+Do NOT make it look like a generic SaaS dashboard.
+
+==================================================
+4. NAVIGATION / HEADER
+==================================================
+
+Keep the navbar glass-style but adapt it to the warm-white theme.
+
+Navbar background:
+
+Semi-transparent warm white / cream glass.
+
+Use:
+
+backdrop-blur
+subtle purple border
+soft shadow
+
+Navigation text should be dark purple.
+
+Active tab:
+
+Purple background or purple underline.
+
+Main navigation:
+
+Home
+Discover
+Matches
+Messages
+My Chog
+My Profile
+Settings
+
+On mobile:
+
+Use a premium glass bottom navigation.
+
+==================================================
+5. LANDING PAGE — LIVE SALES ONLY
+==================================================
+
+Replace the previous "All NFTs" section with:
+
+LIVE SALES
+
+Only display REAL LIVE Chog NFT sales.
+
+DO NOT display:
+- all collection NFTs
+- fake sales
+- hardcoded sales
+- random sample sales
+
+Every sale must come from a real data source.
+
+For each live sale display:
+
+Chog NFT image
+NFT number
+Sale price
+Currency
+Marketplace
+Time / recent status
+
+Example:
+
+LIVE SALE
+
+Chog #1234
+2.4 MON
+OpenSea
+
+The section should update dynamically when new sales are available.
+
+If there are currently no live sales:
+
+Show:
+
+NO LIVE SALES
+
+"Live Chog sales will appear here."
+
+Do NOT populate fake sales.
+
+==================================================
+6. LIVE SALES DATA ARCHITECTURE
+==================================================
+
+Use a real NFT marketplace/indexer/API source.
+
+Do not scrape the frontend manually.
+
+Create a service layer:
+
+nftService
+marketplaceService
+
+The frontend should request:
+
+getLiveSales()
+
+Return:
+
+tokenId
+image
+price
+currency
+marketplace
+saleUrl
+timestamp
+
+Use caching where appropriate.
+
+If API credentials are required:
+
+Use environment variables.
+
+Never hardcode private API keys.
+
+If live sales API is temporarily unavailable:
+
+Show a proper:
+
+LIVE SALES UNAVAILABLE
+
+state.
+
+Do NOT replace it with fake sales.
+
+==================================================
+7. CHOG NFT STATISTICS
+==================================================
+
+Add a premium statistics section directly around the Live Sales area.
+
+Show these four stats:
+
+FLOOR PRICE
+
+TOP FLOOR
+
+TOTAL VOLUME
+
+TOTAL HOLDERS
+
+Cards should be premium glass cards on the warm background.
+
+Example layout:
+
+┌─────────────────────────────────────┐
+│ FLOOR PRICE     TOP FLOOR           │
+│ 2.4 MON         15.8 MON            │
+│                                     │
+│ TOTAL VOLUME    TOTAL HOLDERS       │
+│ 2.1M MON        1,234               │
+└─────────────────────────────────────┘
+
+Do NOT use fake values in production.
+
+Stats must come from a real NFT data source.
+
+==================================================
+8. STATISTICS DEFINITIONS
+==================================================
+
+FLOOR PRICE:
+
+Current lowest valid listed Chog NFT price.
+
+TOP FLOOR:
+
+Highest relevant current listing/sale metric available from the chosen data provider.
+
+Do not invent a definition if the provider already exposes a top-floor metric.
+
+TOTAL VOLUME:
+
+Total collection trading volume from the real data source.
+
+TOTAL HOLDERS:
+
+Unique wallets currently holding at least one Chog NFT.
+
+If holder count cannot be retrieved directly:
+
+Use a reliable indexed blockchain data source.
+
+==================================================
+9. MY CHOG — MAJOR CHANGE
+==================================================
+
+When the user clicks:
+
+MY CHOG
+
+DO NOT show only the currently selected NFT.
+
+Instead:
+
+Scan the connected wallet and display ALL Chog NFTs owned by that wallet.
+
+Example:
+
+MY CHOGS
+
+Chog #102
+Chog #456
+Chog #812
+Chog #1933
+
+Each NFT card must show:
+
+- Actual NFT image
+- Token ID
+- Ownership verification
+- Traits
+- Select button
+
+Only NFTs actually owned by the connected wallet should appear.
+
+No fake NFTs.
+
+==================================================
+10. MY CHOG PAGE
+==================================================
+
+Create a premium NFT collection-style page:
+
+MY CHOG
+
+Header:
+
+YOUR CHOG COLLECTION
+
+Subheading:
+
+"Every Chog you own, in one place."
+
+Display all owned Chogs in a responsive grid.
+
+Desktop:
+3–5 cards depending on screen size.
+
+Mobile:
+2-column or 1-column depending on width.
+
+Clicking an NFT:
+
+Open NFT details.
+
+Show:
+
+Large NFT image
+Token ID
+Traits
+Contract
+Owner wallet
+Metadata
+Selected status
+
+Button:
+
+USE AS PROFILE CHOG
+
+==================================================
+11. PROFILE SYSTEM
+==================================================
+
+Create a dedicated:
+
+MY PROFILE
+
+page.
+
+The profile should show:
+
+Profile picture:
+Selected Chog NFT artwork
+
+Username
+
+Display Name
+
+Gender
+
+Selected Chog
+
+Chog NFT Number
+
+Bio
+
+Interests
+
+Skills
+
+Looking For
+
+Wallet verification
+
+EDIT PROFILE button
+
+==================================================
+12. PROFILE LAYOUT
+==================================================
+
+Premium profile layout.
+
+Top:
+
+Large selected Chog PFP.
+
+Below:
+
+@username
+
+Display Name
+
+Verified Chog Holder badge
+
+Then:
+
+Chog #1234
+
+Profile information:
+
+Name:
+Keshav
+
+Gender:
+Male
+
+Username:
+@username
+
+Bio:
+...
+
+Then:
+
+Interests
+
+Skills
+
+Looking For
+
+==================================================
+13. SELECTED CHOG
+==================================================
+
+The user must be able to choose which owned Chog becomes their profile PFP.
+
+Flow:
+
+MY CHOG
+
+↓
+
+Select NFT
+
+↓
+
+USE AS PROFILE CHOG
+
+↓
+
+Confirm
+
+↓
+
+That NFT becomes profile PFP.
+
+Show:
+
+SELECTED CHOG
+
+badge.
+
+The selected NFT must be one of the NFTs actually owned by the wallet.
+
+==================================================
+14. EDIT PROFILE
+==================================================
+
+Add:
+
+EDIT PROFILE
+
+Fields:
+
+Username
+Display Name
+Name
+Gender
+Bio
+Interests
+Skills
+Looking For
+Location
+Timezone
+
+Profile picture cannot be uploaded manually.
+
+The profile PFP must come from an owned Chog NFT.
+
+Allow the user to change the selected Chog from their owned collection.
+
+==================================================
+15. NFT-BASED PROFILE CREATION
+==================================================
+
+This is VERY IMPORTANT.
+
+A user cannot create a normal profile without owning a Chog NFT.
+
+Profile creation flow:
+
+User enters/scans EVM wallet address.
+
+↓
+
+System validates wallet.
+
+↓
+
+Scan wallet for Chog NFT ownership.
+
+↓
+
+If wallet owns one or more Chogs:
+
+Show:
+
+CHOG FOUND
+
+"Your Chog identity is ready."
+
+Then display owned NFTs.
+
+User selects one.
+
+↓
+
+Create profile.
+
+If wallet owns ZERO Chogs:
+
+DO NOT create profile.
+
+Show:
+
+NO CHOG FOUND
+
+"CHOG MATE is only for verified Chog holders."
+
+Button:
+
+SCAN AGAIN
+
+==================================================
+16. SETTINGS — WALLET SCANNER
+==================================================
+
+Add this inside:
+
+SETTINGS
+
+section:
+
+CHOG WALLET SCANNER
+
+Input:
+
+Enter EVM wallet address
+
+Placeholder:
+
+0x...
+
+Button:
+
+SCAN WALLET
+
+When clicked:
+
+Validate EVM address.
+
+Then check the address for Chog NFTs.
+
+Display scanning state:
+
+SCANNING WALLET...
+
+Then:
+
+CHOG FOUND
+
+or:
+
+NO CHOG FOUND
+
+==================================================
+17. WALLET SCANNER SECURITY
+==================================================
+
+IMPORTANT:
+
+The wallet address entered in Settings must be checked against the actual blockchain/indexer.
+
+Never trust frontend input alone.
+
+Use:
+
+viem
+Monad RPC
+NFT contract
+or reliable NFT indexer.
+
+Verify:
+
+contract address
+token ownership
+token ID
+
+The scanner must specifically check:
+
+CHOG NFT contract
+
+0xc96d31f8626c6d03fae5dcd3d61e3fb9f4a73763
+
+Monad Mainnet:
+
+Chain ID 143
+
+DO NOT scan for the $CHOG token.
+
+$CHOG token:
+
+0x350035555e10d9afaf1566aaebfced5ba6c27777
+
+That is NOT the NFT contract.
+
+==================================================
+18. PROFILE CREATION RULE
+==================================================
+
+STRICT RULE:
+
+NO CHOG = NO PROFILE
+
+NO CHOG = NO DISCOVER
+
+NO CHOG = NO MATCHING
+
+NO CHOG = NO MESSAGES
+
+NO CHOG = NO CHOG MATE ACCOUNT
+
+A wallet without a Chog should not be able to create a normal production profile.
+
+==================================================
+19. DISCOVER
+==================================================
+
+DISCOVER should show REAL profiles only.
+
+A profile appears in Discover only when:
+
+1. User owns a Chog NFT.
+2. NFT ownership is verified.
+3. Profile has been completed.
+4. Profile has a selected Chog.
+5. Profile is not blocked.
+6. Profile is not already passed/matched according to discovery rules.
+
+Do NOT create fake users.
+
+Do NOT seed fake profiles.
+
+Do NOT show placeholder profiles in production.
+
+==================================================
+20. DISCOVER CARD
+==================================================
+
+Show:
+
+Selected Chog PFP
+
+Username
+
+Display name
+
+Age only if dating mode is enabled
+
+Gender where appropriate
+
+Location
+
+Looking For
+
+Interests
+
+Skills
+
+Compatibility %
+
+Chog NFT number
+
+Buttons:
+
+PASS
+
+LIKE
+
+SUPER LIKE
+
+Swipe interaction should remain Tinder-style.
+
+==================================================
+21. MATCHES
+==================================================
+
+MATCHES page should contain ONLY real mutual matches.
+
+When:
+
+User A likes User B
+
+AND
+
+User B likes User A
+
+Create:
+
+MATCH
+
+Then display both users inside:
+
+MATCHES
+
+Show:
+
+Chog PFP
+Username
+Compatibility
+Matched time
+
+No fake matches.
+
+No demo matches in production.
+
+==================================================
+22. MESSAGES
+==================================================
+
+MESSAGES must contain ONLY people with whom the current user has a real match.
+
+Do NOT allow random users to appear in messages.
+
+Do NOT allow messaging before a match.
+
+Structure:
+
+MESSAGES
+
+Match 1
+Match 2
+Match 3
+
+Clicking a match opens the conversation.
+
+==================================================
+23. CONTACT / CHAT FEATURES
+==================================================
+
+Inside a matched conversation, allow:
+
+Text Message
+
+Voice Message / Voice Recording
+
+Image Message
+
+File Message
+
+Audio Call
+
+Video Call
+
+Emoji
+
+Typing indicator
+
+Read status
+
+Reply
+
+Delete message
+
+Block
+
+Report
+
+Unmatch
+
+IMPORTANT:
+
+All communication is available ONLY after mutual match.
+
+==================================================
+24. AUDIO CALL
+==================================================
+
+Add:
+
+VOICE CALL
+
+Use WebRTC.
+
+States:
+
+Calling
+Ringing
+Connected
+Muted
+Ended
+Declined
+Failed
+
+Never fake a connected call.
+
+If WebRTC infrastructure is not configured:
+
+Show:
+
+VOICE CALL NOT AVAILABLE
+
+rather than pretending it works.
+
+==================================================
+25. VIDEO CALL
+==================================================
+
+Add:
+
+VIDEO CALL
+
+Use WebRTC.
+
+UI:
+
+Remote video
+Local preview
+Mute
+Camera
+Speaker
+End Call
+
+States:
+
+Calling
+Ringing
+Connected
+Camera Off
+Muted
+Ended
+Declined
+Failed
+
+No fake calls.
+
+==================================================
+26. VOICE RECORD MESSAGE
+==================================================
+
+Inside chat add microphone button.
+
+User can:
+
+Press/hold or click record.
+
+Show:
+
+Recording...
+
+Timer:
+
+00:05
+
+Controls:
+
+Stop
+Cancel
+Send
+
+Store audio securely.
+
+Show voice message bubble with:
+
+Play/Pause
+Duration
+Progress
+
+==================================================
+27. MATCH + MESSAGE FLOW
+==================================================
+
+Exact flow:
+
+DISCOVER
+
+↓
+
+LIKE
+
+↓
+
+OTHER USER LIKES BACK
+
+↓
+
+IT'S A CHOG MATE
+
+↓
+
+MATCH CREATED
+
+↓
+
+MATCH APPEARS IN MATCHES
+
+↓
+
+MATCH APPEARS IN MESSAGES
+
+↓
+
+CHAT
+
+↓
+
+VOICE / VIDEO CALL
+
+This must be real database-backed functionality.
+
+==================================================
+28. NAVIGATION
+==================================================
+
+Main navigation:
+
+HOME
+
+DISCOVER
+
+MATCHES
+
+MESSAGES
+
+MY CHOG
+
+MY PROFILE
+
+SETTINGS
+
+Do not create unnecessary sections.
+
+==================================================
+29. HOME / LANDING PAGE
+==================================================
+
+Final landing page order:
+
+1. Navbar
+
+2. Hero
+
+MEET YOUR
+CHOG MATE.
+
+Meet. Match. Chog.
+
+CTA:
+
+START DISCOVERING
+
+Hero Chog GIF underneath/after heading.
+
+3. Live Sales
+
+REAL LIVE CHOG SALES
+
+4. NFT Statistics
+
+Floor Price
+Top Floor
+Total Volume
+Total Holders
+
+5. How It Works
+
+Connect
+Create
+Discover
+Match
+
+6. Blind Chog feature
+
+7. Final CTA
+
+FIND YOUR CHOG MATE
+
+==================================================
+30. UI THEME
+==================================================
+
+GLOBAL BACKGROUND:
+
+Warm white / beige.
+
+Use:
+
+#FFFDF8
+#FFF7E8
+#F7EBD8
+
+HEADERS:
+
+Purple.
+
+BUTTONS:
+
+Purple.
+
+ACTIVE TABS:
+
+Purple.
+
+CARDS:
+
+Warm white glass.
+
+Borders:
+
+Soft lavender/purple.
+
+Do not make every element purple.
+
+Keep it elegant.
+
+==================================================
+31. GLASSMORPHISM
+==================================================
+
+Use:
+
+backdrop-filter: blur()
+
+Semi-transparent cream surfaces.
+
+Very subtle purple borders.
+
+Soft shadows.
+
+Rounded corners.
+
+No excessive neon.
+
+==================================================
+32. MOBILE
+==================================================
+
+Mobile experience must be excellent.
+
+Bottom navigation:
+
+Home
+Discover
+Matches
+Messages
+Profile
+
+My Chog and Settings can be accessible through Profile/menu.
+
+Swipe cards should be full-screen friendly.
+
+Chat should feel like a real messaging application.
+
+Call UI should work properly on mobile.
+
+==================================================
+33. NFT DATA
+==================================================
+
+Use real Chog NFT data everywhere.
+
+Never hardcode production NFT images.
+
+Never invent token IDs.
+
+Never invent ownership.
+
+Never invent traits.
+
+NFT source must support:
+
+Token ID
+Image
+Metadata
+Traits
+Owner
+
+==================================================
+34. REAL-TIME NFT DATA
+==================================================
+
+Live Sales and stats should update from the configured real data provider.
+
+Create a clean abstraction:
+
+NFTDataService
+
+Methods:
+
+getCollectionStats()
+
+getLiveSales()
+
+getNFT(tokenId)
+
+getWalletNFTs(address)
+
+verifyOwnership(address, tokenId)
+
+getNFTTraits(tokenId)
+
+This keeps the frontend independent from a specific API.
+
+==================================================
+35. DATABASE
+==================================================
+
+Ensure database supports:
+
+users
+
+profiles
+
+wallets
+
+chogs
+
+chog_traits
+
+preferences
+
+likes
+
+passes
+
+super_likes
+
+matches
+
+messages
+
+voice_messages
+
+calls
+
+notifications
+
+blocks
+
+reports
+
+Use Supabase.
+
+Enable Row Level Security.
+
+==================================================
+36. PROFILE DATABASE LOGIC
+==================================================
+
+A profile should contain:
+
+user_id
+
+wallet_address
+
+username
+
+display_name
+
+name
+
+gender
+
+bio
+
+selected_chog_token_id
+
+selected_chog_image
+
+location
+
+timezone
+
+interests
+
+skills
+
+looking_for
+
+created_at
+
+updated_at
+
+The selected Chog token ID must be verified against wallet ownership.
+
+==================================================
+37. IMPORTANT OWNERSHIP RULE
+==================================================
+
+If the user transfers their selected Chog away:
+
+The system must detect this.
+
+Do not continue showing:
+
+VERIFIED CHOG HOLDER
+
+if they no longer own the NFT.
+
+Handle the profile gracefully.
+
+If they still own another Chog:
+
+Allow them to select another owned Chog.
+
+If they own zero Chogs:
+
+Restrict production access according to the application's holder policy.
+
+==================================================
+38. NO FAKE DATA
+==================================================
+
+ABSOLUTELY NO:
+
+Fake users
+Fake profiles
+Fake NFT ownership
+Fake sales
+Fake stats
+Fake matches
+Fake chats
+Fake calls
+Fake wallet balances
+
+If real data cannot be loaded:
+
+Show a proper empty/error state.
+
+Never silently replace it with fake data.
+
+==================================================
+39. LOADING STATES
+==================================================
+
+Create beautiful skeleton loaders for:
+
+Live Sales
+Stats
+My Chogs
+Discover
+Matches
+Messages
+Profile
+
+Do not show ugly blank screens.
+
+==================================================
+40. ERROR STATES
+==================================================
+
+Handle:
+
+Wallet disconnected
+Wrong network
+Invalid address
+No Chog
+RPC failure
+NFT API failure
+Live sales unavailable
+Stats unavailable
+Profile creation failure
+Match failure
+Message failure
+Call failure
+
+Use premium error cards.
+
+==================================================
+41. PERFORMANCE
+==================================================
+
+Optimize NFT images.
+
+Lazy-load NFT images.
+
+Do not load the entire collection.
+
+My Chog should only query NFTs owned by the connected/entered wallet.
+
+Discover should use pagination.
+
+Live Sales should be limited to recent/current sales.
+
+Avoid unnecessary blockchain calls.
+
+Cache NFT metadata where appropriate.
+
+==================================================
+42. FINAL QUALITY CHECK
+==================================================
+
+After implementation:
+
+Run:
+
+npm run build
+
+Fix ALL errors.
+
+Check:
+
+Landing page
+Hero GIF
+Live Sales
+NFT stats
+Navbar
+Discover
+Swipe
+Matches
+Messages
+Voice recording
+Audio calls
+Video calls
+My Chog
+My Profile
+Edit Profile
+Wallet Scanner
+NFT verification
+Settings
+Mobile
+Desktop
+
+Make sure:
+
+NO fake production data.
+
+NO broken images.
+
+NO body/head GIF glitch.
+
+NO random NFT gallery on landing page.
+
+NO fake matches.
+
+NO messaging without a match.
+
+NO profile creation without Chog ownership.
+
+NO private keys.
+
+NO seed phrases.
+
+NO use of $CHOG token contract for NFT verification.
+
+Final result should feel like a real, polished product rather than a hackathon prototype.
+
+START IMPLEMENTING THESE CHANGES NOW.

@@ -1,0 +1,853 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: CHOG MATE wallet, NFT, profile, discovery, and social API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: auth
+    description: Wallet signature authentication
+  - name: nft
+    description: Chog Genesis ownership and metadata
+  - name: profiles
+    description: User profile and discovery operations
+  - name: matching
+    description: Likes, matches, and messaging
+  - name: safety
+    description: Blocking, reporting, and unmatching
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /auth/challenge:
+    post:
+      operationId: createAuthChallenge
+      tags: [auth]
+      summary: Create a short-lived wallet sign-in challenge
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WalletInput"
+      responses:
+        "200":
+          description: Challenge created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthChallenge"
+  /auth/session:
+    get:
+      operationId: getAuthSession
+      tags: [auth]
+      summary: Check whether the current CHOG MATE session is valid
+      responses:
+        "200":
+          description: Current session state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSessionStatus"
+  /auth/verify:
+    post:
+      operationId: verifyWallet
+      tags: [auth]
+      summary: Verify a wallet signature and start a session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WalletSignatureInput"
+      responses:
+        "200":
+          description: Wallet verified
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionUser"
+        "401":
+          description: Signature is invalid or expired
+  /auth/address:
+    post:
+      operationId: createAddressSession
+      tags: [auth]
+      summary: Start an address-only social account after verifying Chog ownership
+      description: Does not prove wallet control and must never authorize blockchain transactions.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WalletInput"
+      responses:
+        "200":
+          description: Address-only social session created or resumed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionUser"
+        "400":
+          description: Wallet address is invalid
+        "403":
+          description: Address does not currently own a Chog Genesis NFT
+        "409":
+          description: Wallet is already linked to another account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "503":
+          description: Ownership or account service is unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /auth/logout:
+    post:
+      operationId: logoutWallet
+      tags: [auth]
+      summary: End the current wallet session
+      responses:
+        "204":
+          description: Session ended
+  /nft/ownership/{walletAddress}:
+    get:
+      operationId: getNftOwnership
+      tags: [nft]
+      summary: Verify and enumerate Chog Genesis NFTs held by a wallet
+      parameters:
+        - name: walletAddress
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: "^0x[a-fA-F0-9]{40}$"
+      responses:
+        "200":
+          description: Ownership check completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NftOwnership"
+        "503":
+          description: NFT indexer is unavailable
+  /nft/live-sales:
+    get:
+      operationId: getLiveSales
+      tags: [nft]
+      summary: Get a page of real Chog Genesis sales
+      parameters:
+        - name: next
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 2000
+      responses:
+        "200":
+          description: Indexed sales and the cursor for the next older page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiveSales"
+        "503":
+          description: Marketplace data is not configured
+        "502":
+          description: Marketplace data is unavailable
+  /nft/collection-stats:
+    get:
+      operationId: getCollectionStats
+      tags: [nft]
+      summary: Get verified Chog Genesis collection statistics
+      responses:
+        "200":
+          description: Current collection statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CollectionStats"
+        "503":
+          description: Marketplace data is not configured
+        "502":
+          description: Marketplace data is unavailable
+  /nft/tokens/{tokenId}:
+    get:
+      operationId: getChog
+      tags: [nft]
+      summary: Get verified Chog Genesis metadata
+      parameters:
+        - name: tokenId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Chog metadata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Chog"
+        "404":
+          description: Token does not exist or metadata is unavailable
+  /me:
+    get:
+      operationId: getMe
+      tags: [profiles]
+      summary: Get the signed-in user's profile and verified Chog
+      responses:
+        "200":
+          description: Current profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrentProfile"
+        "401":
+          description: Wallet session required
+        "503":
+          description: Profile or database service is unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /me/profile:
+    put:
+      operationId: updateMeProfile
+      tags: [profiles]
+      summary: Create or update editable profile fields
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProfileInput"
+      responses:
+        "200":
+          description: Profile saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+        "409":
+          description: Username is already taken
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "503":
+          description: Profile or database service is unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /me/discover-visibility:
+    put:
+      operationId: updateDiscoverVisibility
+      tags: [profiles]
+      summary: Update whether the signed-in user's profile appears in Discover
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DiscoverVisibilityInput"
+      responses:
+        "200":
+          description: Discover visibility updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiscoverVisibility"
+        "409":
+          description: Create a profile before changing Discover visibility
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "503":
+          description: Profile or database service is unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /me/chog:
+    patch:
+      operationId: selectActiveChog
+      tags: [profiles]
+      summary: Set the active Chog without changing profile details
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChogSelectionInput"
+      responses:
+        "204":
+          description: Active Chog changed
+        "400":
+          description: Invalid token ID
+        "401":
+          description: Wallet session required
+        "403":
+          description: Token is not currently owned by this wallet
+        "409":
+          description: Create a profile before setting an active Chog
+        "503":
+          description: Ownership check or profile storage is unavailable
+  /discover:
+    get:
+      operationId: discoverProfiles
+      tags: [profiles]
+      summary: Publicly browse a page of eligible real Chog holders
+      description: Authentication is optional; only signed-in complete profiles receive compatibility ranking.
+      parameters:
+        - name: mode
+          in: query
+          schema:
+            type: string
+            enum: [discover, date, friends, network, collab]
+        - name: cursor
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 30
+            default: 12
+      responses:
+        "200":
+          description: Discoverable profiles
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiscoveryPage"
+        "503":
+          description: Profile data or ownership checks are temporarily unavailable
+  /swipes:
+    post:
+      operationId: swipeProfile
+      tags: [matching]
+      summary: Pass, like, or super-like a discoverable profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SwipeInput"
+      responses:
+        "200":
+          description: Swipe recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SwipeResult"
+  /likes/inbox:
+    get:
+      operationId: getLikeInbox
+      tags: [matching]
+      summary: List incoming likes and paid Super Likes
+      responses:
+        "200":
+          description: Incoming likes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LikeInboxItem"
+  /matches:
+    get:
+      operationId: getMatches
+      tags: [matching]
+      summary: List the signed-in user's real mutual matches
+      responses:
+        "200":
+          description: Match list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Match"
+  /matches/{matchId}/messages:
+    get:
+      operationId: getMessages
+      tags: [matching]
+      summary: List messages for a match
+      parameters:
+        - name: matchId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Message history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Message"
+    post:
+      operationId: sendMessage
+      tags: [matching]
+      summary: Send a message within a real match
+      parameters:
+        - name: matchId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MessageInput"
+      responses:
+        "201":
+          description: Message sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+  /matches/{matchId}/attachments/upload-url:
+    post:
+      operationId: requestMessageAttachmentUploadUrl
+      tags: [matching]
+      summary: Request a one-time upload token for a private chat attachment
+      parameters:
+        - name: matchId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MessageAttachmentUploadInput"
+      responses:
+        "200":
+          description: One-time upload token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageAttachmentUpload"
+  /blocks:
+    get:
+      operationId: getBlockedUsers
+      tags: [safety]
+      summary: List users blocked by the signed-in account
+      responses:
+        "200":
+          description: Blocked users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BlockedUser"
+    post:
+      operationId: blockProfile
+      tags: [safety]
+      summary: Block a profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BlockInput"
+      responses:
+        "204":
+          description: Profile blocked
+  /blocks/{blockedUserId}:
+    delete:
+      operationId: unblockUser
+      tags: [safety]
+      summary: Unblock a user
+      parameters:
+        - name: blockedUserId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: User unblocked
+  /reports:
+    post:
+      operationId: reportProfile
+      tags: [safety]
+      summary: Report a profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReportInput"
+      responses:
+        "204":
+          description: Report recorded
+  /matches/{matchId}:
+    delete:
+      operationId: unmatchProfile
+      tags: [safety]
+      summary: Unmatch and remove the active connection
+      parameters:
+        - name: matchId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Match removed
+components:
+  schemas:
+    ApiErrorResponse:
+      type: object
+      required: [code, error]
+      properties:
+        code: { type: string }
+        error: { type: string }
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+    WalletInput:
+      type: object
+      required: [walletAddress]
+      properties:
+        walletAddress:
+          type: string
+          pattern: "^0x[a-fA-F0-9]{40}$"
+    AuthChallenge:
+      type: object
+      required: [walletAddress, nonce, message, expiresAt]
+      properties:
+        walletAddress: { type: string }
+        nonce: { type: string }
+        message: { type: string }
+        expiresAt: { type: string, format: date-time }
+    AuthSessionStatus:
+      type: object
+      required: [authenticated]
+      properties:
+        authenticated: { type: boolean }
+    WalletSignatureInput:
+      type: object
+      required: [walletAddress, nonce, signature]
+      properties:
+        walletAddress: { type: string, pattern: "^0x[a-fA-F0-9]{40}$" }
+        nonce: { type: string, minLength: 16 }
+        signature: { type: string, pattern: "^0x[a-fA-F0-9]{130}$" }
+    SessionUser:
+      type: object
+      required: [userId, walletAddress, hasChog, identityMode, accessToken, refreshToken, expiresIn]
+      properties:
+        userId: { type: string, format: uuid }
+        walletAddress: { type: string }
+        hasChog: { type: boolean }
+        identityMode: { type: string, enum: [wallet_connected, address_only] }
+        accessToken: { type: string }
+        refreshToken: { type: string }
+        expiresIn: { type: integer, minimum: 1 }
+    NftOwnership:
+      type: object
+      required: [walletAddress, verified, chogs]
+      properties:
+        walletAddress: { type: string }
+        verified: { type: boolean }
+        chogs:
+          type: array
+          items: { $ref: "#/components/schemas/Chog" }
+    PriceMetric:
+      type: object
+      required: [amount, currency]
+      properties:
+        amount: { type: string }
+        currency: { type: string }
+    LiveSale:
+      type: object
+      required: [tokenId, imageUrl, price, currency, marketplace, saleUrl, timestamp]
+      properties:
+        tokenId: { type: string }
+        imageUrl: { type: string, format: uri }
+        price: { type: string }
+        currency: { type: string }
+        marketplace: { type: ["string", "null"] }
+        saleUrl: { type: string, format: uri }
+        timestamp: { type: string, format: date-time }
+    LiveSales:
+      type: object
+      required: [sales, next, updatedAt]
+      properties:
+        sales:
+          type: array
+          items: { $ref: "#/components/schemas/LiveSale" }
+        next: { type: ["string", "null"] }
+        updatedAt: { type: string, format: date-time }
+    CollectionStats:
+      type: object
+      required: [floorPrice, topOffer, totalVolume, totalHolders, updatedAt]
+      properties:
+        floorPrice: { oneOf: [{ $ref: "#/components/schemas/PriceMetric" }, { type: "null" }] }
+        topOffer: { oneOf: [{ $ref: "#/components/schemas/PriceMetric" }, { type: "null" }] }
+        totalVolume: { oneOf: [{ $ref: "#/components/schemas/PriceMetric" }, { type: "null" }] }
+        totalHolders: { type: ["integer", "null"], minimum: 0 }
+        updatedAt: { type: string, format: date-time }
+    Chog:
+      type: object
+      required: [tokenId, contractAddress, ownerWallet, verified, description, tier]
+      properties:
+        tokenId: { type: string }
+        contractAddress: { type: string }
+        ownerWallet: { type: string }
+        verified: { type: boolean }
+        name: { type: ["string", "null"] }
+        description: { type: ["string", "null"] }
+        tier: { type: ["string", "null"] }
+        imageUrl: { type: ["string", "null"], format: uri }
+        metadataUrl: { type: ["string", "null"], format: uri }
+        traits:
+          type: array
+          items: { $ref: "#/components/schemas/Trait" }
+    Trait:
+      type: object
+      required: [traitType, traitValue]
+      properties:
+        traitType: { type: string }
+        traitValue: { type: string }
+        rarity: { type: ["number", "null"], minimum: 0, maximum: 100 }
+    Profile:
+      type: object
+      required: [userId, username, displayName, name, gender, age, walletAddress, photoUrl, chog, interests, hobbies, skills, languages, lookingFor]
+      properties:
+        userId: { type: string, format: uuid }
+        username: { type: string }
+        displayName: { type: string }
+        name: { type: ["string", "null"] }
+        gender: { type: ["string", "null"] }
+        age: { type: ["integer", "null"], minimum: 18, maximum: 120 }
+        walletAddress: { type: string }
+        photoUrl: { type: ["string", "null"], format: uri, maxLength: 2048 }
+        bio: { type: ["string", "null"] }
+        location: { type: ["string", "null"] }
+        timezone: { type: ["string", "null"] }
+        interests:
+          type: array
+          items: { type: string }
+        hobbies:
+          type: array
+          items: { type: string }
+        skills:
+          type: array
+          items: { type: string }
+        languages:
+          type: array
+          items: { type: string }
+        lookingFor:
+          type: array
+          items: { type: string }
+        chog: { $ref: "#/components/schemas/Chog" }
+        compatibility: { type: ["integer", "null"], minimum: 0, maximum: 100 }
+        whyYouMatch:
+          type: array
+          items: { type: string }
+    CurrentProfile:
+      type: object
+      required: [walletAddress, hasChog, hasProfile, chogs, profileVisible, identityMode]
+      properties:
+        walletAddress: { type: string }
+        hasChog: { type: boolean }
+        hasProfile: { type: boolean }
+        identityMode: { type: string, enum: [wallet_connected, address_only] }
+        chogs:
+          type: array
+          items: { $ref: "#/components/schemas/Chog" }
+        selectedChogTokenId: { type: ["string", "null"] }
+        profileVisible: { type: ["boolean", "null"] }
+        profile: { oneOf: [{ $ref: "#/components/schemas/Profile" }, { type: "null" }] }
+    ProfileInput:
+      type: object
+      required: [username, displayName, interests, hobbies, skills, languages, lookingFor, selectedChogTokenId]
+      properties:
+        username: { type: string, minLength: 2, maxLength: 24, pattern: "^[a-zA-Z0-9_]+$" }
+        displayName: { type: string, minLength: 1, maxLength: 48 }
+        name: { type: ["string", "null"], maxLength: 80 }
+        gender: { type: ["string", "null"], maxLength: 50 }
+        age: { type: ["integer", "null"], minimum: 18, maximum: 120 }
+        photoUrl: { type: ["string", "null"], format: uri, maxLength: 2048, pattern: "^https?://" }
+        bio: { type: ["string", "null"], maxLength: 500 }
+        location: { type: ["string", "null"], maxLength: 100 }
+        timezone: { type: ["string", "null"], maxLength: 100 }
+        interests:
+          type: array
+          maxItems: 20
+          items: { type: string, maxLength: 50 }
+        hobbies:
+          type: array
+          maxItems: 20
+          items: { type: string, maxLength: 50 }
+        skills:
+          type: array
+          maxItems: 20
+          items: { type: string, maxLength: 50 }
+        languages:
+          type: array
+          maxItems: 20
+          items: { type: string, maxLength: 50 }
+        lookingFor:
+          type: array
+          minItems: 1
+          maxItems: 10
+          items: { type: string, maxLength: 50 }
+        selectedChogTokenId: { type: string }
+        profileVisible: { type: boolean, default: true }
+    DiscoverVisibilityInput:
+      type: object
+      required: [visible]
+      properties:
+        visible: { type: boolean }
+    DiscoverVisibility:
+      type: object
+      required: [visible]
+      properties:
+        visible: { type: boolean }
+    BlockedUser:
+      type: object
+      required: [userId, walletAddress, username, displayName, photoUrl]
+      properties:
+        userId: { type: string, format: uuid }
+        walletAddress: { type: ["string", "null"] }
+        username: { type: ["string", "null"] }
+        displayName: { type: ["string", "null"] }
+        photoUrl: { type: ["string", "null"], format: uri }
+    ChogSelectionInput:
+      type: object
+      required: [tokenId]
+      properties:
+        tokenId: { type: string, minLength: 1, maxLength: 78, pattern: "^[0-9]+$" }
+    DiscoveryPage:
+      type: object
+      required: [profiles, nextCursor]
+      properties:
+        profiles:
+          type: array
+          items: { $ref: "#/components/schemas/Profile" }
+        nextCursor: { type: ["string", "null"] }
+    SwipeInput:
+      type: object
+      required: [targetUserId, action]
+      properties:
+        targetUserId: { type: string, format: uuid }
+        action: { type: string, enum: [pass, like, super_like] }
+        transactionHash: { type: string, pattern: "^0x[a-fA-F0-9]{64}$" }
+    SwipeResult:
+      type: object
+      required: [recorded, matched]
+      properties:
+        recorded: { type: boolean }
+        matched: { type: boolean }
+        match: { oneOf: [{ $ref: "#/components/schemas/Match" }, { type: "null" }] }
+    LikeInboxItem:
+      type: object
+      required: [id, type, createdAt, profile]
+      properties:
+        id: { type: string, format: uuid }
+        type: { type: string, enum: [like, super_like] }
+        createdAt: { type: string, format: date-time }
+        profile: { $ref: "#/components/schemas/Profile" }
+    Match:
+      type: object
+      required: [id, profile, compatibility, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        profile: { $ref: "#/components/schemas/Profile" }
+        compatibility: { type: integer, minimum: 0, maximum: 100 }
+        createdAt: { type: string, format: date-time }
+        lastActivity: { type: ["string", "null"], format: date-time }
+        unreadCount: { type: integer, minimum: 0 }
+    Message:
+      type: object
+      required: [id, matchId, senderId, content, createdAt, messageType, attachmentUrl, attachmentName, attachmentContentType, attachmentSize]
+      properties:
+        id: { type: string, format: uuid }
+        matchId: { type: string, format: uuid }
+        senderId: { type: string, format: uuid }
+        content: { type: string }
+        createdAt: { type: string, format: date-time }
+        readAt: { type: ["string", "null"], format: date-time }
+        messageType: { type: string, enum: [text, voice, image, file] }
+        attachmentUrl: { type: ["string", "null"], format: uri }
+        attachmentName: { type: ["string", "null"] }
+        attachmentContentType: { type: ["string", "null"] }
+        attachmentSize: { type: ["integer", "null"], minimum: 0 }
+    MessageInput:
+      type: object
+      properties:
+        content: { type: string, maxLength: 4000 }
+        messageType: { type: string, enum: [text, voice, image, file] }
+        attachmentPath: { type: string, maxLength: 500 }
+        attachmentName: { type: string, maxLength: 180 }
+        attachmentContentType: { type: string, maxLength: 120 }
+        attachmentSize: { type: integer, minimum: 1, maximum: 15728640 }
+    MessageAttachmentUploadInput:
+      type: object
+      required: [fileName, contentType, size, messageType]
+      properties:
+        fileName: { type: string, minLength: 1, maxLength: 180 }
+        contentType: { type: string, minLength: 1, maxLength: 120 }
+        size: { type: integer, minimum: 1, maximum: 15728640 }
+        messageType: { type: string, enum: [voice, image, file] }
+    MessageAttachmentUpload:
+      type: object
+      required: [bucket, objectPath, uploadToken]
+      properties:
+        bucket: { type: string }
+        objectPath: { type: string }
+        uploadToken: { type: string }
+    BlockInput:
+      type: object
+      required: [targetUserId]
+      properties:
+        targetUserId: { type: string, format: uuid }
+    ReportInput:
+      type: object
+      required: [targetUserId, reason]
+      properties:
+        targetUserId: { type: string, format: uuid }
+        reason: { type: string, enum: [spam, harassment, fake_profile, inappropriate_content, scam, other] }
+        details: { type: ["string", "null"], maxLength: 1000 }
+
