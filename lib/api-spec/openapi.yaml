@@ -741,7 +741,7 @@ components:
           maxItems: 10
           items: { type: string, maxLength: 50 }
         selectedChogTokenId: { type: string }
-        profileVisible: { type: boolean, default: true }
+        profileVisible: { type: boolean }
     DiscoverVisibilityInput:
       type: object
       required: [visible]

@@ -349,7 +349,7 @@ export const updateMeProfileBodyLookingForItemMax = 50;
 
 export const updateMeProfileBodyLookingForMax = 10;
 
-export const updateMeProfileBodyProfileVisibleDefault = true;
+
 
 export const UpdateMeProfileBody = zod.object({
   "username": zod.string().min(updateMeProfileBodyUsernameMin).max(updateMeProfileBodyUsernameMax).regex(updateMeProfileBodyUsernameRegExp),
@@ -367,7 +367,7 @@ export const UpdateMeProfileBody = zod.object({
   "languages": zod.array(zod.string().max(updateMeProfileBodyLanguagesItemMax)).max(updateMeProfileBodyLanguagesMax),
   "lookingFor": zod.array(zod.string().max(updateMeProfileBodyLookingForItemMax)).min(1).max(updateMeProfileBodyLookingForMax),
   "selectedChogTokenId": zod.string(),
-  "profileVisible": zod.boolean().default(updateMeProfileBodyProfileVisibleDefault)
+  "profileVisible": zod.boolean().optional()
 })
 
 export const updateMeProfileResponseAgeMin = 18;

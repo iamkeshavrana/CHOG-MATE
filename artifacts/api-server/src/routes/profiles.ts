@@ -127,7 +127,7 @@ router.put("/me/profile", async (req, res): Promise<void> => {
     const admin = getSupabaseAdmin();
     const { data: existingProfile, error: existingProfileError } = await admin
       .from("profiles")
-      .select("active_chog_token_id")
+      .select("active_chog_token_id,profile_visible")
       .eq("user_id", session.userId)
       .maybeSingle();
     if (existingProfileError) {
@@ -135,6 +135,8 @@ router.put("/me/profile", async (req, res): Promise<void> => {
     }
     const activeTokenId =
       existingProfile?.active_chog_token_id ?? parsed.data.selectedChogTokenId;
+    const profileVisible =
+      parsed.data.profileVisible ?? existingProfile?.profile_visible ?? true;
     const selectedChog = chogs.find(
       (chog) => chog.tokenId === activeTokenId,
     );
@@ -182,7 +184,7 @@ router.put("/me/profile", async (req, res): Promise<void> => {
         languages: parsed.data.languages,
         looking_for: parsed.data.lookingFor,
         active_chog_token_id: selectedChog.tokenId,
-        profile_visible: parsed.data.profileVisible ?? true,
+        profile_visible: profileVisible,
         updated_at: now,
       },
       { onConflict: "user_id" },
@@ -205,7 +207,7 @@ router.put("/me/profile", async (req, res): Promise<void> => {
         interests: parsed.data.interests,
         skills: parsed.data.skills,
         timezone: parsed.data.timezone ?? null,
-        profile_visible: parsed.data.profileVisible ?? true,
+        profile_visible: profileVisible,
         updated_at: now,
       },
       { onConflict: "user_id" },
