@@ -43,8 +43,36 @@ const chogTokenBalanceAbi = [
   },
 ] as const;
 
-function MyChogTokenBalance({walletAddress}:{walletAddress:string}) {
-  const address = isAddress(walletAddress) ? walletAddress as Address : undefined;
+function MyChogTokenBalance({
+  walletAddress,
+  identityMode,
+}: {
+  walletAddress: string;
+  identityMode: 'wallet_connected' | 'address_only';
+}) {
+  const connection = useConnection();
+  const verifiedAddress = isAddress(walletAddress) ? walletAddress as Address : undefined;
+  const connectedAddress = connection.isConnected && connection.address && isAddress(connection.address)
+    ? connection.address as Address
+    : undefined;
+  const walletMatches = Boolean(
+    verifiedAddress &&
+    connectedAddress &&
+    verifiedAddress.toLowerCase() === connectedAddress.toLowerCase(),
+  );
+  const address = verifiedAddress && (!connection.isConnected || walletMatches)
+    ? verifiedAddress
+    : undefined;
+  const accountError = !verifiedAddress
+    ? 'The verified wallet address is unavailable.'
+    : connection.isConnected && !walletMatches
+      ? identityMode === 'address_only'
+        ? 'The connected wallet does not match this address-only account.'
+        : 'The connected wallet does not match the signed-in account.'
+      : null;
+
+  // useReadContract uses the configured Monad public client, not a wallet signer.
+  // This also permits a read-only balance lookup for a disconnected address-only account.
   const decimals = useReadContract({
     address: appConfig.chogTokenAddress,
     abi: chogTokenBalanceAbi,
@@ -58,22 +86,35 @@ function MyChogTokenBalance({walletAddress}:{walletAddress:string}) {
     functionName: 'balanceOf',
     args: address ? [address] : undefined,
     chainId: monadNetwork.id,
-    query: {enabled:Boolean(address),refetchOnWindowFocus:true,staleTime:30_000},
+    query: {
+      enabled: Boolean(address),
+      refetchOnWindowFocus: true,
+      refetchOnMount: 'always',
+      staleTime: 30_000,
+    },
   });
-  const loading = Boolean(address) && (balance.isLoading || decimals.isLoading);
-  const error = !address || balance.isError || decimals.isError;
-  const value = balance.data !== undefined && decimals.data !== undefined
+  const loading = Boolean(address) && (balance.isFetching || decimals.isFetching);
+  const rpcError = Boolean(address) && (balance.isError || decimals.isError);
+  const value = address && balance.data !== undefined && decimals.data !== undefined
     ? formatChogTokenBalance(balance.data, decimals.data)
     : null;
+  const displayText = accountError
+    ?? (loading
+      ? 'Loading $CHOG balance...'
+      : rpcError
+        ? 'Could not read the live balance from Monad. Refresh to retry.'
+        : value !== null
+          ? `${value} CHOG`
+          : 'Loading $CHOG balance...');
 
   return <section className="surface flex flex-col justify-between gap-4 rounded-[26px] p-5 sm:flex-row sm:items-center sm:px-7" aria-label="Actual CHOG token balance" data-testid="card-chog-token-balance">
     <div>
       <Eyebrow>On-chain token balance</Eyebrow>
-      <h2 className="display text-xl font-extrabold text-[#24133f]">$CHOG</h2>
+      <h2 className="display text-xl font-extrabold text-[#24133f]">$CHOG Balance</h2>
     </div>
     <div className="flex items-center gap-3">
-      <p className="min-w-[7rem] text-right text-2xl font-extrabold tabular-nums text-[#24133f]" aria-live="polite" data-testid="text-chog-token-balance">
-        {loading ? 'Loading…' : error ? 'Unavailable' : value ?? 'Unavailable'}
+      <p className={`min-w-[7rem] max-w-full break-words text-right ${accountError || rpcError ? 'text-sm font-semibold text-[#a34646]' : 'text-2xl font-extrabold tabular-nums text-[#24133f]'}`} aria-live="polite" data-testid="text-chog-token-balance">
+        {displayText}
       </p>
       <button type="button" onClick={()=>{void decimals.refetch();void balance.refetch();}} disabled={!address || loading} className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-[#e9e0d3] text-[#806c9c] transition hover:bg-[#f2ecff] disabled:opacity-50" aria-label="Refresh $CHOG balance" data-testid="button-refresh-chog-balance">
         <RefreshCw size={14} className={loading?'animate-spin':''}/>
@@ -134,7 +175,7 @@ export function MyChogPage() {
     <QueryState loading={me.isLoading} error={me.isError} retry={()=>void me.refetch()}>
       {!me.data ? <EmptyState title="Connect your wallet first." detail="Your verified collection appears here after wallet sign-in."/> :
       <>
-        <MyChogTokenBalance walletAddress={wallet}/>
+        <MyChogTokenBalance walletAddress={wallet} identityMode={me.data.identityMode}/>
         <QueryState loading={ownership.isLoading} error={ownership.isError} retry={()=>void ownership.refetch()}>
           {!verifiedChogs.length
             ? <EmptyState title="No Chog Found" detail="No verified Chog Genesis NFTs are currently owned by this wallet." mark="cm"/>
