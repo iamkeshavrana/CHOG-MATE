@@ -17,6 +17,7 @@ import {
   calculateProfileCompleteness,
   calculateRecentActivity,
 } from "../lib/discovery-ranking";
+import { findDiscoverSearchCandidates } from "../lib/discover-search";
 import {
   CHOG_CONTRACT_ADDRESS,
   getOwnedChogs,
@@ -364,17 +365,29 @@ router.get("/discover", async (req, res): Promise<void> => {
     }
 
     const pageSize = Math.min(150, limit * 5);
-    const { data: candidates, error: candidatesError } = await admin
-      .from("profiles")
-      .select("user_id")
-      .eq("profile_visible", true)
-      .order("updated_at", { ascending: false })
-      .range(offset, offset + pageSize - 1);
-    if (candidatesError) throw new SocialDataError("CHOG MATE database setup is incomplete.");
-
-    const ids = (candidates ?? [])
-      .map((row: { user_id: string }) => row.user_id)
-      .filter((id: string) => !excluded.has(id));
+    const searchTerm = parsed.data.search?.trim();
+    let candidateUserIds: string[];
+    let hasMoreCandidates: boolean;
+    if (searchTerm) {
+      const searchCandidates = await findDiscoverSearchCandidates(admin, searchTerm);
+      candidateUserIds = searchCandidates
+        .slice(offset, offset + pageSize)
+        .map((row) => row.user_id);
+      hasMoreCandidates = searchCandidates.length > offset + pageSize;
+    } else {
+      const { data: candidates, error: candidatesError } = await admin
+        .from("profiles")
+        .select("user_id")
+        .eq("profile_visible", true)
+        .order("updated_at", { ascending: false })
+        .range(offset, offset + pageSize - 1);
+      if (candidatesError) {
+        throw new SocialDataError("CHOG MATE database setup is incomplete.", candidatesError);
+      }
+      candidateUserIds = (candidates ?? []).map((row) => row.user_id);
+      hasMoreCandidates = (candidates?.length ?? 0) === pageSize;
+    }
+    const ids = candidateUserIds.filter((id) => !excluded.has(id));
     const bundles = await loadProfileBundles(ids);
     const ranked: Array<{
       bundle: NonNullable<Awaited<ReturnType<typeof loadProfileBundle>>>;
@@ -459,7 +472,6 @@ router.get("/discover", async (req, res): Promise<void> => {
         b.lastSeen.localeCompare(a.lastSeen) ||
         a.bundle.user.id.localeCompare(b.bundle.user.id),
     );
-    const hasMoreCandidates = (candidates?.length ?? 0) === pageSize;
     res.json(
       DiscoverProfilesResponse.parse({
         profiles: ranked.slice(0, limit).map(({ bundle, compatibility, reasons }) =>

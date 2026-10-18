@@ -456,12 +456,15 @@ export const SelectActiveChogResponse = zod.void()
 export const discoverProfilesQueryLimitDefault = 12;
 export const discoverProfilesQueryLimitMax = 30;
 
+export const discoverProfilesQuerySearchMax = 100;
+
 
 
 export const DiscoverProfilesQueryParams = zod.object({
   "mode": zod.enum(['discover', 'date', 'friends', 'network', 'collab']).optional(),
   "cursor": zod.coerce.string().optional(),
-  "limit": zod.coerce.number().int().min(1).max(discoverProfilesQueryLimitMax).default(discoverProfilesQueryLimitDefault)
+  "limit": zod.coerce.number().int().min(1).max(discoverProfilesQueryLimitMax).default(discoverProfilesQueryLimitDefault),
+  "search": zod.coerce.string().min(1).max(discoverProfilesQuerySearchMax).optional().describe('Search eligible visible profiles by name, username, or active Chog token ID')
 })
 
 export const discoverProfilesResponseProfilesItemAgeMin = 18;

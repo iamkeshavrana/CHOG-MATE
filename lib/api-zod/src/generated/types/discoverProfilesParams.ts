@@ -15,4 +15,10 @@ cursor?: string;
  * @maximum 30
  */
 limit?: number;
+/**
+ * Search eligible visible profiles by name, username, or active Chog token ID
+ * @minLength 1
+ * @maxLength 100
+ */
+search?: string;
 };

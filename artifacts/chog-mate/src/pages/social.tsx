@@ -1,6 +1,6 @@
 import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowRight, BadgeCheck, FileText, Heart, Image as ImageIcon, MessageCircle, Mic, MoreHorizontal, Paperclip, Send, Sparkles, Video, X } from 'lucide-react';
+import { ArrowRight, BadgeCheck, FileText, Heart, Image as ImageIcon, MessageCircle, Mic, MoreHorizontal, Paperclip, Search, Send, Sparkles, Video, X } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
 import {
   getGetAuthSessionQueryKey,
@@ -415,6 +415,8 @@ function formatTokenAmount(value: bigint, decimals: number): string {
 export function DiscoverPage() {
   const [cursor, setCursor] = useState<string | undefined>();
   const [mode, setMode] = useState<DiscoverProfilesMode>('discover');
+  const [searchInput, setSearchInput] = useState('');
+  const [search, setSearch] = useState('');
   const [toast, setToast] = useState('');
   const [profileIndex, setProfileIndex] = useState(0);
   const [walletDialogOpen, setWalletDialogOpen] = useState(false);
@@ -440,7 +442,23 @@ export function DiscoverPage() {
     me.data &&
     isDiscoverReadyProfile(me.data.profile, me.data.walletAddress),
   );
-  const params: DiscoverProfilesParams = useMemo(()=>({ mode, limit:20, ...(cursor ? { cursor } : {}) }),[cursor,mode]);
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setSearch(searchInput.trim());
+      setCursor(undefined);
+      setProfileIndex(0);
+    }, 300);
+    return () => window.clearTimeout(timeout);
+  }, [searchInput]);
+  const params: DiscoverProfilesParams = useMemo(
+    () => ({
+      mode,
+      limit: 20,
+      ...(cursor ? { cursor } : {}),
+      ...(search ? { search } : {}),
+    }),
+    [cursor, mode, search],
+  );
   const key = getDiscoverProfilesQueryKey(params);
   const { data, isLoading, isError, refetch } = useDiscoverProfiles(params, { query: { queryKey:key, retry:false } });
   const profiles = data?.profiles || [];
@@ -450,7 +468,7 @@ export function DiscoverPage() {
   useEffect(() => {
     setProfileIndex(0);
     setToast('');
-  }, [cursor, mode]);
+  }, [cursor, mode, search]);
   async function recordSwipe(
     profile: Profile,
     selected: 'pass'|'like'|'super_like',
@@ -501,6 +519,25 @@ export function DiscoverPage() {
   const currentCard = profiles[profileIndex];
   return <AppShell><div className="page-enter">
      <PageTitle eyebrow="The good kind of scrolling" title="Find your people." description="Browse real Chog holders without signing in. Complete your profile to get compatibility scores and interact." />
+     <div className="mx-auto mb-5 max-w-3xl">
+       <label htmlFor="discover-search" className="sr-only">Search Chog Mates by name, username, or Chog token ID</label>
+       <div className="flex items-center gap-3 rounded-[22px] border border-white/80 bg-white/60 px-4 shadow-[0_16px_40px_rgba(84,44,62,0.10),inset_0_1px_0_rgba(255,255,255,0.9)] backdrop-blur-xl transition focus-within:border-[#cf83a4] focus-within:bg-white/80 focus-within:shadow-[0_18px_48px_rgba(164,75,112,0.15)]">
+         <Search size={19} aria-hidden="true" className="shrink-0 text-[#a45d7b]" />
+         <input
+           id="discover-search"
+           type="text"
+           role="searchbox"
+           value={searchInput}
+           onChange={event => setSearchInput(event.target.value)}
+           placeholder="Search Chog Mates..."
+           maxLength={100}
+           autoComplete="off"
+           className="h-14 min-w-0 flex-1 bg-transparent text-sm text-[#4b3b4c] outline-none placeholder:text-[#9a8b98]"
+           data-testid="input-discover-search"
+         />
+         {searchInput && <button type="button" onClick={() => setSearchInput('')} aria-label="Clear search" className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[#8b7180] transition hover:bg-white/80 hover:text-[#4b3b4c]" data-testid="button-clear-discover-search"><X size={16}/></button>}
+       </div>
+     </div>
      <div className="mb-6 flex gap-2 overflow-x-auto pb-1" role="group" aria-label="Connection type">{([{value:'discover',label:'All paths'},{value:'date',label:'Dating'},{value:'friends',label:'Friendship'},{value:'network',label:'Networking'},{value:'collab',label:'Collaboration'}] as {value:DiscoverProfilesMode;label:string}[]).map(item=><button key={item.value} onClick={()=>{setMode(item.value);setCursor(undefined);setToast('');}} className={`mode-tab shrink-0 rounded-full px-4 py-2.5 text-xs font-bold transition ${mode===item.value?'active':''}`} aria-pressed={mode===item.value} data-testid={`button-mode-${item.value}`}>{item.label}</button>)}</div>
     {toast && <div className="mx-auto mb-4 max-w-[620px] rounded-2xl border border-[#ded4f5] bg-white px-4 py-3 text-sm text-[#514177]" role="status" data-testid="status-swipe">{toast}<button className="float-right font-bold" onClick={()=>setToast('')} aria-label="Dismiss notification"><X size={16}/></button></div>}
      {me.isError && !isUnauthorized(me.error) && <p className="mx-auto mb-4 max-w-[620px] rounded-2xl border border-[#ead8ce] bg-[#fff8f1] px-4 py-3 text-sm text-[#755247]" role="status">Your account status could not be loaded. Public profiles are still available; sign-in may be unavailable.</p>}
@@ -509,6 +546,7 @@ export function DiscoverPage() {
         <DiscoverCard profile={currentCard} onAction={selected => action(selected)} onOpenProfile={()=>setViewingProfile(currentCard)} onAuthRequired={()=>setWalletDialogOpen(true)} onMediaError={()=>{setToast('A profile or Chog image could not be loaded. This card was skipped for this session.');setProfileIndex(index=>index+1);}} canInteract={canInteract} pending={swipe.isPending} />
         <div className="mx-auto mt-5 flex max-w-[620px] items-center justify-between"><p className="text-xs text-[#92869a]">Real holders. Real possibilities.</p>{profileIndex >= profiles.length && data?.nextCursor && <button onClick={()=>{setCursor(data.nextCursor || undefined);setProfileIndex(0);}} className="button-soft inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold" data-testid="button-load-more">More people <ArrowRight size={14}/></button>}</div>
       </> : data?.nextCursor ? <EmptyState mark="cm" title="Looking a little further." detail="No complete profiles in this group yet. Continue to the next set of real Chog holders." action={<button onClick={()=>setCursor(data.nextCursor || undefined)} className="button-soft rounded-full px-5 py-2.5 text-sm font-bold" data-testid="button-load-more">Continue discovery</button>} /> :
+      search ? <EmptyState mark="cm" title="No Chog Mates found." detail="No visible, complete profiles matched that name, username, or token ID. Clear your search to browse everyone eligible." action={<button onClick={()=>setSearchInput('')} className="button-soft rounded-full px-5 py-2.5 text-sm font-bold" data-testid="button-clear-search-empty">Clear search</button>} /> :
       <EmptyState mark="cm" title="No one new, for now." detail="You’ve reached the end of the complete, eligible Chog holders available to discover. Check back as the community grows." action={<button onClick={()=>{setProfileIndex(0);void refetch();}} className="button-soft rounded-full px-5 py-2.5 text-sm font-bold" data-testid="button-refresh-discovery">Check again</button>} />}
     </QueryState>
     <ProfileDetailsDialog profile={viewingProfile} open={Boolean(viewingProfile)} onOpenChange={open=>{if(!open)setViewingProfile(null);}}/>
