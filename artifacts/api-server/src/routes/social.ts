@@ -325,7 +325,10 @@ router.get("/likes/inbox", async (req, res): Promise<void> => {
         profile: profileToApi(bundle),
       });
     }
-    inbox.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    inbox.sort((a, b) => {
+      if (a.type !== b.type) return a.type === "super_like" ? -1 : 1;
+      return b.createdAt.localeCompare(a.createdAt);
+    });
     res.json(GetLikeInboxResponse.parse(inbox));
   } catch (error) {
     sendSocialError(req, res, error);

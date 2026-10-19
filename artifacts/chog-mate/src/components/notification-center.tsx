@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Bell, CheckCheck, Heart, MessageCircle, Sparkles, Video, X } from "lucide-react";
+import { Bell, CheckCheck, Gift, Heart, MessageCircle, Sparkles, Video, X } from "lucide-react";
 import { Link } from "wouter";
 import { supabase } from "@/lib/supabase";
 import { createNotificationChannelLifecycle } from "@/lib/notification-channel-lifecycle";
@@ -7,8 +7,9 @@ import { createNotificationChannelLifecycle } from "@/lib/notification-channel-l
 type NotificationRow = {
   id: string;
   actor_id: string | null;
-  type: "like" | "super_like" | "match" | "message" | "call" | "missed_call";
+  type: "like" | "super_like" | "match" | "message" | "call" | "missed_call" | "gift";
   related_id: string | null;
+  amount: string | number | null;
   read_at: string | null;
   created_at: string;
 };
@@ -50,7 +51,7 @@ export function NotificationCenter() {
       if (disposed) return;
       const { data, error } = await client
         .from("notifications")
-        .select("id,actor_id,type,related_id,read_at,created_at")
+        .select("id,actor_id,type,related_id,amount,read_at,created_at")
         .eq("user_id", nextUserId)
         .order("created_at", { ascending: false })
         .limit(30);
@@ -229,6 +230,8 @@ export function NotificationCenter() {
                     ? Video
                     : item.type === "super_like"
                       ? Sparkles
+                    : item.type === "gift"
+                      ? Gift
                       : Heart;
                 return (
                   <Link
@@ -246,7 +249,7 @@ export function NotificationCenter() {
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block text-xs font-semibold leading-5 text-[#4e405e]">
-                        {notificationText(item.type, item.actor_id ? actorUsernames[item.actor_id] : undefined)}
+                        {notificationText(item.type, item.actor_id ? actorUsernames[item.actor_id] : undefined, item.amount)}
                       </span>
                       <time className="mt-1 block text-[10px] text-[#95899d]">
                         {new Date(item.created_at).toLocaleString()}
@@ -264,13 +267,24 @@ export function NotificationCenter() {
   );
 }
 
-function notificationText(type: NotificationRow["type"], username?: string): string {
+function notificationText(
+  type: NotificationRow["type"],
+  username?: string,
+  amount?: string | number | null,
+): string {
   const actor = username ? `@${username}` : "A Chog holder";
   if (type === "like") return `You have a new Like from ${actor}`;
   if (type === "super_like") return `${actor} Super Liked you`;
   if (type === "match") return `It's a Match! You and ${actor} liked each other.`;
   if (type === "message") return `New message from ${actor}`;
   if (type === "missed_call") return `Missed call from ${actor}`;
+  if (type === "gift") {
+    const numericAmount = Number(amount);
+    const formattedAmount = Number.isFinite(numericAmount)
+      ? new Intl.NumberFormat(undefined, { maximumFractionDigits: 6 }).format(numericAmount)
+      : "some";
+    return `${actor} sent you ${formattedAmount} $CHOG`;
+  }
   return `Incoming call from ${actor}`;
 }
 
@@ -282,6 +296,10 @@ function notificationDestination(item: NotificationRow): string {
   if (item.type === "message" && item.related_id) {
     return `/messages?match=${encodeURIComponent(item.related_id)}`;
   }
+  if ((item.type === "call" || item.type === "missed_call") && item.related_id) {
+    return `/messages?match=${encodeURIComponent(item.related_id)}`;
+  }
   if (item.type === "call" || item.type === "missed_call") return "/messages";
+  if (item.type === "gift") return "/my-chog";
   return "/matches";
 }
