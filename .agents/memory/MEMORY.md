@@ -5,3 +5,4 @@
 - [CHOG MATE public/auth access](chog-mate-public-auth-access.md) — Home and Discover are public; private navigation and social actions require a valid account session.
 - [CHOG MATE discovery visibility](chog-mate-discovery-visibility.md) — owners control visibility; never seed users or change it to fill Discover previews.
 - [Supabase Realtime topic reuse](supabase-realtime-topic-reuse.md) — channel(topic) returns the existing topic; serialize removal before resubscribing and ignore stale callbacks.
+- [CHOG MATE profile image](chog-mate-profile-image.md) — the selected verified Chog is the only profile image; preserve its aspect ratio and do not add photo uploads or URLs.

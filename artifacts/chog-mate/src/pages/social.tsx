@@ -181,7 +181,7 @@ function ProfileDetailsDialog({
   ].filter(section => section.values.length > 0);
 
   return <Dialog open={open} onOpenChange={onOpenChange}>
-    <DialogContent className="surface max-w-2xl overflow-hidden rounded-[28px] border-[#e8dfd5] bg-[#fffaf6] p-0">
+    <DialogContent className="surface max-h-[85dvh] max-w-2xl overflow-y-auto rounded-[28px] border-[#e8dfd5] bg-[#fffaf6] p-0">
       <div className="relative bg-[#e8ddff]"><ChogArtwork chog={profile.chog} fit="natural"/><div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#211332e8] to-transparent px-6 pb-5 pt-20 text-white sm:px-8"><div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-white/30 bg-white/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[.12em] backdrop-blur"><BadgeCheck size={12}/>Holder verified</div><h2 className="display text-3xl font-extrabold tracking-[-.04em]">{profile.displayName}{profile.age !== null ? `, ${profile.age}` : ''}</h2><p className="mt-1 text-sm text-white/80">@{profile.username}</p></div></div>
       <div className="max-h-[45vh] overflow-y-auto px-6 pb-7 pt-5 sm:px-8">
         <DialogHeader className="text-left">
