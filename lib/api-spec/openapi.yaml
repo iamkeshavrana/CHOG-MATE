@@ -315,8 +315,8 @@ paths:
     get:
       operationId: discoverProfiles
       tags: [profiles]
-      summary: Publicly browse a page of eligible real Chog holders
-      description: Authentication is optional; only signed-in complete profiles receive compatibility ranking.
+      summary: Publicly browse a page of visible verified Chog holders
+      description: Authentication is optional; only signed-in profiles with a complete verified Chog identity receive compatibility ranking. Age and profile photos are optional.
       parameters:
         - name: mode
           in: query
@@ -336,7 +336,7 @@ paths:
             default: 12
         - name: search
           in: query
-          description: Search eligible visible profiles by name, username, or active Chog token ID
+          description: Search visible profiles by name, username, or active Chog token ID
           schema:
             type: string
             minLength: 1

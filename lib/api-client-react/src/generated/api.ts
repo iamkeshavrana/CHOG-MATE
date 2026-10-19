@@ -1246,8 +1246,8 @@ export const getDiscoverProfilesUrl = (params?: DiscoverProfilesParams,) => {
 }
 
 /**
- * Authentication is optional; only signed-in complete profiles receive compatibility ranking.
- * @summary Publicly browse a page of eligible real Chog holders
+ * Authentication is optional; only signed-in profiles with a complete verified Chog identity receive compatibility ranking. Age and profile photos are optional.
+ * @summary Publicly browse a page of visible verified Chog holders
  */
 export const discoverProfiles = async (params?: DiscoverProfilesParams, options?: Parameters<typeof customFetch>[1]): Promise<DiscoveryPage> => {
 
@@ -1294,7 +1294,7 @@ export type DiscoverProfilesQueryError = ErrorType<void>
 
 
 /**
- * @summary Publicly browse a page of eligible real Chog holders
+ * @summary Publicly browse a page of visible verified Chog holders
  */
 
 export function useDiscoverProfiles<TData = Awaited<ReturnType<typeof discoverProfiles>>, TError = ErrorType<void>>(

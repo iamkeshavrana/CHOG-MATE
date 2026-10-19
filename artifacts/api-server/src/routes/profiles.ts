@@ -96,7 +96,7 @@ router.put("/me/discover-visibility", async (req, res): Promise<void> => {
       if (!bundle || !isCompleteDiscoverableProfile(bundle, false)) {
         res.status(409).json({
           error:
-            "Add a valid age and public profile photo, and keep a verified Chog selected, before enabling Discover visibility.",
+            "Add a valid display name and username, choose at least one Looking For option, and keep a verified Chog selected before enabling Discover visibility.",
         });
         return;
       }
@@ -169,16 +169,6 @@ router.put("/me/profile", async (req, res): Promise<void> => {
     if (!ownsSelectedChog) {
       res.status(403).json({
         error: "Choose a Chog Genesis NFT currently held by this wallet.",
-      });
-      return;
-    }
-    if (
-      profileVisible &&
-      (parsed.data.age == null || !isHttpUrl(parsed.data.photoUrl))
-    ) {
-      res.status(400).json({
-        error:
-          "Add a valid age and public profile photo before showing your profile in Discover.",
       });
       return;
     }
@@ -523,11 +513,6 @@ function isCompleteDiscoverableProfile(
     /^[a-zA-Z0-9_]{2,24}$/.test(profile.username) &&
     typeof profile.display_name === "string" &&
     profile.display_name.trim().length > 0 &&
-    typeof profile.age === "number" &&
-    Number.isInteger(profile.age) &&
-    profile.age >= 18 &&
-    profile.age <= 120 &&
-    isHttpUrl(profile.photo_url) &&
     profile.active_chog_token_id === chog.tokenId &&
     Array.isArray(profile.looking_for) &&
     hasValues(profile.looking_for) &&

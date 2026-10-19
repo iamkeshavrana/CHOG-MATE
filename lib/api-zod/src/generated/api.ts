@@ -450,8 +450,8 @@ export const SelectActiveChogResponse = zod.void()
 
 
 /**
- * Authentication is optional; only signed-in complete profiles receive compatibility ranking.
- * @summary Publicly browse a page of eligible real Chog holders
+ * Authentication is optional; only signed-in profiles with a complete verified Chog identity receive compatibility ranking. Age and profile photos are optional.
+ * @summary Publicly browse a page of visible verified Chog holders
  */
 export const discoverProfilesQueryLimitDefault = 12;
 export const discoverProfilesQueryLimitMax = 30;
@@ -464,7 +464,7 @@ export const DiscoverProfilesQueryParams = zod.object({
   "mode": zod.enum(['discover', 'date', 'friends', 'network', 'collab']).optional(),
   "cursor": zod.coerce.string().optional(),
   "limit": zod.coerce.number().int().min(1).max(discoverProfilesQueryLimitMax).default(discoverProfilesQueryLimitDefault),
-  "search": zod.coerce.string().min(1).max(discoverProfilesQuerySearchMax).optional().describe('Search eligible visible profiles by name, username, or active Chog token ID')
+  "search": zod.coerce.string().min(1).max(discoverProfilesQuerySearchMax).optional().describe('Search visible profiles by name, username, or active Chog token ID')
 })
 
 export const discoverProfilesResponseProfilesItemAgeMin = 18;
