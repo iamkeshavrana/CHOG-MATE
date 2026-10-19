@@ -116,7 +116,15 @@ export function QueryState({ loading, error, retry, children }: { loading: boole
   return <>{children}</>;
 }
 
-export function ChogArtwork({ chog, className = '' }: { chog?: Chog | null; className?: string }) {
+export function ChogArtwork({
+  chog,
+  className = '',
+  fit = 'contain',
+}: {
+  chog?: Chog | null;
+  className?: string;
+  fit?: 'contain' | 'natural';
+}) {
   const sources = [...new Set([...(chog?.imageUrls ?? []), chog?.imageUrl].filter((url): url is string => Boolean(url)))];
   const [sourceIndex, setSourceIndex] = useState(0);
   useEffect(() => setSourceIndex(0), [chog?.tokenId, sources.join('|')]);
@@ -125,17 +133,18 @@ export function ChogArtwork({ chog, className = '' }: { chog?: Chog | null; clas
       src={sources[sourceIndex]}
       alt={chog?.name || `Verified Chog ${chog?.tokenId}`}
       onError={() => setSourceIndex((index) => Math.min(index + 1, sources.length))}
-      className={`h-full w-full object-contain ${className}`}
+      className={`${fit === 'natural' ? 'block h-auto w-full max-w-full' : 'h-full w-full'} object-contain ${className}`}
     />;
   }
-  return <div className={`flex h-full w-full flex-col items-center justify-center bg-[radial-gradient(circle_at_50%_35%,#e8ddff,#dcd4ff_52%,#c6b3fa)] text-[#3e286a] ${className}`}><div className="grid h-20 w-20 place-items-center rounded-[28px] border border-white/50 bg-white/35 shadow-[0_12px_30px_#50329322] backdrop-blur"><span className="display text-3xl font-extrabold tracking-[-.1em]">cm</span></div><span className="mt-3 text-[10px] font-bold uppercase tracking-[.17em]">{chog ? `Chog #${chog.tokenId}` : 'CHOG MATE'}</span></div>;
+  return <div className={`flex ${fit === 'natural' ? 'aspect-square w-full' : 'h-full w-full'} flex-col items-center justify-center bg-[radial-gradient(circle_at_50%_35%,#e8ddff,#dcd4ff_52%,#c6b3fa)] text-[#3e286a] ${className}`}><div className="grid h-20 w-20 place-items-center rounded-[28px] border border-white/50 bg-white/35 shadow-[0_12px_30px_#50329322] backdrop-blur"><span className="display text-3xl font-extrabold tracking-[-.1em]">cm</span></div><span className="mt-3 text-[10px] font-bold uppercase tracking-[.17em]">{chog ? `Chog #${chog.tokenId}` : 'CHOG MATE'}</span></div>;
 }
 
 export function ProfileAvatar({ profile, size = 'md' }: { profile: Profile; size?: 'sm' | 'md' | 'lg' }) {
   const dimensions = size === 'lg' ? 'h-16 w-16' : size === 'sm' ? 'h-10 w-10' : 'h-12 w-12';
+  const maxDimensions = size === 'lg' ? 'max-h-16 max-w-16' : size === 'sm' ? 'max-h-10 max-w-10' : 'max-h-12 max-w-12';
   const sources = [...new Set([...(profile.chog.imageUrls ?? []), profile.chog.imageUrl].filter((url): url is string => Boolean(url)))];
   const [sourceIndex, setSourceIndex] = useState(0);
   useEffect(() => setSourceIndex(0), [profile.userId, profile.chog.tokenId, sources.join('|')]);
-  if (sources[sourceIndex]) return <img src={sources[sourceIndex]} onError={() => setSourceIndex((index) => Math.min(index + 1, sources.length))} alt="" className={`${dimensions} rounded-full object-cover ring-2 ring-white`} />;
+  if (sources[sourceIndex]) return <img src={sources[sourceIndex]} onError={() => setSourceIndex((index) => Math.min(index + 1, sources.length))} alt="" className={`h-auto w-auto shrink-0 ${maxDimensions} object-contain ring-2 ring-white`} />;
   return <div className={`${dimensions} grid shrink-0 place-items-center rounded-full bg-[#e7dcff] text-[#5435a2] ring-2 ring-white`}><span className="display text-lg font-extrabold">{profile.displayName?.slice(0, 1) || 'C'}</span></div>;
 }

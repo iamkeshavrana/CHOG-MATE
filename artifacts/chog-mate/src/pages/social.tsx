@@ -107,12 +107,12 @@ function DiscoverCard({
       onTouchStart={event => { touchStart.current = event.touches[0]?.clientX ?? null; }}
       onTouchEnd={finishTouch}
       onTouchCancel={() => { touchStart.current = null; }}
-      className="relative isolate h-[min(68svh,520px)] min-h-[340px] touch-pan-y overflow-hidden bg-[#e9e1fb] sm:h-[520px] sm:min-h-0"
+      className="relative isolate w-full touch-pan-y bg-[#e9e1fb]"
       data-testid={`swipe-surface-${profile.userId}`}
       aria-label={`Verified Chog artwork and profile for ${profile.displayName}. Swipe right to like or left to pass.`}
     >
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_30%,#f6efff_0%,#e6ddf8_60%,#d9cbed_100%)]" aria-hidden="true" />
-      <ChogArtwork chog={profile.chog} className="absolute inset-0 h-full w-full object-contain p-3 sm:p-5" />
+      <ChogArtwork chog={profile.chog} fit="natural" />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#241436f2] via-[#24143699] to-transparent px-5 pb-5 pt-32 text-[#fffaf5] sm:px-7 sm:pb-7">
         <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-white/35 bg-[#fffaf5]/15 px-2.5 py-1 text-[9px] font-extrabold uppercase tracking-[.15em] backdrop-blur-md">
           <BadgeCheck size={12} aria-hidden="true" /> Verified holder
@@ -182,7 +182,7 @@ function ProfileDetailsDialog({
 
   return <Dialog open={open} onOpenChange={onOpenChange}>
     <DialogContent className="surface max-w-2xl overflow-hidden rounded-[28px] border-[#e8dfd5] bg-[#fffaf6] p-0">
-      <div className="relative h-56 bg-[#e8ddff] sm:h-72"><ChogArtwork chog={profile.chog}/><div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#211332e8] to-transparent px-6 pb-5 pt-20 text-white sm:px-8"><div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-white/30 bg-white/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[.12em] backdrop-blur"><BadgeCheck size={12}/>Holder verified</div><h2 className="display text-3xl font-extrabold tracking-[-.04em]">{profile.displayName}{profile.age !== null ? `, ${profile.age}` : ''}</h2><p className="mt-1 text-sm text-white/80">@{profile.username}</p></div></div>
+      <div className="relative bg-[#e8ddff]"><ChogArtwork chog={profile.chog} fit="natural"/><div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#211332e8] to-transparent px-6 pb-5 pt-20 text-white sm:px-8"><div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-white/30 bg-white/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[.12em] backdrop-blur"><BadgeCheck size={12}/>Holder verified</div><h2 className="display text-3xl font-extrabold tracking-[-.04em]">{profile.displayName}{profile.age !== null ? `, ${profile.age}` : ''}</h2><p className="mt-1 text-sm text-white/80">@{profile.username}</p></div></div>
       <div className="max-h-[45vh] overflow-y-auto px-6 pb-7 pt-5 sm:px-8">
         <DialogHeader className="text-left">
           <DialogTitle className="sr-only">{profile.displayName}’s profile</DialogTitle>
@@ -748,7 +748,7 @@ export function MatchesPage() {
           ? <div className="skeleton h-48 rounded-2xl" />
           : sent.data?.length
             ? <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{sent.data.map(item=><article className="surface flex gap-4 rounded-[24px] p-4" key={item.id} data-testid={`card-liked-by-you-${item.id}`}>
-                <div className="h-28 w-24 shrink-0 overflow-hidden rounded-2xl bg-[#eee5fb]"><ChogArtwork chog={item.profile.chog}/></div>
+                <div className="w-24 shrink-0 rounded-2xl bg-[#eee5fb]"><ChogArtwork chog={item.profile.chog} fit="natural"/></div>
                 <div className="min-w-0 py-1">
                   <h2 className="display break-words text-lg font-extrabold text-[#35264b]">{item.profile.displayName}{item.profile.age !== null ? `, ${item.profile.age}` : ''}</h2>
                   <p className="mt-1 text-xs text-[#887c90]">@{item.profile.username}</p>
@@ -761,7 +761,7 @@ export function MatchesPage() {
     {section === 'matches' && <section id="panel-matches" role="tabpanel" aria-label="Your matches">
       <QueryState loading={isLoading} error={isError} retry={()=>void refetch()}>
         {matches.length ? <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{matches.map(match=><article className="surface flex gap-4 rounded-[26px] p-4 sm:p-5" key={match.id} data-testid={`card-match-${match.id}`}>
-          <div className="h-32 w-28 shrink-0 overflow-hidden rounded-2xl bg-[#eee5fb]"><ChogArtwork chog={match.profile.chog}/></div>
+          <div className="w-28 shrink-0 rounded-2xl bg-[#eee5fb]"><ChogArtwork chog={match.profile.chog} fit="natural"/></div>
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-2"><div className="min-w-0"><h2 className="display break-words text-lg font-extrabold text-[#24133f]">{match.profile.displayName}{match.profile.age !== null ? `, ${match.profile.age}` : ''}</h2><p className="mt-1 text-xs text-[#82778c]">@{match.profile.username}</p></div><span className="shrink-0 rounded-full bg-[#f2ecff] px-2.5 py-1 text-[10px] font-bold text-[#6246b0]">{match.compatibility}%</span></div>
             <p className="mt-2 text-[11px] font-semibold text-[#705b83]">Chog #{match.profile.chog.tokenId} · {match.profile.chog.tier || 'Tier unlisted'}</p>
@@ -798,7 +798,7 @@ function IncomingLikeCard({ item, onHandled }: { item: LikeInboxItem; onHandled:
 
   return <article className="surface rounded-[24px] p-4" data-testid={`card-incoming-like-${item.id}`}>
     <div className="flex items-start gap-3">
-      <div className="h-32 w-28 shrink-0 overflow-hidden rounded-2xl bg-[#eee5fb]"><ChogArtwork chog={item.profile.chog}/></div>
+      <div className="w-28 shrink-0 rounded-2xl bg-[#eee5fb]"><ChogArtwork chog={item.profile.chog} fit="natural"/></div>
       <div className="min-w-0 flex-1">
         <h3 className="break-words text-sm font-bold text-[#35264b]">{item.profile.displayName}{item.profile.age !== null ? `, ${item.profile.age}` : ''}</h3>
         <p className="mt-1 break-all text-xs text-[#887c90]">@{item.profile.username}</p>
