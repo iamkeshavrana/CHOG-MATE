@@ -14,3 +14,9 @@ description: Product rule for how member identity and Chog NFT details appear in
 **Why:** The user specified that the Settings toggle controls whether a profile appears. Production had opted-in holders excluded only because age and photo fields were empty.
 
 **How to apply:** Filter `profile_visible = true` in both Discover and Search, never expose opted-out profiles, verify active Chog ownership separately, and render missing age/photo safely.
+
+**Preview safety rule:** Do not insert synthetic users or change a real profile's `profile_visible` value just to make a Discover preview non-empty. Diagnose with read-only queries; keep the owner's visibility setting and on-chain ownership checks intact.
+
+**Why:** The user explicitly prohibited fake users, manual visibility changes for preview, and bypassing ownership verification during Discover diagnosis.
+
+**How to apply:** When Discover is empty, report the real row counts and the exact failing gates. Do not write visibility or seed account data as a debugging workaround.
