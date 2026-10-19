@@ -82,6 +82,7 @@ export interface Chog {
   tier: string | null;
   /** @nullable */
   imageUrl?: string | null;
+  imageUrls?: string[];
   /** @nullable */
   metadataUrl?: string | null;
   traits?: Trait[];
@@ -128,14 +129,37 @@ export interface CollectionStats {
   updatedAt: string;
 }
 
+/**
+ * @nullable
+ */
+export type ProfileGender = typeof ProfileGender[keyof typeof ProfileGender] | null;
+
+
+export const ProfileGender = {
+  Male: 'Male',
+  Female: 'Female',
+  Gay: 'Gay',
+  Trans: 'Trans',
+  Alien: 'Alien',
+} as const;
+
+export type ProfileLookingForItem = typeof ProfileLookingForItem[keyof typeof ProfileLookingForItem];
+
+
+export const ProfileLookingForItem = {
+  Dating: 'Dating',
+  Friendship: 'Friendship',
+  Networking: 'Networking',
+  Collaboration: 'Collaboration',
+  Other: 'Other',
+} as const;
+
 export interface Profile {
   userId: string;
   username: string;
   displayName: string;
   /** @nullable */
-  name: string | null;
-  /** @nullable */
-  gender: string | null;
+  gender: ProfileGender;
   /**
      * @minimum 18
      * @maximum 120
@@ -143,22 +167,18 @@ export interface Profile {
      */
   age: number | null;
   walletAddress: string;
-  /**
-     * @maxLength 2048
-     * @nullable
-     */
-  photoUrl: string | null;
+  walletVerified: boolean;
   /** @nullable */
-  bio?: string | null;
-  /** @nullable */
-  location?: string | null;
-  /** @nullable */
-  timezone?: string | null;
+  bio: string | null;
   interests: string[];
   hobbies: string[];
-  skills: string[];
   languages: string[];
-  lookingFor: string[];
+  lookingFor: ProfileLookingForItem[];
+  /**
+     * @maxLength 200
+     * @nullable
+     */
+  lookingForOther: string | null;
   chog: Chog;
   /**
      * @minimum 0
@@ -190,6 +210,31 @@ export interface CurrentProfile {
   profile?: Profile | null;
 }
 
+/**
+ * @nullable
+ */
+export type ProfileInputGender = typeof ProfileInputGender[keyof typeof ProfileInputGender] | null;
+
+
+export const ProfileInputGender = {
+  Male: 'Male',
+  Female: 'Female',
+  Gay: 'Gay',
+  Trans: 'Trans',
+  Alien: 'Alien',
+} as const;
+
+export type ProfileInputLookingForItem = typeof ProfileInputLookingForItem[keyof typeof ProfileInputLookingForItem];
+
+
+export const ProfileInputLookingForItem = {
+  Dating: 'Dating',
+  Friendship: 'Friendship',
+  Networking: 'Networking',
+  Collaboration: 'Collaboration',
+  Other: 'Other',
+} as const;
+
 export interface ProfileInput {
   /**
      * @minLength 2
@@ -202,16 +247,8 @@ export interface ProfileInput {
      * @maxLength 48
      */
   displayName: string;
-  /**
-     * @maxLength 80
-     * @nullable
-     */
-  name?: string | null;
-  /**
-     * @maxLength 50
-     * @nullable
-     */
-  gender?: string | null;
+  /** @nullable */
+  gender?: ProfileInputGender;
   /**
      * @minimum 18
      * @maximum 120
@@ -219,26 +256,10 @@ export interface ProfileInput {
      */
   age?: number | null;
   /**
-     * @maxLength 2048
-     * @nullable
-     * @pattern ^https?://
-     */
-  photoUrl?: string | null;
-  /**
      * @maxLength 500
      * @nullable
      */
   bio?: string | null;
-  /**
-     * @maxLength 100
-     * @nullable
-     */
-  location?: string | null;
-  /**
-     * @maxLength 100
-     * @nullable
-     */
-  timezone?: string | null;
   /**
      * @maxItems 20
      * @items.maxLength 50
@@ -253,18 +274,17 @@ export interface ProfileInput {
      * @maxItems 20
      * @items.maxLength 50
      */
-  skills: string[];
-  /**
-     * @maxItems 20
-     * @items.maxLength 50
-     */
   languages: string[];
   /**
      * @minItems 1
-     * @maxItems 10
-     * @items.maxLength 50
+     * @maxItems 5
      */
-  lookingFor: string[];
+  lookingFor: ProfileInputLookingForItem[];
+  /**
+     * @maxLength 200
+     * @nullable
+     */
+  lookingForOther: string | null;
   selectedChogTokenId: string;
   profileVisible?: boolean;
 }
@@ -285,8 +305,6 @@ export interface BlockedUser {
   username: string | null;
   /** @nullable */
   displayName: string | null;
-  /** @nullable */
-  photoUrl: string | null;
 }
 
 export interface ChogSelectionInput {

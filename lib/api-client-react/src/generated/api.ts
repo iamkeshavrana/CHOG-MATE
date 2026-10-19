@@ -1246,7 +1246,7 @@ export const getDiscoverProfilesUrl = (params?: DiscoverProfilesParams,) => {
 }
 
 /**
- * Authentication is optional; only signed-in profiles with a complete verified Chog identity receive compatibility ranking. Age and profile photos are optional.
+ * Authentication is optional; only signed-in profiles with a complete verified Chog identity receive compatibility ranking. Age is optional, and the active verified Chog artwork is the profile image.
  * @summary Publicly browse a page of visible verified Chog holders
  */
 export const discoverProfiles = async (params?: DiscoverProfilesParams, options?: Parameters<typeof customFetch>[1]): Promise<DiscoveryPage> => {
@@ -1468,6 +1468,83 @@ export function useGetLikeInbox<TData = Awaited<ReturnType<typeof getLikeInbox>>
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetLikeInboxQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetSentLikesUrl = () => {
+
+
+
+
+  return `/api/likes/sent`
+}
+
+/**
+ * @summary List the signed-in user's outgoing Likes and Super Likes that have not become Matches
+ */
+export const getSentLikes = async ( options?: Parameters<typeof customFetch>[1]): Promise<LikeInboxItem[]> => {
+
+  return customFetch<LikeInboxItem[]>(getGetSentLikesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSentLikesQueryKey = () => {
+    return [
+    `/api/likes/sent`
+    ] as const;
+    }
+
+
+export const getGetSentLikesQueryOptions = <TData = Awaited<ReturnType<typeof getSentLikes>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSentLikes>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSentLikesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSentLikes>>> = ({ signal }) => getSentLikes({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSentLikes>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetSentLikesQueryResult = NonNullable<Awaited<ReturnType<typeof getSentLikes>>>
+export type GetSentLikesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List the signed-in user's outgoing Likes and Super Likes that have not become Matches
+ */
+
+export function useGetSentLikes<TData = Awaited<ReturnType<typeof getSentLikes>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSentLikes>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetSentLikesQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

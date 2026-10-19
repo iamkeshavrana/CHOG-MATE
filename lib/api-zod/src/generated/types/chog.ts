@@ -20,6 +20,7 @@ export interface Chog {
   tier: string | null;
   /** @nullable */
   imageUrl?: string | null;
+  imageUrls?: string[];
   /** @nullable */
   metadataUrl?: string | null;
   traits?: Trait[];

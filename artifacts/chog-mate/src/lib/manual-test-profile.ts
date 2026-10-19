@@ -18,6 +18,7 @@ export interface ManualTestProfileFields {
   location: string;
   timezone: string;
   lookingFor: string;
+  lookingForOther: string;
   interests: string;
   hobbies: string;
   skills: string;
@@ -42,6 +43,7 @@ export function emptyManualTestProfileFields(): ManualTestProfileFields {
     location: "",
     timezone: "",
     lookingFor: "",
+    lookingForOther: "",
     interests: "",
     hobbies: "",
     skills: "",
@@ -145,6 +147,7 @@ function maxFieldLength(key: keyof ManualTestProfileFields): number {
   if (key === "name") return 80;
   if (key === "age") return 3;
   if (key === "gender" || key === "location" || key === "timezone") return 100;
+  if (key === "lookingForOther") return 50;
   if (key === "bio") return 500;
   return 1_000;
 }

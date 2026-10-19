@@ -14,6 +14,4 @@ export interface BlockedUser {
   username: string | null;
   /** @nullable */
   displayName: string | null;
-  /** @nullable */
-  photoUrl: string | null;
 }

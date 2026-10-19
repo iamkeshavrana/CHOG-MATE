@@ -130,6 +130,7 @@ export const GetNftOwnershipResponse = zod.object({
   "description": zod.string().nullable(),
   "tier": zod.string().nullable(),
   "imageUrl": zod.string().url().nullish(),
+  "imageUrls": zod.array(zod.string().url()).optional(),
   "metadataUrl": zod.string().url().nullish(),
   "traits": zod.array(zod.object({
   "traitType": zod.string(),
@@ -212,6 +213,7 @@ export const GetChogResponse = zod.object({
   "description": zod.string().nullable(),
   "tier": zod.string().nullable(),
   "imageUrl": zod.string().url().nullish(),
+  "imageUrls": zod.array(zod.string().url()).optional(),
   "metadataUrl": zod.string().url().nullish(),
   "traits": zod.array(zod.object({
   "traitType": zod.string(),
@@ -230,7 +232,7 @@ export const getMeResponseChogsItemTraitsItemRarityMax = 100;
 export const getMeResponseProfileOneAgeMin = 18;
 export const getMeResponseProfileOneAgeMax = 120;
 
-export const getMeResponseProfileOnePhotoUrlMax = 2048;
+export const getMeResponseProfileOneLookingForOtherMax = 200;
 
 export const getMeResponseProfileOneChogTraitsItemRarityMin = 0;
 export const getMeResponseProfileOneChogTraitsItemRarityMax = 100;
@@ -254,6 +256,7 @@ export const GetMeResponse = zod.object({
   "description": zod.string().nullable(),
   "tier": zod.string().nullable(),
   "imageUrl": zod.string().url().nullish(),
+  "imageUrls": zod.array(zod.string().url()).optional(),
   "metadataUrl": zod.string().url().nullish(),
   "traits": zod.array(zod.object({
   "traitType": zod.string(),
@@ -267,19 +270,16 @@ export const GetMeResponse = zod.object({
   "userId": zod.string().uuid(),
   "username": zod.string(),
   "displayName": zod.string(),
-  "name": zod.string().nullable(),
-  "gender": zod.string().nullable(),
+  "gender": zod.union([zod.literal('Male'),zod.literal('Female'),zod.literal('Gay'),zod.literal('Trans'),zod.literal('Alien'),zod.literal(null)]).nullable(),
   "age": zod.number().int().min(getMeResponseProfileOneAgeMin).max(getMeResponseProfileOneAgeMax).nullable(),
   "walletAddress": zod.string(),
-  "photoUrl": zod.string().url().max(getMeResponseProfileOnePhotoUrlMax).nullable(),
-  "bio": zod.string().nullish(),
-  "location": zod.string().nullish(),
-  "timezone": zod.string().nullish(),
+  "walletVerified": zod.boolean(),
+  "bio": zod.string().nullable(),
   "interests": zod.array(zod.string()),
   "hobbies": zod.array(zod.string()),
-  "skills": zod.array(zod.string()),
   "languages": zod.array(zod.string()),
-  "lookingFor": zod.array(zod.string()),
+  "lookingFor": zod.array(zod.enum(['Dating', 'Friendship', 'Networking', 'Collaboration', 'Other'])),
+  "lookingForOther": zod.string().max(getMeResponseProfileOneLookingForOtherMax).nullable(),
   "chog": zod.object({
   "tokenId": zod.string(),
   "contractAddress": zod.string(),
@@ -289,6 +289,7 @@ export const GetMeResponse = zod.object({
   "description": zod.string().nullable(),
   "tier": zod.string().nullable(),
   "imageUrl": zod.string().url().nullish(),
+  "imageUrls": zod.array(zod.string().url()).optional(),
   "metadataUrl": zod.string().url().nullish(),
   "traits": zod.array(zod.object({
   "traitType": zod.string(),
@@ -312,22 +313,10 @@ export const updateMeProfileBodyUsernameMax = 24;
 export const updateMeProfileBodyUsernameRegExp = new RegExp('^[a-zA-Z0-9_]+$');
 export const updateMeProfileBodyDisplayNameMax = 48;
 
-export const updateMeProfileBodyNameMax = 80;
-
-export const updateMeProfileBodyGenderMax = 50;
-
 export const updateMeProfileBodyAgeMin = 18;
 export const updateMeProfileBodyAgeMax = 120;
 
-export const updateMeProfileBodyPhotoUrlMax = 2048;
-
-
-export const updateMeProfileBodyPhotoUrlRegExp = new RegExp('^https?:/');
 export const updateMeProfileBodyBioMax = 500;
-
-export const updateMeProfileBodyLocationMax = 100;
-
-export const updateMeProfileBodyTimezoneMax = 100;
 
 export const updateMeProfileBodyInterestsItemMax = 50;
 
@@ -337,35 +326,27 @@ export const updateMeProfileBodyHobbiesItemMax = 50;
 
 export const updateMeProfileBodyHobbiesMax = 20;
 
-export const updateMeProfileBodySkillsItemMax = 50;
-
-export const updateMeProfileBodySkillsMax = 20;
-
 export const updateMeProfileBodyLanguagesItemMax = 50;
 
 export const updateMeProfileBodyLanguagesMax = 20;
 
-export const updateMeProfileBodyLookingForItemMax = 50;
+export const updateMeProfileBodyLookingForMax = 5;
 
-export const updateMeProfileBodyLookingForMax = 10;
+export const updateMeProfileBodyLookingForOtherMax = 200;
 
 
 
 export const UpdateMeProfileBody = zod.object({
   "username": zod.string().min(updateMeProfileBodyUsernameMin).max(updateMeProfileBodyUsernameMax).regex(updateMeProfileBodyUsernameRegExp),
   "displayName": zod.string().min(1).max(updateMeProfileBodyDisplayNameMax),
-  "name": zod.string().max(updateMeProfileBodyNameMax).nullish(),
-  "gender": zod.string().max(updateMeProfileBodyGenderMax).nullish(),
+  "gender": zod.union([zod.literal('Male'),zod.literal('Female'),zod.literal('Gay'),zod.literal('Trans'),zod.literal('Alien'),zod.literal(null)]).nullish(),
   "age": zod.number().int().min(updateMeProfileBodyAgeMin).max(updateMeProfileBodyAgeMax).nullish(),
-  "photoUrl": zod.string().url().max(updateMeProfileBodyPhotoUrlMax).regex(updateMeProfileBodyPhotoUrlRegExp).nullish(),
   "bio": zod.string().max(updateMeProfileBodyBioMax).nullish(),
-  "location": zod.string().max(updateMeProfileBodyLocationMax).nullish(),
-  "timezone": zod.string().max(updateMeProfileBodyTimezoneMax).nullish(),
   "interests": zod.array(zod.string().max(updateMeProfileBodyInterestsItemMax)).max(updateMeProfileBodyInterestsMax),
   "hobbies": zod.array(zod.string().max(updateMeProfileBodyHobbiesItemMax)).max(updateMeProfileBodyHobbiesMax),
-  "skills": zod.array(zod.string().max(updateMeProfileBodySkillsItemMax)).max(updateMeProfileBodySkillsMax),
   "languages": zod.array(zod.string().max(updateMeProfileBodyLanguagesItemMax)).max(updateMeProfileBodyLanguagesMax),
-  "lookingFor": zod.array(zod.string().max(updateMeProfileBodyLookingForItemMax)).min(1).max(updateMeProfileBodyLookingForMax),
+  "lookingFor": zod.array(zod.enum(['Dating', 'Friendship', 'Networking', 'Collaboration', 'Other'])).min(1).max(updateMeProfileBodyLookingForMax),
+  "lookingForOther": zod.string().max(updateMeProfileBodyLookingForOtherMax).nullable(),
   "selectedChogTokenId": zod.string(),
   "profileVisible": zod.boolean().optional()
 })
@@ -373,7 +354,7 @@ export const UpdateMeProfileBody = zod.object({
 export const updateMeProfileResponseAgeMin = 18;
 export const updateMeProfileResponseAgeMax = 120;
 
-export const updateMeProfileResponsePhotoUrlMax = 2048;
+export const updateMeProfileResponseLookingForOtherMax = 200;
 
 export const updateMeProfileResponseChogTraitsItemRarityMin = 0;
 export const updateMeProfileResponseChogTraitsItemRarityMax = 100;
@@ -387,19 +368,16 @@ export const UpdateMeProfileResponse = zod.object({
   "userId": zod.string().uuid(),
   "username": zod.string(),
   "displayName": zod.string(),
-  "name": zod.string().nullable(),
-  "gender": zod.string().nullable(),
+  "gender": zod.union([zod.literal('Male'),zod.literal('Female'),zod.literal('Gay'),zod.literal('Trans'),zod.literal('Alien'),zod.literal(null)]).nullable(),
   "age": zod.number().int().min(updateMeProfileResponseAgeMin).max(updateMeProfileResponseAgeMax).nullable(),
   "walletAddress": zod.string(),
-  "photoUrl": zod.string().url().max(updateMeProfileResponsePhotoUrlMax).nullable(),
-  "bio": zod.string().nullish(),
-  "location": zod.string().nullish(),
-  "timezone": zod.string().nullish(),
+  "walletVerified": zod.boolean(),
+  "bio": zod.string().nullable(),
   "interests": zod.array(zod.string()),
   "hobbies": zod.array(zod.string()),
-  "skills": zod.array(zod.string()),
   "languages": zod.array(zod.string()),
-  "lookingFor": zod.array(zod.string()),
+  "lookingFor": zod.array(zod.enum(['Dating', 'Friendship', 'Networking', 'Collaboration', 'Other'])),
+  "lookingForOther": zod.string().max(updateMeProfileResponseLookingForOtherMax).nullable(),
   "chog": zod.object({
   "tokenId": zod.string(),
   "contractAddress": zod.string(),
@@ -409,6 +387,7 @@ export const UpdateMeProfileResponse = zod.object({
   "description": zod.string().nullable(),
   "tier": zod.string().nullable(),
   "imageUrl": zod.string().url().nullish(),
+  "imageUrls": zod.array(zod.string().url()).optional(),
   "metadataUrl": zod.string().url().nullish(),
   "traits": zod.array(zod.object({
   "traitType": zod.string(),
@@ -450,7 +429,7 @@ export const SelectActiveChogResponse = zod.void()
 
 
 /**
- * Authentication is optional; only signed-in profiles with a complete verified Chog identity receive compatibility ranking. Age and profile photos are optional.
+ * Authentication is optional; only signed-in profiles with a complete verified Chog identity receive compatibility ranking. Age is optional, and the active verified Chog artwork is the profile image.
  * @summary Publicly browse a page of visible verified Chog holders
  */
 export const discoverProfilesQueryLimitDefault = 12;
@@ -470,7 +449,7 @@ export const DiscoverProfilesQueryParams = zod.object({
 export const discoverProfilesResponseProfilesItemAgeMin = 18;
 export const discoverProfilesResponseProfilesItemAgeMax = 120;
 
-export const discoverProfilesResponseProfilesItemPhotoUrlMax = 2048;
+export const discoverProfilesResponseProfilesItemLookingForOtherMax = 200;
 
 export const discoverProfilesResponseProfilesItemChogTraitsItemRarityMin = 0;
 export const discoverProfilesResponseProfilesItemChogTraitsItemRarityMax = 100;
@@ -485,19 +464,16 @@ export const DiscoverProfilesResponse = zod.object({
   "userId": zod.string().uuid(),
   "username": zod.string(),
   "displayName": zod.string(),
-  "name": zod.string().nullable(),
-  "gender": zod.string().nullable(),
+  "gender": zod.union([zod.literal('Male'),zod.literal('Female'),zod.literal('Gay'),zod.literal('Trans'),zod.literal('Alien'),zod.literal(null)]).nullable(),
   "age": zod.number().int().min(discoverProfilesResponseProfilesItemAgeMin).max(discoverProfilesResponseProfilesItemAgeMax).nullable(),
   "walletAddress": zod.string(),
-  "photoUrl": zod.string().url().max(discoverProfilesResponseProfilesItemPhotoUrlMax).nullable(),
-  "bio": zod.string().nullish(),
-  "location": zod.string().nullish(),
-  "timezone": zod.string().nullish(),
+  "walletVerified": zod.boolean(),
+  "bio": zod.string().nullable(),
   "interests": zod.array(zod.string()),
   "hobbies": zod.array(zod.string()),
-  "skills": zod.array(zod.string()),
   "languages": zod.array(zod.string()),
-  "lookingFor": zod.array(zod.string()),
+  "lookingFor": zod.array(zod.enum(['Dating', 'Friendship', 'Networking', 'Collaboration', 'Other'])),
+  "lookingForOther": zod.string().max(discoverProfilesResponseProfilesItemLookingForOtherMax).nullable(),
   "chog": zod.object({
   "tokenId": zod.string(),
   "contractAddress": zod.string(),
@@ -507,6 +483,7 @@ export const DiscoverProfilesResponse = zod.object({
   "description": zod.string().nullable(),
   "tier": zod.string().nullable(),
   "imageUrl": zod.string().url().nullish(),
+  "imageUrls": zod.array(zod.string().url()).optional(),
   "metadataUrl": zod.string().url().nullish(),
   "traits": zod.array(zod.object({
   "traitType": zod.string(),
@@ -536,7 +513,7 @@ export const SwipeProfileBody = zod.object({
 export const swipeProfileResponseMatchOneProfileAgeMin = 18;
 export const swipeProfileResponseMatchOneProfileAgeMax = 120;
 
-export const swipeProfileResponseMatchOneProfilePhotoUrlMax = 2048;
+export const swipeProfileResponseMatchOneProfileLookingForOtherMax = 200;
 
 export const swipeProfileResponseMatchOneProfileChogTraitsItemRarityMin = 0;
 export const swipeProfileResponseMatchOneProfileChogTraitsItemRarityMax = 100;
@@ -560,19 +537,16 @@ export const SwipeProfileResponse = zod.object({
   "userId": zod.string().uuid(),
   "username": zod.string(),
   "displayName": zod.string(),
-  "name": zod.string().nullable(),
-  "gender": zod.string().nullable(),
+  "gender": zod.union([zod.literal('Male'),zod.literal('Female'),zod.literal('Gay'),zod.literal('Trans'),zod.literal('Alien'),zod.literal(null)]).nullable(),
   "age": zod.number().int().min(swipeProfileResponseMatchOneProfileAgeMin).max(swipeProfileResponseMatchOneProfileAgeMax).nullable(),
   "walletAddress": zod.string(),
-  "photoUrl": zod.string().url().max(swipeProfileResponseMatchOneProfilePhotoUrlMax).nullable(),
-  "bio": zod.string().nullish(),
-  "location": zod.string().nullish(),
-  "timezone": zod.string().nullish(),
+  "walletVerified": zod.boolean(),
+  "bio": zod.string().nullable(),
   "interests": zod.array(zod.string()),
   "hobbies": zod.array(zod.string()),
-  "skills": zod.array(zod.string()),
   "languages": zod.array(zod.string()),
-  "lookingFor": zod.array(zod.string()),
+  "lookingFor": zod.array(zod.enum(['Dating', 'Friendship', 'Networking', 'Collaboration', 'Other'])),
+  "lookingForOther": zod.string().max(swipeProfileResponseMatchOneProfileLookingForOtherMax).nullable(),
   "chog": zod.object({
   "tokenId": zod.string(),
   "contractAddress": zod.string(),
@@ -582,6 +556,7 @@ export const SwipeProfileResponse = zod.object({
   "description": zod.string().nullable(),
   "tier": zod.string().nullable(),
   "imageUrl": zod.string().url().nullish(),
+  "imageUrls": zod.array(zod.string().url()).optional(),
   "metadataUrl": zod.string().url().nullish(),
   "traits": zod.array(zod.object({
   "traitType": zod.string(),
@@ -606,7 +581,7 @@ export const SwipeProfileResponse = zod.object({
 export const getLikeInboxResponseProfileAgeMin = 18;
 export const getLikeInboxResponseProfileAgeMax = 120;
 
-export const getLikeInboxResponseProfilePhotoUrlMax = 2048;
+export const getLikeInboxResponseProfileLookingForOtherMax = 200;
 
 export const getLikeInboxResponseProfileChogTraitsItemRarityMin = 0;
 export const getLikeInboxResponseProfileChogTraitsItemRarityMax = 100;
@@ -624,19 +599,16 @@ export const GetLikeInboxResponseItem = zod.object({
   "userId": zod.string().uuid(),
   "username": zod.string(),
   "displayName": zod.string(),
-  "name": zod.string().nullable(),
-  "gender": zod.string().nullable(),
+  "gender": zod.union([zod.literal('Male'),zod.literal('Female'),zod.literal('Gay'),zod.literal('Trans'),zod.literal('Alien'),zod.literal(null)]).nullable(),
   "age": zod.number().int().min(getLikeInboxResponseProfileAgeMin).max(getLikeInboxResponseProfileAgeMax).nullable(),
   "walletAddress": zod.string(),
-  "photoUrl": zod.string().url().max(getLikeInboxResponseProfilePhotoUrlMax).nullable(),
-  "bio": zod.string().nullish(),
-  "location": zod.string().nullish(),
-  "timezone": zod.string().nullish(),
+  "walletVerified": zod.boolean(),
+  "bio": zod.string().nullable(),
   "interests": zod.array(zod.string()),
   "hobbies": zod.array(zod.string()),
-  "skills": zod.array(zod.string()),
   "languages": zod.array(zod.string()),
-  "lookingFor": zod.array(zod.string()),
+  "lookingFor": zod.array(zod.enum(['Dating', 'Friendship', 'Networking', 'Collaboration', 'Other'])),
+  "lookingForOther": zod.string().max(getLikeInboxResponseProfileLookingForOtherMax).nullable(),
   "chog": zod.object({
   "tokenId": zod.string(),
   "contractAddress": zod.string(),
@@ -646,6 +618,7 @@ export const GetLikeInboxResponseItem = zod.object({
   "description": zod.string().nullable(),
   "tier": zod.string().nullable(),
   "imageUrl": zod.string().url().nullish(),
+  "imageUrls": zod.array(zod.string().url()).optional(),
   "metadataUrl": zod.string().url().nullish(),
   "traits": zod.array(zod.object({
   "traitType": zod.string(),
@@ -661,12 +634,70 @@ export const GetLikeInboxResponse = zod.array(GetLikeInboxResponseItem)
 
 
 /**
+ * @summary List the signed-in user's outgoing Likes and Super Likes that have not become Matches
+ */
+export const getSentLikesResponseProfileAgeMin = 18;
+export const getSentLikesResponseProfileAgeMax = 120;
+
+export const getSentLikesResponseProfileLookingForOtherMax = 200;
+
+export const getSentLikesResponseProfileChogTraitsItemRarityMin = 0;
+export const getSentLikesResponseProfileChogTraitsItemRarityMax = 100;
+
+export const getSentLikesResponseProfileCompatibilityMin = 0;
+export const getSentLikesResponseProfileCompatibilityMax = 100;
+
+
+
+export const GetSentLikesResponseItem = zod.object({
+  "id": zod.string().uuid(),
+  "type": zod.enum(['like', 'super_like']),
+  "createdAt": zod.coerce.date(),
+  "profile": zod.object({
+  "userId": zod.string().uuid(),
+  "username": zod.string(),
+  "displayName": zod.string(),
+  "gender": zod.union([zod.literal('Male'),zod.literal('Female'),zod.literal('Gay'),zod.literal('Trans'),zod.literal('Alien'),zod.literal(null)]).nullable(),
+  "age": zod.number().int().min(getSentLikesResponseProfileAgeMin).max(getSentLikesResponseProfileAgeMax).nullable(),
+  "walletAddress": zod.string(),
+  "walletVerified": zod.boolean(),
+  "bio": zod.string().nullable(),
+  "interests": zod.array(zod.string()),
+  "hobbies": zod.array(zod.string()),
+  "languages": zod.array(zod.string()),
+  "lookingFor": zod.array(zod.enum(['Dating', 'Friendship', 'Networking', 'Collaboration', 'Other'])),
+  "lookingForOther": zod.string().max(getSentLikesResponseProfileLookingForOtherMax).nullable(),
+  "chog": zod.object({
+  "tokenId": zod.string(),
+  "contractAddress": zod.string(),
+  "ownerWallet": zod.string(),
+  "verified": zod.boolean(),
+  "name": zod.string().nullish(),
+  "description": zod.string().nullable(),
+  "tier": zod.string().nullable(),
+  "imageUrl": zod.string().url().nullish(),
+  "imageUrls": zod.array(zod.string().url()).optional(),
+  "metadataUrl": zod.string().url().nullish(),
+  "traits": zod.array(zod.object({
+  "traitType": zod.string(),
+  "traitValue": zod.string(),
+  "rarity": zod.number().min(getSentLikesResponseProfileChogTraitsItemRarityMin).max(getSentLikesResponseProfileChogTraitsItemRarityMax).nullish()
+})).optional()
+}),
+  "compatibility": zod.number().int().min(getSentLikesResponseProfileCompatibilityMin).max(getSentLikesResponseProfileCompatibilityMax).nullish(),
+  "whyYouMatch": zod.array(zod.string()).optional()
+})
+})
+export const GetSentLikesResponse = zod.array(GetSentLikesResponseItem)
+
+
+/**
  * @summary List the signed-in user's real mutual matches
  */
 export const getMatchesResponseProfileAgeMin = 18;
 export const getMatchesResponseProfileAgeMax = 120;
 
-export const getMatchesResponseProfilePhotoUrlMax = 2048;
+export const getMatchesResponseProfileLookingForOtherMax = 200;
 
 export const getMatchesResponseProfileChogTraitsItemRarityMin = 0;
 export const getMatchesResponseProfileChogTraitsItemRarityMax = 100;
@@ -687,19 +718,16 @@ export const GetMatchesResponseItem = zod.object({
   "userId": zod.string().uuid(),
   "username": zod.string(),
   "displayName": zod.string(),
-  "name": zod.string().nullable(),
-  "gender": zod.string().nullable(),
+  "gender": zod.union([zod.literal('Male'),zod.literal('Female'),zod.literal('Gay'),zod.literal('Trans'),zod.literal('Alien'),zod.literal(null)]).nullable(),
   "age": zod.number().int().min(getMatchesResponseProfileAgeMin).max(getMatchesResponseProfileAgeMax).nullable(),
   "walletAddress": zod.string(),
-  "photoUrl": zod.string().url().max(getMatchesResponseProfilePhotoUrlMax).nullable(),
-  "bio": zod.string().nullish(),
-  "location": zod.string().nullish(),
-  "timezone": zod.string().nullish(),
+  "walletVerified": zod.boolean(),
+  "bio": zod.string().nullable(),
   "interests": zod.array(zod.string()),
   "hobbies": zod.array(zod.string()),
-  "skills": zod.array(zod.string()),
   "languages": zod.array(zod.string()),
-  "lookingFor": zod.array(zod.string()),
+  "lookingFor": zod.array(zod.enum(['Dating', 'Friendship', 'Networking', 'Collaboration', 'Other'])),
+  "lookingForOther": zod.string().max(getMatchesResponseProfileLookingForOtherMax).nullable(),
   "chog": zod.object({
   "tokenId": zod.string(),
   "contractAddress": zod.string(),
@@ -709,6 +737,7 @@ export const GetMatchesResponseItem = zod.object({
   "description": zod.string().nullable(),
   "tier": zod.string().nullable(),
   "imageUrl": zod.string().url().nullish(),
+  "imageUrls": zod.array(zod.string().url()).optional(),
   "metadataUrl": zod.string().url().nullish(),
   "traits": zod.array(zod.object({
   "traitType": zod.string(),
@@ -837,8 +866,7 @@ export const GetBlockedUsersResponseItem = zod.object({
   "userId": zod.string().uuid(),
   "walletAddress": zod.string().nullable(),
   "username": zod.string().nullable(),
-  "displayName": zod.string().nullable(),
-  "photoUrl": zod.string().url().nullable()
+  "displayName": zod.string().nullable()
 })
 export const GetBlockedUsersResponse = zod.array(GetBlockedUsersResponseItem)
 

@@ -16,6 +16,7 @@ type NotificationRow = {
 export function NotificationCenter() {
   const [userId, setUserId] = useState<string | null>(null);
   const [items, setItems] = useState<NotificationRow[]>([]);
+  const [actorUsernames, setActorUsernames] = useState<Record<string, string>>({});
   const [open, setOpen] = useState(false);
   const unreadCount = useMemo(() => items.filter((item) => !item.read_at).length, [items]);
 
@@ -29,6 +30,22 @@ export function NotificationCenter() {
     let disposed = false;
     let activeUserId: string | null = null;
 
+    const loadActorUsernames = async (nextUserId: string, notifications: NotificationRow[]) => {
+      const actorIds = [...new Set(notifications
+        .map((item) => item.actor_id)
+        .filter((actorId): actorId is string => Boolean(actorId)))];
+      if (actorIds.length === 0) return;
+      const { data, error } = await client
+        .from("profiles")
+        .select("user_id,username")
+        .in("user_id", actorIds);
+      if (disposed || activeUserId !== nextUserId || error) return;
+      setActorUsernames((current) => ({
+        ...current,
+        ...Object.fromEntries((data ?? []).map((profile) => [profile.user_id, profile.username])),
+      }));
+    };
+
     const loadNotifications = async (nextUserId: string) => {
       if (disposed) return;
       const { data, error } = await client
@@ -38,7 +55,11 @@ export function NotificationCenter() {
         .order("created_at", { ascending: false })
         .limit(30);
       if (disposed || activeUserId !== nextUserId) return;
-      if (!error) setItems((data ?? []) as NotificationRow[]);
+      if (!error) {
+        const nextItems = (data ?? []) as NotificationRow[];
+        setItems(nextItems);
+        void loadActorUsernames(nextUserId, nextItems);
+      }
     };
 
     const lifecycle = createNotificationChannelLifecycle(client, {
@@ -47,6 +68,7 @@ export function NotificationCenter() {
         if (disposed) return;
         setUserId(nextUserId);
         setItems([]);
+        setActorUsernames({});
         if (nextUserId) void loadNotifications(nextUserId);
       },
       onChange: (nextUserId, payload) => {
@@ -61,6 +83,7 @@ export function NotificationCenter() {
           setItems((current) =>
             [inserted, ...current.filter((item) => item.id !== inserted.id)].slice(0, 30),
           );
+          void loadActorUsernames(nextUserId, [inserted]);
         } else if (change.eventType === "UPDATE") {
           const updated = change.new;
           setItems((current) =>
@@ -223,7 +246,7 @@ export function NotificationCenter() {
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block text-xs font-semibold leading-5 text-[#4e405e]">
-                        {notificationText(item.type)}
+                        {notificationText(item.type, item.actor_id ? actorUsernames[item.actor_id] : undefined)}
                       </span>
                       <time className="mt-1 block text-[10px] text-[#95899d]">
                         {new Date(item.created_at).toLocaleString()}
@@ -241,17 +264,21 @@ export function NotificationCenter() {
   );
 }
 
-function notificationText(type: NotificationRow["type"]): string {
-  if (type === "like") return "Someone liked your profile";
-  if (type === "super_like") return "You received a $CHOG Super Like";
-  if (type === "match") return "It’s a match";
-  if (type === "message") return "You have a new message";
-  if (type === "missed_call") return "You missed a call";
-  return "You have an incoming call";
+function notificationText(type: NotificationRow["type"], username?: string): string {
+  const actor = username ? `@${username}` : "A Chog holder";
+  if (type === "like") return `You have a new Like from ${actor}`;
+  if (type === "super_like") return `${actor} Super Liked you`;
+  if (type === "match") return `It's a Match! You and ${actor} liked each other.`;
+  if (type === "message") return `New message from ${actor}`;
+  if (type === "missed_call") return `Missed call from ${actor}`;
+  return `Incoming call from ${actor}`;
 }
 
 function notificationDestination(item: NotificationRow): string {
   if (item.type === "like" || item.type === "super_like") return "/matches#likes";
+  if (item.type === "match" && item.related_id) {
+    return `/messages?match=${encodeURIComponent(item.related_id)}`;
+  }
   if (item.type === "message" && item.related_id) {
     return `/messages?match=${encodeURIComponent(item.related_id)}`;
   }

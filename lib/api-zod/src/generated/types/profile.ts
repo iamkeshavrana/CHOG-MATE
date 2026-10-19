@@ -6,15 +6,15 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { Chog } from './chog';
+import type { ProfileGender } from './profileGender';
+import type { ProfileLookingForItem } from './profileLookingForItem';
 
 export interface Profile {
   userId: string;
   username: string;
   displayName: string;
   /** @nullable */
-  name: string | null;
-  /** @nullable */
-  gender: string | null;
+  gender: ProfileGender;
   /**
      * @minimum 18
      * @maximum 120
@@ -22,22 +22,18 @@ export interface Profile {
      */
   age: number | null;
   walletAddress: string;
-  /**
-     * @maxLength 2048
-     * @nullable
-     */
-  photoUrl: string | null;
+  walletVerified: boolean;
   /** @nullable */
-  bio?: string | null;
-  /** @nullable */
-  location?: string | null;
-  /** @nullable */
-  timezone?: string | null;
+  bio: string | null;
   interests: string[];
   hobbies: string[];
-  skills: string[];
   languages: string[];
-  lookingFor: string[];
+  lookingFor: ProfileLookingForItem[];
+  /**
+     * @maxLength 200
+     * @nullable
+     */
+  lookingForOther: string | null;
   chog: Chog;
   /**
      * @minimum 0

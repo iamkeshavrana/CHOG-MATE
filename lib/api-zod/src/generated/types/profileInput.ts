@@ -5,6 +5,8 @@
  * CHOG MATE wallet, NFT, profile, discovery, and social API
  * OpenAPI spec version: 0.1.0
  */
+import type { ProfileInputGender } from './profileInputGender';
+import type { ProfileInputLookingForItem } from './profileInputLookingForItem';
 
 export interface ProfileInput {
   /**
@@ -18,16 +20,8 @@ export interface ProfileInput {
      * @maxLength 48
      */
   displayName: string;
-  /**
-     * @maxLength 80
-     * @nullable
-     */
-  name?: string | null;
-  /**
-     * @maxLength 50
-     * @nullable
-     */
-  gender?: string | null;
+  /** @nullable */
+  gender?: ProfileInputGender;
   /**
      * @minimum 18
      * @maximum 120
@@ -35,26 +29,10 @@ export interface ProfileInput {
      */
   age?: number | null;
   /**
-     * @maxLength 2048
-     * @nullable
-     * @pattern ^https?://
-     */
-  photoUrl?: string | null;
-  /**
      * @maxLength 500
      * @nullable
      */
   bio?: string | null;
-  /**
-     * @maxLength 100
-     * @nullable
-     */
-  location?: string | null;
-  /**
-     * @maxLength 100
-     * @nullable
-     */
-  timezone?: string | null;
   /**
      * @maxItems 20
      * @items.maxLength 50
@@ -69,18 +47,17 @@ export interface ProfileInput {
      * @maxItems 20
      * @items.maxLength 50
      */
-  skills: string[];
-  /**
-     * @maxItems 20
-     * @items.maxLength 50
-     */
   languages: string[];
   /**
      * @minItems 1
-     * @maxItems 10
-     * @items.maxLength 50
+     * @maxItems 5
      */
-  lookingFor: string[];
+  lookingFor: ProfileInputLookingForItem[];
+  /**
+     * @maxLength 200
+     * @nullable
+     */
+  lookingForOther: string | null;
   selectedChogTokenId: string;
   profileVisible?: boolean;
 }
