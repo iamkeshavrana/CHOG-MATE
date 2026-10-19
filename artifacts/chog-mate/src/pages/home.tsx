@@ -109,10 +109,9 @@ export default function HomePage() {
               <br />
               <span>CHOG MATE</span>
             </h1>
-            <div className="mt-7 flex items-center gap-3">
-              <span className="h-px w-10 bg-[#a78aef]" />
-              <p className="display text-[19px] font-bold tracking-[-.03em] text-[#624490]">
-                Meet. Match. Chog.
+            <div className="mt-7">
+              <p className="display text-[19px] font-extrabold italic tracking-[-.03em] text-[#624490]">
+                Meet Match Chog
               </p>
             </div>
             <p className="mt-5 max-w-[470px] text-[16px] leading-7 text-[#72667a]">
