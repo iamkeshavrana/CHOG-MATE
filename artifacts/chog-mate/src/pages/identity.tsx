@@ -677,7 +677,7 @@ function ConnectedProfilePage() {
       ? me.data?.selectedChogTokenId || profile.chog.tokenId
       : values.selectedChogTokenId;
     if (!tokenIdForSave) { setNotice('Choose a verified Chog to show on your profile.'); return; }
-    const numericAge = profile && values.age.trim() ? Number(values.age) : null;
+    const numericAge = values.age.trim() ? Number(values.age) : null;
     if (numericAge !== null && (!Number.isInteger(numericAge) || numericAge < 18 || numericAge > 120)) { setNotice('Use a whole-number age from 18 to 120.'); return; }
     const photoUrl = values.photoUrl.trim();
     if (photoUrl) {
@@ -688,6 +688,14 @@ function ConnectedProfilePage() {
         setNotice('Use a public profile photo URL that starts with http:// or https://.');
         return;
       }
+    }
+    if (values.profileVisible !== false && numericAge === null) {
+      setNotice('Add your age (18–120) before showing your profile in Discover.');
+      return;
+    }
+    if (values.profileVisible !== false && !photoUrl) {
+      setNotice('Add a public profile photo before showing your profile in Discover.');
+      return;
     }
     const data: ProfileInput = { username:cleanUsername,displayName:values.displayName.trim(),name:profile?values.name.trim()||null:null,gender:values.gender.trim()||null,age:numericAge,photoUrl:photoUrl||null,bio:values.bio||undefined,location:profile?values.location||undefined:undefined,timezone:profile?values.timezone||undefined:undefined,interests:tags(values.interests),hobbies:tags(values.hobbies),skills:profile?tags(values.skills):[],languages:tags(values.languages),lookingFor:lookingForValues,selectedChogTokenId:tokenIdForSave,...(values.profileVisible===null?{}:{profileVisible:values.profileVisible}) };
     try {
@@ -813,6 +821,8 @@ function ConnectedProfilePage() {
                    <label><span className="profile-field-label">Name <span className="text-[#b45a78]">*</span></span><input className="field" value={displayName} onChange={event=>setValue('displayName',event.target.value,{shouldDirty:true})} placeholder="How people will meet you" maxLength={48} required data-testid="input-edit-display-name"/></label>
                    <label><span className="profile-field-label">Username <span className="text-[#b45a78]">*</span></span><span className="relative block"><span className="profile-field-prefix">@</span><input className={`field pl-8 ${usernameError?'!border-[#c65861]':''}`} value={username} onChange={event=>{setValue('username',event.target.value.replace(/[^a-zA-Z0-9_]/g,''),{shouldDirty:true});setUsernameError('');}} placeholder="Your public handle" maxLength={24} minLength={2} required aria-invalid={Boolean(usernameError)} aria-describedby={usernameError?'edit-username-help':'edit-username-format'} data-testid="input-edit-username"/></span><span id={usernameError?'edit-username-help':'edit-username-format'} className={`mt-1.5 block text-[10px] ${usernameError?'text-[#aa4848]':'text-[#978692]'}`}>{usernameError || '2–24 letters, numbers, or underscores.'}</span></label>
                    <Field label="Gender" value={gender} onChange={value=>setValue('gender',value,{shouldDirty:true})} placeholder="Optional" maxLength={50} testId="input-edit-gender"/>
+                    <label><span className="profile-field-label">Age <span className="font-normal text-[#958a9b]">(required for Discover)</span></span><input className="field" type="number" min="18" max="120" step="1" inputMode="numeric" value={age} onChange={event=>setValue('age',event.target.value,{shouldDirty:true})} placeholder="18+" required={profileVisible !== false} data-testid="input-edit-profile-age"/></label>
+                    <label className="sm:col-span-2"><span className="profile-field-label">Profile photo URL</span><input className="field" type="url" value={photoUrl} onChange={event=>setValue('photoUrl',event.target.value,{shouldDirty:true})} placeholder="https://example.com/your-photo.jpg" maxLength={2048} required={profileVisible !== false} aria-describedby="edit-profile-photo-help" data-testid="input-edit-profile-photo-url"/><span id="edit-profile-photo-help" className="mt-1.5 block text-[10px] leading-4 text-[#978692]">Use a public image URL. Required while your profile is visible in Discover.</span></label>
                    <label className="sm:col-span-2"><span className="profile-field-label">Introduction</span><textarea value={bio} onChange={event=>setValue('bio',event.target.value,{shouldDirty:true})} maxLength={500} rows={4} className="field resize-y" placeholder="What are you curious about lately? What do you love talking about?" data-testid="input-edit-bio"/><span className="mt-1.5 block text-right text-[10px] text-[#978692]">{bio.length}/500</span></label>
                    <TagField label="Interests" value={interests} onChange={value=>setValue('interests',value,{shouldDirty:true})} placeholder="Art, climbing, long reads" testId="input-edit-interests"/>
                    <TagField label="Hobbies" value={hobbies} onChange={value=>setValue('hobbies',value,{shouldDirty:true})} placeholder="Hiking, cooking, photography" testId="input-edit-hobbies"/>
@@ -856,7 +866,7 @@ function ConnectedProfilePage() {
                         {profileGenderOptions.map(option=><button key={option} type="button" aria-pressed={gender===option} onClick={()=>setValue('gender',gender===option?'':option,{shouldDirty:true})} className={`profile-visibility-choice min-h-10 px-4 ${gender===option?'is-selected':''}`} data-testid={`button-gender-${option.toLowerCase()}`}>{option}</button>)}
                       </div>
                     </fieldset>
-                    <label className="sm:col-span-2"><span className="profile-field-label">Profile photo URL</span><input className="field" type="url" value={photoUrl} onChange={event=>setValue('photoUrl',event.target.value,{shouldDirty:true})} placeholder="https://example.com/your-photo.jpg" maxLength={2048} aria-describedby="profile-photo-help" data-testid="input-profile-photo-url"/><span id="profile-photo-help" className="mt-1.5 block text-[10px] leading-4 text-[#978692]">Use a public image URL. A profile photo is required to appear in Discover.</span></label>
+                    <label className="sm:col-span-2"><span className="profile-field-label">Profile photo URL</span><input className="field" type="url" value={photoUrl} onChange={event=>setValue('photoUrl',event.target.value,{shouldDirty:true})} placeholder="https://example.com/your-photo.jpg" maxLength={2048} required={profileVisible !== false} aria-describedby="profile-photo-help" data-testid="input-profile-photo-url"/><span id="profile-photo-help" className="mt-1.5 block text-[10px] leading-4 text-[#978692]">Use a public image URL. Required while your profile is visible in Discover.</span></label>
                   </div>
                 </div>
                 <div>
@@ -902,7 +912,7 @@ function ConnectedProfilePage() {
                <div>
                  <div className="mb-4 flex items-center gap-3"><span className="profile-section-index">03</span><div><h3 className="text-sm font-bold text-[#493b4d]">Who would you like to meet?</h3><p className="mt-0.5 text-[11px] text-[#92818f]">Pick the kinds of connections you’re open to.</p></div></div>
                   <TagField label="What are you looking for?" value={lookingFor} onChange={value=>setValue('lookingFor',value,{shouldDirty:true})} placeholder="Dates, friends, collaborators" testId="input-looking-for"/>
-                  <label className="mt-4 block max-w-sm"><span className="profile-field-label">Age <span className="font-normal text-[#958a9b]">(required for Discover)</span></span><input className="field" type="number" min="18" max="120" step="1" inputMode="numeric" value={age} onChange={event=>setValue('age',event.target.value,{shouldDirty:true})} placeholder="18+" data-testid="input-profile-age"/><span className="mt-1.5 block text-[10px] leading-4 text-[#978692]">Use a whole number from 18 to 120.</span></label>
+                   <label className="mt-4 block max-w-sm"><span className="profile-field-label">Age <span className="font-normal text-[#958a9b]">(required for Discover)</span></span><input className="field" type="number" min="18" max="120" step="1" inputMode="numeric" value={age} onChange={event=>setValue('age',event.target.value,{shouldDirty:true})} placeholder="18+" required={profileVisible !== false} data-testid="input-profile-age"/><span className="mt-1.5 block text-[10px] leading-4 text-[#978692]">Use a whole number from 18 to 120.</span></label>
                </div>
               </div>}
              {notice && <p className={`mt-6 flex items-start gap-2.5 rounded-2xl px-4 py-3 text-sm leading-5 ${notice.startsWith('Your profile is saved')?'border border-[#bed8c0] bg-[#edf6ec] text-[#3d7048]':'border border-[#ebc9c5] bg-[#fff1ed] text-[#914c3c]'}`} role="status" data-testid="status-profile-save"><span className="mt-0.5"><Check size={15}/></span>{notice}</p>}
@@ -1055,9 +1065,16 @@ export function SettingsPage() {
       await updateVisibility.mutateAsync({data:{visible:nextVisible}});
       await qc.invalidateQueries({queryKey:getGetMeQueryKey()});
       setMessage(`Discover visibility is now ${nextVisible?'on':'off'}.`);
-    } catch {
+    } catch (error) {
       setVisible(previousVisible);
-      setMessage('We couldn’t update Discover visibility. Please try again.');
+      const responseData = error && typeof error === 'object' && 'data' in error
+        ? (error as { data?: unknown }).data
+        : null;
+      const responseMessage = responseData && typeof responseData === 'object' && 'error' in responseData
+        && typeof (responseData as { error?: unknown }).error === 'string'
+        ? (responseData as { error: string }).error
+        : null;
+      setMessage(responseMessage || 'We couldn’t update Discover visibility. Please try again.');
     }
   }
   async function unblockUser(userId:string) {

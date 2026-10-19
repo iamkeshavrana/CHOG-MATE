@@ -93,7 +93,11 @@ function DiscoverCard({
     { title: 'Interests', values: profile.interests },
     { title: 'Hobbies', values: profile.hobbies },
     { title: 'Skills', values: profile.skills },
-  ];
+  ].filter(section => section.values.length > 0);
+  const subtitle = [
+    profile.age === null ? null : String(profile.age),
+    profile.location?.trim() || null,
+  ].filter(Boolean).join(' · ');
   function handleMediaError() {
     if (mediaErrorHandled.current) return;
     mediaErrorHandled.current = true;
@@ -110,7 +114,7 @@ function DiscoverCard({
     <div onTouchStart={event=>{touchStart.current=event.touches[0]?.clientX ?? null;}} onTouchEnd={finishTouch} className="relative h-[310px] touch-pan-y bg-[#e8ddff] sm:h-[390px]" data-testid={`swipe-surface-${profile.userId}`}>
       {profile.photoUrl && <img src={profile.photoUrl} alt={`Profile photo of ${profile.displayName}`} onError={handleMediaError} className="absolute inset-0 h-full w-full object-cover" />}
       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#211332e8] via-[#21133278] to-transparent px-6 pb-5 pt-24 text-white sm:px-8">
-        <div className="flex items-end justify-between gap-3"><div className="min-w-0"><div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-white/30 bg-white/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[.12em] backdrop-blur"><BadgeCheck size={12} />Holder verified</div><h2 className="display truncate text-[34px] font-extrabold leading-none tracking-[-.05em]">{profile.displayName}</h2><p className="mt-1 text-sm text-white/85">@{profile.username} · {profile.age} · {profile.location}</p></div>
+        <div className="flex items-end justify-between gap-3"><div className="min-w-0"><div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-white/30 bg-white/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[.12em] backdrop-blur"><BadgeCheck size={12} />Holder verified</div><h2 className="display truncate text-[34px] font-extrabold leading-none tracking-[-.05em]">{profile.displayName}</h2><p className="mt-1 text-sm text-white/85">@{profile.username}{subtitle ? ` · ${subtitle}` : ''}</p></div>
           <div className="shrink-0 rounded-2xl border border-white/30 bg-white/15 px-3 py-2 text-center backdrop-blur"><span className="display block text-xl font-extrabold">{profile.compatibility === null ? '—' : `${profile.compatibility}%`}</span><span className="text-[9px] font-bold uppercase tracking-[.12em] text-white/75">{profile.compatibility === null ? 'profile score' : 'compatibility'}</span></div>
         </div>
       </div>
@@ -119,7 +123,7 @@ function DiscoverCard({
     </div>
     <div className="px-6 py-5 sm:px-8">
       {profile.name && <p className="mb-2 text-xs text-[#887b8d]"><span className="font-bold text-[#51445f]">Name</span> · {profile.name}</p>}
-      <p className="whitespace-pre-line text-sm leading-6 text-[#6d6178]">{profile.bio}</p>
+      {profile.bio?.trim() && <p className="whitespace-pre-line text-sm leading-6 text-[#6d6178]">{profile.bio}</p>}
       {profile.whyYouMatch?.length ? <div className="mt-4 rounded-2xl bg-[#fff6e9] px-4 py-3"><p className="mb-2 text-[10px] font-bold uppercase tracking-[.13em] text-[#9b6b3c]">Why you match</p><ul className="space-y-1 text-sm leading-5 text-[#735a43]">{profile.whyYouMatch.slice(0, 3).map(reason=><li key={reason}>• {reason}</li>)}</ul></div> : null}
       <div className="mt-5 grid gap-3 rounded-2xl border border-[#eadfe0] bg-[#fffaf6] p-3 sm:grid-cols-[112px_1fr] sm:items-center">
         <div className="aspect-square overflow-hidden rounded-xl bg-[#e8ddff]">{profile.chog.imageUrl && <img src={profile.chog.imageUrl} alt={`Chog #${profile.chog.tokenId}`} onError={handleMediaError} className="h-full w-full object-contain"/>}</div>
@@ -546,8 +550,8 @@ export function DiscoverPage() {
         <DiscoverCard profile={currentCard} onAction={selected => action(selected)} onOpenProfile={()=>setViewingProfile(currentCard)} onAuthRequired={()=>setWalletDialogOpen(true)} onMediaError={()=>{setToast('A profile or Chog image could not be loaded. This card was skipped for this session.');setProfileIndex(index=>index+1);}} canInteract={canInteract} pending={swipe.isPending} />
         <div className="mx-auto mt-5 flex max-w-[620px] items-center justify-between"><p className="text-xs text-[#92869a]">Real holders. Real possibilities.</p>{profileIndex >= profiles.length && data?.nextCursor && <button onClick={()=>{setCursor(data.nextCursor || undefined);setProfileIndex(0);}} className="button-soft inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold" data-testid="button-load-more">More people <ArrowRight size={14}/></button>}</div>
       </> : data?.nextCursor ? <EmptyState mark="cm" title="Looking a little further." detail="No complete profiles in this group yet. Continue to the next set of real Chog holders." action={<button onClick={()=>setCursor(data.nextCursor || undefined)} className="button-soft rounded-full px-5 py-2.5 text-sm font-bold" data-testid="button-load-more">Continue discovery</button>} /> :
-      search ? <EmptyState mark="cm" title="No Chog Mates found." detail="No visible, complete profiles matched that name, username, or token ID. Clear your search to browse everyone eligible." action={<button onClick={()=>setSearchInput('')} className="button-soft rounded-full px-5 py-2.5 text-sm font-bold" data-testid="button-clear-search-empty">Clear search</button>} /> :
-      <EmptyState mark="cm" title="No one new, for now." detail="You’ve reached the end of the complete, eligible Chog holders available to discover. Check back as the community grows." action={<button onClick={()=>{setProfileIndex(0);void refetch();}} className="button-soft rounded-full px-5 py-2.5 text-sm font-bold" data-testid="button-refresh-discovery">Check again</button>} />}
+       search ? <EmptyState mark="cm" title="No Chog Mates found." detail="Search includes visible profiles with an age, a public photo, and a verified Chog still held by that account. Other profile details can be added later." action={<button onClick={()=>setSearchInput('')} className="button-soft rounded-full px-5 py-2.5 text-sm font-bold" data-testid="button-clear-search-empty">Clear search</button>} /> :
+      <EmptyState mark="cm" title="No one new, for now." detail="Profiles appear when their owner has Discover visibility on, adds an age and public photo, and still holds a verified Chog. Other details like bio, location, interests, hobbies, and skills are optional." action={<button onClick={()=>{setProfileIndex(0);void refetch();}} className="button-soft rounded-full px-5 py-2.5 text-sm font-bold" data-testid="button-refresh-discovery">Check again</button>} />}
     </QueryState>
     <ProfileDetailsDialog profile={viewingProfile} open={Boolean(viewingProfile)} onOpenChange={open=>{if(!open)setViewingProfile(null);}}/>
     <SuperLikeDialog
@@ -940,12 +944,7 @@ function isDiscoverReadyProfile(
     profile.age !== null &&
     profile.age >= 18 &&
     profile.age <= 120 &&
-    profile.bio?.trim() &&
-    profile.location?.trim() &&
     hasHttpUrl(profile.photoUrl) &&
-    profile.interests.length > 0 &&
-    profile.hobbies.length > 0 &&
-    profile.skills.length > 0 &&
     profile.lookingFor.length > 0 &&
     profile.chog.verified &&
     hasHttpUrl(profile.chog.imageUrl) &&

@@ -276,7 +276,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/DiscoverVisibility"
         "409":
-          description: Create a profile before changing Discover visibility
+          description: Create a profile or complete required Discover details before enabling visibility
           content:
             application/json:
               schema:

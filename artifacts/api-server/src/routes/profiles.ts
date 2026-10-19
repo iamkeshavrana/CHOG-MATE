@@ -91,6 +91,16 @@ router.put("/me/discover-visibility", async (req, res): Promise<void> => {
 
   try {
     const admin = getSupabaseAdmin();
+    if (parsed.data.visible) {
+      const bundle = await loadProfileBundle(session.userId);
+      if (!bundle || !isCompleteDiscoverableProfile(bundle, false)) {
+        res.status(409).json({
+          error:
+            "Add a valid age and public profile photo, and keep a verified Chog selected, before enabling Discover visibility.",
+        });
+        return;
+      }
+    }
     const { data, error } = await admin
       .from("profiles")
       .update({
@@ -159,6 +169,16 @@ router.put("/me/profile", async (req, res): Promise<void> => {
     if (!ownsSelectedChog) {
       res.status(403).json({
         error: "Choose a Chog Genesis NFT currently held by this wallet.",
+      });
+      return;
+    }
+    if (
+      profileVisible &&
+      (parsed.data.age == null || !isHttpUrl(parsed.data.photoUrl))
+    ) {
+      res.status(400).json({
+        error:
+          "Add a valid age and public profile photo before showing your profile in Discover.",
       });
       return;
     }
@@ -507,20 +527,10 @@ function isCompleteDiscoverableProfile(
     Number.isInteger(profile.age) &&
     profile.age >= 18 &&
     profile.age <= 120 &&
-    typeof profile.bio === "string" &&
-    profile.bio.trim().length > 0 &&
     isHttpUrl(profile.photo_url) &&
-    typeof profile.location === "string" &&
-    profile.location.trim().length > 0 &&
     profile.active_chog_token_id === chog.tokenId &&
     Array.isArray(profile.looking_for) &&
     hasValues(profile.looking_for) &&
-    Array.isArray(profile.interests) &&
-    hasValues(profile.interests) &&
-    Array.isArray(profile.hobbies) &&
-    hasValues(profile.hobbies) &&
-    Array.isArray(profile.skills) &&
-    hasValues(profile.skills) &&
     chog.verified &&
     /^[0-9]+$/.test(chog.tokenId) &&
     chog.contractAddress.toLowerCase() === CHOG_CONTRACT_ADDRESS.toLowerCase() &&
