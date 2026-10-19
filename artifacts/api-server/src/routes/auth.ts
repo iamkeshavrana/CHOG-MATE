@@ -122,7 +122,9 @@ router.post("/auth/address", async (req, res): Promise<void> => {
       return;
     }
 
-    const account = await createWalletAuthSession(walletAddress);
+    const account = await createWalletAuthSession(walletAddress, {
+      repairAddressOnlyCredentials: true,
+    });
     const admin = getSupabaseAdmin();
     const { data: existingUser, error: existingUserError } = await admin
       .from("users")

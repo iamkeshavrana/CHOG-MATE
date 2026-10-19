@@ -4,6 +4,7 @@ import {
   timingSafeEqual,
 } from "node:crypto";
 import type { Request, Response } from "express";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { recoverMessageAddress, getAddress } from "viem";
 import { getSupabaseAdmin, getSupabasePublic, getWalletAuthCredentials } from "./supabase";
 
@@ -93,6 +94,7 @@ export async function verifyWalletChallenge(
 
 export async function createWalletAuthSession(
   walletAddress: string,
+  options: { repairAddressOnlyCredentials?: boolean } = {},
 ): Promise<{
   userId: string;
   walletAddress: `0x${string}`;
@@ -111,8 +113,42 @@ export async function createWalletAuthSession(
   });
 
   const publicClient = getSupabasePublic();
-  const { data: signedIn, error: signInError } =
-    await publicClient.auth.signInWithPassword(credentials);
+  let signInResult = await publicClient.auth.signInWithPassword(credentials);
+  let expectedUserId = created.user?.id;
+
+  if (
+    options.repairAddressOnlyCredentials &&
+    (createError?.code === "email_exists" ||
+      createError?.code === "user_already_exists") &&
+    signInResult.error?.code === "invalid_credentials"
+  ) {
+    const existingUser = await findAuthUserByEmail(admin, credentials.email);
+    if (!existingUser) {
+      throw createError ?? new Error("Wallet account could not be established");
+    }
+
+    const existingWalletAddress = existingUser.user_metadata?.wallet_address;
+    if (
+      typeof existingWalletAddress === "string" &&
+      existingWalletAddress.toLowerCase() !== normalized.toLowerCase()
+    ) {
+      throw new Error("Wallet account identity did not match");
+    }
+
+    // Address-only credentials are derived from SESSION_SECRET. Preserve the
+    // existing Auth user ID if that secret changed, then sign in with the
+    // current derived password. This recovery is enabled only by /auth/address.
+    const { error: passwordRepairError } =
+      await admin.auth.admin.updateUserById(existingUser.id, {
+        password: credentials.password,
+      });
+    if (passwordRepairError) throw passwordRepairError;
+
+    expectedUserId = existingUser.id;
+    signInResult = await publicClient.auth.signInWithPassword(credentials);
+  }
+
+  const { data: signedIn, error: signInError } = signInResult;
   if (signInError || !signedIn.user || !signedIn.session) {
     throw (
       signInError ??
@@ -120,7 +156,7 @@ export async function createWalletAuthSession(
       new Error("Wallet account could not be established")
     );
   }
-  if (created.user && created.user.id !== signedIn.user.id) {
+  if (expectedUserId && expectedUserId !== signedIn.user.id) {
     throw new Error("Wallet account identity did not match");
   }
 
@@ -131,6 +167,27 @@ export async function createWalletAuthSession(
     refreshToken: signedIn.session.refresh_token,
     expiresIn: signedIn.session.expires_in ?? 3600,
   };
+}
+
+async function findAuthUserByEmail(
+  admin: SupabaseClient,
+  email: string,
+) {
+  const normalizedEmail = email.toLowerCase();
+
+  for (let page = 1; ; page += 1) {
+    const { data, error } = await admin.auth.admin.listUsers({
+      page,
+      perPage: 1000,
+    });
+    if (error) throw error;
+
+    const existingUser = data.users.find(
+      (user) => user.email?.toLowerCase() === normalizedEmail,
+    );
+    if (existingUser) return existingUser;
+    if (data.users.length < 1000) return null;
+  }
 }
 
 export function setWalletSessionCookie(
