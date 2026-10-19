@@ -123,7 +123,7 @@ export function ChogArtwork({
 }: {
   chog?: Chog | null;
   className?: string;
-  fit?: 'contain' | 'natural';
+  fit?: 'contain' | 'natural' | 'contained-natural';
 }) {
   const sources = [...new Set([...(chog?.imageUrls ?? []), chog?.imageUrl].filter((url): url is string => Boolean(url)))];
   const [sourceIndex, setSourceIndex] = useState(0);
@@ -133,7 +133,7 @@ export function ChogArtwork({
       src={sources[sourceIndex]}
       alt={chog?.name || `Verified Chog ${chog?.tokenId}`}
       onError={() => setSourceIndex((index) => Math.min(index + 1, sources.length))}
-      className={`${fit === 'natural' ? 'block h-auto w-full max-w-full' : 'h-full w-full'} object-contain ${className}`}
+      className={`${fit === 'natural' ? 'block h-auto w-full max-w-full' : fit === 'contained-natural' ? 'block h-auto w-auto max-h-full max-w-full' : 'h-full w-full'} object-contain ${className}`}
     />;
   }
   return <div className={`flex ${fit === 'natural' ? 'aspect-square w-full' : 'h-full w-full'} flex-col items-center justify-center bg-[radial-gradient(circle_at_50%_35%,#e8ddff,#dcd4ff_52%,#c6b3fa)] text-[#3e286a] ${className}`}><div className="grid h-20 w-20 place-items-center rounded-[28px] border border-white/50 bg-white/35 shadow-[0_12px_30px_#50329322] backdrop-blur"><span className="display text-3xl font-extrabold tracking-[-.1em]">cm</span></div><span className="mt-3 text-[10px] font-bold uppercase tracking-[.17em]">{chog ? `Chog #${chog.tokenId}` : 'CHOG MATE'}</span></div>;

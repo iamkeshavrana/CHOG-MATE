@@ -1,0 +1,78 @@
+Fix ONLY the CHOG MATE Discover card layout and NFT image rendering.
+
+CURRENT PROBLEMS:
+
+1. The Chog NFT artwork is not showing correctly on Discover.
+2. The Discover user card is too large and extends beyond the viewport.
+3. I have to scroll the page to see the complete Discover card.
+4. The card should fit properly within the available browser window.
+5. The NFT artwork should be the ONLY main profile image.
+
+IMPORTANT NFT IMAGE RULE:
+
+The actual Chog NFT artwork must be displayed using its real image dimensions/aspect ratio.
+
+Do NOT:
+- crop the NFT
+- stretch the NFT
+- distort the NFT
+- force every NFT into a generic 1:1 ratio
+- create a separate NFT card below the profile
+- use a separate uploaded profile photo
+
+If the NFT artwork is square, keep it square.
+If portrait, preserve portrait ratio.
+If landscape, preserve landscape ratio.
+
+Use responsive width + automatic height/aspect-ratio preservation.
+The complete artwork must remain visible.
+
+DISCOVER CARD:
+
+Make the entire Discover profile card fit within the browser viewport without requiring page scrolling.
+
+The card should be Tinder-inspired and compact.
+
+One profile = one card.
+
+The card should contain:
+- Chog NFT artwork
+- Name
+- Age
+- Username
+- About
+- relevant profile information
+- Chog number/tier where already present
+- action buttons
+
+Do NOT create a separate NFT image section.
+
+IMPORTANT:
+The Discover page itself should not require vertical scrolling just to see one profile card.
+
+Use responsive viewport-aware sizing.
+
+On desktop:
+- card should fit comfortably within the visible browser window
+- avoid excessive vertical height
+
+On smaller screens:
+- adapt proportionally
+- preserve NFT artwork
+- avoid content being cut off
+
+Do NOT change:
+- likes logic
+- passes
+- Super Like
+- matches
+- messages
+- notifications
+- profile fields
+- authentication
+- database structure
+
+Only fix Discover NFT rendering and card/viewport sizing.
+
+Run typecheck and production build.
+Report exactly what was changed.

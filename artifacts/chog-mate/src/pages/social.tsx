@@ -102,62 +102,63 @@ function DiscoverCard({
     if (distance > 70) onAction('like');
     else if (distance < -70) onAction('pass');
   }
-  return <article className="surface mx-auto w-full min-w-0 max-w-[560px] overflow-hidden rounded-[28px] border border-[#e8dff0] bg-[#fffaf6] shadow-[0_22px_70px_-36px_#40275e55]" data-testid={`card-profile-${profile.userId}`}>
+  return <article className="surface discover-profile-card mx-auto w-full min-w-0 max-w-[920px] overflow-hidden rounded-[28px] border border-[#e8dff0] bg-[#fffaf6] shadow-[0_22px_70px_-36px_#40275e55]" data-testid={`card-profile-${profile.userId}`}>
     <div
       onTouchStart={event => { touchStart.current = event.touches[0]?.clientX ?? null; }}
       onTouchEnd={finishTouch}
       onTouchCancel={() => { touchStart.current = null; }}
-      className="relative isolate w-full touch-pan-y bg-[#e9e1fb]"
+        className="discover-profile-art relative isolate w-full touch-pan-y bg-[radial-gradient(ellipse_at_50%_30%,#f6efff_0%,#e6ddf8_60%,#d9cbed_100%)]"
       data-testid={`swipe-surface-${profile.userId}`}
       aria-label={`Verified Chog artwork and profile for ${profile.displayName}. Swipe right to like or left to pass.`}
     >
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_30%,#f6efff_0%,#e6ddf8_60%,#d9cbed_100%)]" aria-hidden="true" />
-      <ChogArtwork chog={profile.chog} fit="natural" />
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#241436f2] via-[#24143699] to-transparent px-5 pb-5 pt-32 text-[#fffaf5] sm:px-7 sm:pb-7">
-        <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-white/35 bg-[#fffaf5]/15 px-2.5 py-1 text-[9px] font-extrabold uppercase tracking-[.15em] backdrop-blur-md">
-          <BadgeCheck size={12} aria-hidden="true" /> Verified holder
-        </div>
-        <div className="flex items-end justify-between gap-3">
-          <div className="min-w-0">
-            <h2 className="display break-words text-[34px] font-extrabold leading-[.98] tracking-[-.055em] sm:text-[40px]" data-testid={`text-display-name-${profile.userId}`}>{profile.displayName}</h2>
-            <p className="mt-2 flex flex-wrap items-center gap-x-2 text-[13px] font-medium text-white/85">
-              <span>@{profile.username}</span>
-              {profile.age !== null && <><span aria-hidden="true" className="text-white/50">·</span><span>{profile.age}</span></>}
-            </p>
-          </div>
-          <div className="mb-0.5 shrink-0 rounded-xl border border-white/30 bg-white/15 px-3 py-2 text-right backdrop-blur-md">
-            <span className="display block text-base font-extrabold leading-none">Chog #{profile.chog.tokenId}</span>
-            <span className="mt-1 block text-[9px] font-semibold uppercase tracking-[.12em] text-white/75">{profile.chog.tier || 'Tier unlisted'}</span>
-          </div>
-        </div>
-      </div>
-      <div className="absolute right-3 top-3 z-10" onClick={event => event.stopPropagation()}>
-        <ReportControl profile={profile} canInteract={canInteract} onAuthRequired={onAuthRequired} />
-      </div>
-      <span className="pointer-events-none absolute right-4 top-[58px] rounded-full bg-[#241436]/35 px-2.5 py-1 text-[9px] font-semibold tracking-wide text-white/80 backdrop-blur-sm sm:hidden">Swipe to pass or like</span>
+      <ChogArtwork chog={profile.chog} fit="contained-natural" />
     </div>
-    <div className="min-w-0 px-4 pb-5 pt-4 sm:px-6 sm:pb-6">
-      {profile.bio?.trim() && <section aria-label="About" className="mb-4 rounded-2xl bg-[#f7f1fa] px-4 py-3.5">
-        <h3 className="text-[9px] font-extrabold uppercase tracking-[.16em] text-[#9476a0]">About</h3>
-        <p className="mt-1.5 whitespace-pre-line break-words text-[13px] leading-[1.55] text-[#594b62]" data-testid={`text-bio-${profile.userId}`}>{profile.bio}</p>
-      </section>}
-      <div className="space-y-3.5">
+    <div className="discover-profile-details min-w-0 px-4 pb-3 pt-3 sm:px-5">
+      <div className="discover-profile-info">
+        <div className="mb-3 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="discover-profile-meta mb-1 flex items-center justify-between gap-2">
+              <div className="inline-flex items-center gap-1.5 rounded-full border border-[#e9deef] bg-white/75 px-2.5 py-1 text-[9px] font-extrabold uppercase tracking-[.12em] text-[#73569a]">
+                <BadgeCheck size={12} aria-hidden="true" /> Verified holder
+              </div>
+              <div onClick={event => event.stopPropagation()}>
+                <ReportControl profile={profile} canInteract={canInteract} onAuthRequired={onAuthRequired} />
+              </div>
+            </div>
+            <h2 className="display break-words text-[28px] font-extrabold leading-none tracking-[-.045em]" data-testid={`text-display-name-${profile.userId}`}>{profile.displayName}</h2>
+            <p className="mt-1.5 flex flex-wrap items-center gap-x-2 text-[12px] font-medium text-[#75677c]">
+              <span>@{profile.username}</span>
+              {profile.age !== null && <><span aria-hidden="true" className="text-[#b8a9ba]">·</span><span>{profile.age}</span></>}
+            </p>
+            <p className="mt-1 text-[9px] font-medium text-[#97899c] sm:hidden">Swipe to pass or like</p>
+          </div>
+          <div className="shrink-0 rounded-xl border border-[#e9deef] bg-white/75 px-3 py-2 text-right">
+            <span className="display block text-sm font-extrabold leading-none">Chog #{profile.chog.tokenId}</span>
+            <span className="mt-1 block text-[9px] font-semibold uppercase tracking-[.1em] text-[#81758a]">{profile.chog.tier || 'Tier unlisted'}</span>
+          </div>
+        </div>
+        {profile.bio?.trim() && <section aria-label="About" className="mb-3 rounded-2xl bg-[#f7f1fa] px-3.5 py-2.5">
+          <h3 className="text-[9px] font-extrabold uppercase tracking-[.14em] text-[#9476a0]">About</h3>
+          <p className="mt-1 whitespace-pre-line break-words text-[12px] leading-[1.45] text-[#594b62]" data-testid={`text-bio-${profile.userId}`}>{profile.bio}</p>
+        </section>}
+        <div className="space-y-2.5">
         {sections.map(section => <section key={section.title} aria-label={section.title} data-testid={`section-${section.title.toLowerCase().replace(/\s+/g, '-')}-${profile.userId}`}>
-          <h3 className="mb-1.5 text-[9px] font-extrabold uppercase tracking-[.16em] text-[#9476a0]">{section.title}</h3>
-          <div className="flex flex-wrap gap-1.5">
+          <h3 className="mb-1 text-[9px] font-extrabold uppercase tracking-[.14em] text-[#9476a0]">{section.title}</h3>
+          <div className="flex flex-wrap gap-1">
             {section.values.map(item => <span key={item} className={`max-w-full break-words rounded-full px-2.5 py-1 text-[10px] font-semibold leading-4 ${section.title === 'Looking For' ? 'bg-[#eee5fb] text-[#6246a0]' : 'border border-[#eadfee] bg-[#fffdfb] text-[#6d6075]'}`}>{item}</span>)}
           </div>
           {section.title === 'Looking For' && hasOtherLookingFor && lookingForOther && <p className="mt-2 break-words rounded-xl border-l-2 border-[#d8b8d4] bg-[#fbf5fa] px-3 py-2 text-[11px] leading-5 text-[#655469]" data-testid={`text-looking-for-other-${profile.userId}`}>{lookingForOther}</p>}
         </section>)}
       </div>
-      <div className="mt-5 flex items-center justify-between gap-3 border-t border-[#eee5ec] pt-4">
-        <button type="button" onClick={event => { event.stopPropagation(); onOpenProfile(); }} className="inline-flex min-h-10 min-w-0 items-center gap-1.5 rounded-lg text-left text-xs font-bold text-[#7047b5] underline-offset-4 transition hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a77ad5]" data-testid={`button-open-profile-${profile.userId}`}>
+      </div>
+      <div className="discover-profile-actions mt-2 flex items-center justify-between gap-2 border-t border-[#eee5ec] pt-2.5">
+        <button type="button" onClick={event => { event.stopPropagation(); onOpenProfile(); }} className="inline-flex min-h-9 min-w-0 items-center gap-1 rounded-lg text-left text-[11px] font-bold text-[#7047b5] underline-offset-4 transition hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a77ad5]" data-testid={`button-open-profile-${profile.userId}`}>
           View full profile <ArrowRight size={13} aria-hidden="true"/>
         </button>
-        <div className="flex shrink-0 items-center justify-center gap-2.5" aria-label="Profile actions">
-          <button type="button" disabled={pending} onClick={event => { event.stopPropagation(); onAction('pass'); }} className="grid h-11 w-11 place-items-center rounded-full border border-[#e8dce7] bg-[#fffdfb] text-[#8a7387] transition hover:-translate-y-0.5 hover:border-[#e9a5af] hover:text-[#c5546a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d98190] disabled:cursor-not-allowed disabled:opacity-50" aria-label={`Pass on ${profile.displayName}`} data-testid={`button-pass-${profile.userId}`}><X size={19} aria-hidden="true"/></button>
-          <button type="button" disabled={pending} onClick={event => { event.stopPropagation(); onAction('super_like'); }} className="grid h-10 w-10 place-items-center rounded-full bg-[#eee5fb] text-[#7851bd] transition hover:-translate-y-0.5 hover:bg-[#e4d6f7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a77ad5] disabled:cursor-not-allowed disabled:opacity-50" aria-label={`Super like ${profile.displayName}`} data-testid={`button-super-like-${profile.userId}`}><Sparkles size={17} aria-hidden="true"/></button>
-          <button type="button" disabled={pending} onClick={event => { event.stopPropagation(); onAction('like'); }} className="grid h-[52px] w-[52px] place-items-center rounded-full bg-[#a34b83] text-[#fffaf6] shadow-[0_7px_16px_-7px_#81386888] transition hover:-translate-y-0.5 hover:bg-[#923f75] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d59abb] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" aria-label={`Like ${profile.displayName}`} data-testid={`button-like-${profile.userId}`}><Heart size={22} fill="currentColor" aria-hidden="true"/></button>
+        <div className="flex shrink-0 items-center justify-center gap-2" aria-label="Profile actions">
+          <button type="button" disabled={pending} onClick={event => { event.stopPropagation(); onAction('pass'); }} className="grid h-10 w-10 place-items-center rounded-full border border-[#e8dce7] bg-[#fffdfb] text-[#8a7387] transition hover:-translate-y-0.5 hover:border-[#e9a5af] hover:text-[#c5546a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d98190] disabled:cursor-not-allowed disabled:opacity-50" aria-label={`Pass on ${profile.displayName}`} data-testid={`button-pass-${profile.userId}`}><X size={19} aria-hidden="true"/></button>
+          <button type="button" disabled={pending} onClick={event => { event.stopPropagation(); onAction('super_like'); }} className="grid h-9 w-9 place-items-center rounded-full bg-[#eee5fb] text-[#7851bd] transition hover:-translate-y-0.5 hover:bg-[#e4d6f7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a77ad5] disabled:cursor-not-allowed disabled:opacity-50" aria-label={`Super like ${profile.displayName}`} data-testid={`button-super-like-${profile.userId}`}><Sparkles size={16} aria-hidden="true"/></button>
+          <button type="button" disabled={pending} onClick={event => { event.stopPropagation(); onAction('like'); }} className="grid h-11 w-11 place-items-center rounded-full bg-[#a34b83] text-[#fffaf6] shadow-[0_7px_16px_-7px_#81386888] transition hover:-translate-y-0.5 hover:bg-[#923f75] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d59abb] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" aria-label={`Like ${profile.displayName}`} data-testid={`button-like-${profile.userId}`}><Heart size={20} fill="currentColor" aria-hidden="true"/></button>
         </div>
       </div>
     </div>
@@ -577,9 +578,13 @@ export function DiscoverPage() {
     });
   }
   const currentCard = profiles[profileIndex];
-  return <AppShell><div className="page-enter">
-     <PageTitle eyebrow="The good kind of scrolling" title="Find your people." description="Browse real Chog holders without signing in. Complete your profile to get compatibility scores and interact." />
-     <div className="mx-auto mb-5 max-w-3xl">
+  return <AppShell><div className="page-enter discover-page">
+     <header className="discover-heading">
+       <Eyebrow>The good kind of scrolling</Eyebrow>
+       <h1 className="display text-[34px] font-extrabold leading-none text-[#24133f] sm:text-[40px]" data-testid="heading-page">Find your people.</h1>
+       <p className="discover-description mt-1 text-[11px] leading-4 text-[#74697b]">Browse real Chog holders without signing in. Complete your profile to get compatibility scores and interact.</p>
+     </header>
+      <div className="discover-search mx-auto max-w-3xl">
        <label htmlFor="discover-search" className="sr-only">Search Chog Mates by name, username, or Chog token ID</label>
        <div className="flex items-center gap-3 rounded-[22px] border border-white/80 bg-white/60 px-4 shadow-[0_16px_40px_rgba(84,44,62,0.10),inset_0_1px_0_rgba(255,255,255,0.9)] backdrop-blur-xl transition focus-within:border-[#cf83a4] focus-within:bg-white/80 focus-within:shadow-[0_18px_48px_rgba(164,75,112,0.15)]">
          <Search size={19} aria-hidden="true" className="shrink-0 text-[#a45d7b]" />
@@ -592,21 +597,22 @@ export function DiscoverPage() {
            placeholder="Search Chog Mates..."
            maxLength={100}
            autoComplete="off"
-           className="h-14 min-w-0 flex-1 bg-transparent text-sm text-[#4b3b4c] outline-none placeholder:text-[#9a8b98]"
+            className="h-11 min-w-0 flex-1 bg-transparent text-sm text-[#4b3b4c] outline-none placeholder:text-[#9a8b98]"
            data-testid="input-discover-search"
          />
          {searchInput && <button type="button" onClick={() => setSearchInput('')} aria-label="Clear search" className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[#8b7180] transition hover:bg-white/80 hover:text-[#4b3b4c]" data-testid="button-clear-discover-search"><X size={16}/></button>}
        </div>
      </div>
-     <div className="mb-6 flex gap-2 overflow-x-auto pb-1" role="group" aria-label="Connection type">{([{value:'discover',label:'All paths'},{value:'date',label:'Dating'},{value:'friends',label:'Friendship'},{value:'network',label:'Networking'},{value:'collab',label:'Collaboration'}] as {value:DiscoverProfilesMode;label:string}[]).map(item=><button key={item.value} onClick={()=>{setMode(item.value);setCursor(undefined);setToast('');}} className={`mode-tab shrink-0 rounded-full px-4 py-2.5 text-xs font-bold transition ${mode===item.value?'active':''}`} aria-pressed={mode===item.value} data-testid={`button-mode-${item.value}`}>{item.label}</button>)}</div>
+      <div className="discover-filters flex gap-2 overflow-x-auto pb-1" role="group" aria-label="Connection type">{([{value:'discover',label:'All paths'},{value:'date',label:'Dating'},{value:'friends',label:'Friendship'},{value:'network',label:'Networking'},{value:'collab',label:'Collaboration'}] as {value:DiscoverProfilesMode;label:string}[]).map(item=><button key={item.value} onClick={()=>{setMode(item.value);setCursor(undefined);setToast('');}} className={`mode-tab shrink-0 rounded-full px-4 py-2 text-xs font-bold transition ${mode===item.value?'active':''}`} aria-pressed={mode===item.value} data-testid={`button-mode-${item.value}`}>{item.label}</button>)}</div>
     {toast && <div className="mx-auto mb-4 max-w-[620px] rounded-2xl border border-[#ded4f5] bg-white px-4 py-3 text-sm text-[#514177]" role="status" data-testid="status-swipe">{toast}<button className="float-right font-bold" onClick={()=>setToast('')} aria-label="Dismiss notification"><X size={16}/></button></div>}
      {me.isError && !isUnauthorized(me.error) && <p className="mx-auto mb-4 max-w-[620px] rounded-2xl border border-[#ead8ce] bg-[#fff8f1] px-4 py-3 text-sm text-[#755247]" role="status">Your account status could not be loaded. Public profiles are still available; sign-in may be unavailable.</p>}
-     <QueryState loading={isLoading} error={isError} retry={()=>void refetch()}>
+      <div className="discover-results">
+      <QueryState loading={isLoading} error={isError} retry={()=>void refetch()}>
       {currentCard ? <>
         <AnimatePresence initial={false} mode="wait">
           <motion.div
             key={currentCard.userId}
-            className="w-full"
+             className="discover-card-motion w-full"
             initial={{ opacity: 0, y: 18, scale: 0.985 }}
             animate={swipeDirection
               ? { x: swipeDirection === 'right' ? '110%' : '-110%', opacity: 0, rotate: swipeDirection === 'right' ? 8 : -8 }
@@ -625,6 +631,7 @@ export function DiscoverPage() {
        search ? <EmptyState mark="cm" title="No Chog Mates found." detail="Search includes profiles whose owner has Discover visibility on and still holds a verified Chog." action={<button onClick={()=>setSearchInput('')} className="button-soft rounded-full px-5 py-2.5 text-sm font-bold" data-testid="button-clear-search-empty">Clear search</button>} /> :
        <EmptyState mark="cm" title="No one new, for now." detail="Profiles appear when their owner turns Discover visibility on and still holds a verified Chog." action={<button onClick={()=>{setProfileIndex(0);void refetch();}} className="button-soft rounded-full px-5 py-2.5 text-sm font-bold" data-testid="button-refresh-discovery">Check again</button>} />}
     </QueryState>
+      </div>
     <AnimatePresence>
       {likeAnimation && <motion.div
         className="fixed inset-0 z-[80] flex items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_50%_42%,#6a35a6f2_0%,#321447f5_48%,#180d25fa_100%)] px-6 backdrop-blur-xl"

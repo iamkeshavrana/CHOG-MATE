@@ -170,7 +170,7 @@ export function MyChogPage() {
     setSelected(tokenId);
     setNotice('');
   }
-  return <AppShell displayName={profile?.displayName}><div className="page-enter">
+  return <AppShell displayName={profile?.displayName}><div className={`page-enter ${profile ? 'my-profile-page' : ''}`}>
     <PageTitle eyebrow="Your verified collection" title="My Chogs." description="Your owned Chog Genesis NFTs and live $CHOG balance." />
     <QueryState loading={me.isLoading} error={me.isError} retry={()=>void me.refetch()}>
       {!me.data ? <EmptyState title="Connect your wallet first." detail="Your verified collection appears here after wallet sign-in."/> :
@@ -680,14 +680,14 @@ function ConnectedProfilePage() {
       .profile-chog-choice:focus-visible,.profile-visibility-choice:focus-visible,.profile-form-panel button:focus-visible{outline:2px solid #a8436a;outline-offset:3px}
       @media(max-width:639px){.profile-page-heading:after{right:-180px;opacity:.55}}
     `}</style>
-    <div className="profile-page-heading mb-7 overflow-hidden rounded-[30px] px-5 py-6 sm:px-8 sm:py-8">
-      <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
+    <div className={`profile-page-heading mb-7 overflow-hidden rounded-[30px] px-5 py-6 sm:px-8 sm:py-8 ${profile ? 'my-profile-heading' : ''}`}>
+      <div className={`flex flex-col justify-between gap-6 lg:flex-row lg:items-end ${profile ? 'my-profile-heading-row' : ''}`}>
         <div className="max-w-2xl">
           <div className="mb-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.18em] text-[#9d4b6b]"><span className="h-1.5 w-1.5 rounded-full bg-[#bf5678]"/>Your introduction to the community</div>
           <h1 className="display text-[42px] leading-[.92] text-[#38253a] sm:text-[58px]" data-testid="heading-page">{profile ? 'My profile.' : 'Let’s meet.'}</h1>
           <p className="mt-4 max-w-xl text-sm leading-6 text-[#756575]">{profile ? 'Your profile, just as other Chog holders see it.' : 'Your verified Chog gets you in the room. Add the details that help the right people find their way to you.'}</p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className={`flex flex-wrap gap-2 ${profile ? 'my-profile-heading-actions' : ''}`}>
           {profile
             ? <button type="button" onClick={openEditProfile} className="button-primary inline-flex items-center rounded-full px-4 py-2.5 text-xs font-bold" data-testid="button-edit-profile">Edit Profile</button>
             : <a href="#edit-profile" className="button-primary inline-flex items-center rounded-full px-4 py-2.5 text-xs font-bold" data-testid="link-edit-profile">Start your profile</a>}
@@ -705,7 +705,7 @@ function ConnectedProfilePage() {
       {!me.data ? <EmptyState title="Connect to create your profile." detail="Sign in with the wallet holding your Chog Genesis NFT to get started."/> :
        (!me.data.hasChog || !me.data.chogs.some(chog=>chog.verified)) ? <EmptyState title="No Chog Found" detail="A Chog NFT is required to create a CHOG MATE profile. Connect the wallet that owns a Chog NFT to continue."/> :
        (me.data.hasProfile && !profile) ? <EmptyState title="Choose an active Chog." detail="Your previous active Chog is no longer in this wallet. Choose another verified Chog to restore your profile; your saved details will stay unchanged." action={<Link href="/my-chog" className="button-primary inline-flex rounded-full px-5 py-3 text-xs font-bold" data-testid="link-restore-active-chog">Choose a Chog</Link>}/> :
-        <div className="space-y-6">
+         <div className={profile ? 'my-profile-content' : 'space-y-6'}>
            <div
              className={`flex items-start gap-3 rounded-2xl border px-4 py-3 text-xs leading-5 ${
                me.data.identityMode === 'address_only'
@@ -826,49 +826,39 @@ function MyProfileCard({profile}:{profile:Profile}) {
     {label:'Hobbies',values:profile.hobbies},
     {label:'Languages',values:profile.languages},
   ].filter(group=>group.values.length>0);
-  const details = [
-    profile.gender ? ['Gender',profile.gender] : null,
-  ].filter((item): item is [string,string]=>item!==null);
 
   return <>
-  <style>{`
-    .profile-preview-card{background:#fffaf8;border:1px solid rgba(116,66,89,.15);box-shadow:0 18px 45px rgba(79,43,64,.09)}
-    .profile-artwork img{transition:transform .7s cubic-bezier(.2,.75,.25,1)}
-    @media(prefers-reduced-motion:reduce){.profile-artwork img{transition:none}}
-  `}</style>
-  <section className="profile-preview-card overflow-hidden rounded-[30px]" aria-label="My complete profile" data-testid="my-profile-card">
-        <div className="profile-artwork relative mx-auto max-w-[500px] overflow-hidden bg-[#eadde2]">
-          <ChogArtwork chog={profile.chog} fit="natural"/>
-        <div className="absolute inset-0 bg-gradient-to-t from-[#261529]/80 via-transparent to-transparent"/>
-        <div className="absolute bottom-5 left-5 right-5 text-white">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/30 bg-white/15 px-3 py-1.5 text-[9px] font-bold uppercase tracking-[.13em] backdrop-blur"><BadgeCheck size={12}/>Verified Chog {profile.chog.tier || 'Genesis'}</span>
-          <h2 className="display mt-3 break-words text-[38px] leading-none text-white sm:text-[48px]" data-testid="text-profile-display-name">{profile.displayName}{profile.age !== null && <span className="ml-2 text-white/85">· {profile.age}</span>}</h2>
-          <p className="mt-2 text-sm text-white/85" data-testid="text-profile-username">@{profile.username}</p>
-        </div>
+  <section className="my-profile-card overflow-hidden rounded-[24px]" aria-label="My complete profile" data-testid="my-profile-card">
+      <div className="my-profile-artwork">
+        <ChogArtwork chog={profile.chog} fit="contained-natural"/>
       </div>
-      <div className="mx-auto max-w-[500px] p-5 sm:p-6">
-        <div className="mb-4 flex items-center justify-between gap-3 border-b border-[#eee5e5] pb-3">
-          <div><p className="text-[9px] font-bold uppercase tracking-[.17em] text-[#a35b79]">Your verified Chog</p><p className="display text-xl text-[#332037]" data-testid="text-profile-token-id">#{profile.chog.tokenId} <span className="font-sans text-xs font-semibold normal-case tracking-normal text-[#8c7182]" data-testid="text-profile-chog-tier">{profile.chog.tier || 'Genesis'}</span></p></div>
-          {profile.gender && <span className="rounded-full bg-[#f7e9ee] px-3 py-1.5 text-[10px] font-bold text-[#984d67]">{profile.gender}</span>}
+      <div className="my-profile-details">
+        <div className="my-profile-scroll">
+          <header className="my-profile-identity">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#ecdde3] bg-white/75 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[.12em] text-[#9b4d6b]"><BadgeCheck size={12}/>Verified Chog {profile.chog.tier || 'Genesis'}</span>
+            <h2 className="display mt-2 break-words text-[30px] leading-none text-[#332037] sm:text-[36px]" data-testid="text-profile-display-name">{profile.displayName}{profile.age !== null && <span className="ml-2 text-[.7em] text-[#876e80]">· {profile.age}</span>}</h2>
+            <p className="mt-1 text-xs font-medium text-[#776878]" data-testid="text-profile-username">@{profile.username}</p>
+          </header>
+          <div className="my-profile-facts mt-3 flex flex-wrap items-center justify-between gap-2 border-b border-[#eee5e5] pb-2.5">
+            <div><p className="text-[8px] font-bold uppercase tracking-[.15em] text-[#a35b79]">Your verified Chog</p><p className="display text-base text-[#332037]" data-testid="text-profile-token-id">#{profile.chog.tokenId} <span className="font-sans text-[10px] font-semibold normal-case tracking-normal text-[#8c7182]" data-testid="text-profile-chog-tier">{profile.chog.tier || 'Genesis'}</span></p></div>
+            {profile.gender && <div className="rounded-full bg-[#f7e9ee] px-2.5 py-1 text-[10px] font-bold text-[#984d67]"><span className="font-medium">Gender:</span> <span data-testid="text-profile-gender">{profile.gender}</span></div>}
+          </div>
+          {profile.bio && <section className="my-profile-about mt-3" aria-label="About">
+            <h3 className="mb-1 text-[8px] font-bold uppercase tracking-[.15em] text-[#a28d9b]">About</h3>
+            <p className="whitespace-pre-line break-words text-[11px] leading-[1.45] text-[#685865]" data-testid="text-profile-introduction">{profile.bio}</p>
+          </section>}
+          {groups.length>0 && <div className="my-profile-groups mt-3 flex flex-col gap-2">
+            {groups.map(group=><section key={group.label} aria-label={group.label}>
+              <h3 className="mb-1 text-[8px] font-bold uppercase tracking-[.15em] text-[#a28d9b]">{group.label}</h3>
+              <div className="flex flex-wrap gap-1">{group.values.map((value,index)=><span key={`${value}-${index}`} className="rounded-full bg-[#f5edf1] px-2.5 py-1 text-[9px] font-semibold text-[#70566a]">{value}</span>)}</div>
+            </section>)}
+          </div>}
+          {profile.lookingFor.length>0 && <section className="my-profile-looking-for mt-3 border-t border-[#eee5e5] pt-2.5" aria-label="Looking for">
+            <h3 className="mb-1 flex items-center gap-1.5 text-[8px] font-bold uppercase tracking-[.15em] text-[#a28d9b]"><Heart size={11} className="text-[#b34b70]"/>Looking For</h3>
+            <div className="flex flex-wrap gap-1">{profile.lookingFor.map((value,index)=><span key={`${value}-${index}`} className="max-w-full whitespace-normal break-words rounded-full bg-[#f8e9e8] px-2.5 py-1 text-[9px] font-bold text-[#984d55]">{value==='Other' && profile.lookingForOther?.trim() ? `Other: ${profile.lookingForOther.trim()}` : value}</span>)}</div>
+          </section>}
+          {!profile.bio && !profile.gender && groups.length===0 && profile.lookingFor.length===0 && <p className="mt-3 text-xs text-[#857587]">Your profile details will appear here.</p>}
         </div>
-        {profile.bio && <section aria-label="About">
-          <h3 className="mb-1.5 text-[9px] font-bold uppercase tracking-[.16em] text-[#a28d9b]">About</h3>
-          <p className="whitespace-pre-line text-[13px] leading-6 text-[#685865]" data-testid="text-profile-introduction">{profile.bio}</p>
-        </section>}
-        {details.length>0 && <dl className="mt-5 flex flex-wrap gap-x-5 gap-y-2 border-t border-[#eee5e5] pt-4 text-[11px] text-[#776878]">
-          {details.map(([label,value])=><div key={label} className="flex gap-1"><dt className="font-bold text-[#594d64]">{label}:</dt><dd data-testid={`text-profile-${label.toLowerCase()}`}>{value}</dd></div>)}
-        </dl>}
-        {groups.length>0 && <div className="mt-5 space-y-4">
-          {groups.map(group=><section key={group.label} aria-label={group.label}>
-            <h3 className="mb-2 text-[9px] font-bold uppercase tracking-[.16em] text-[#a28d9b]">{group.label}</h3>
-            <div className="flex flex-wrap gap-1.5">{group.values.map((value,index)=><span key={`${value}-${index}`} className="rounded-full bg-[#f5edf1] px-3 py-1.5 text-[10px] font-semibold text-[#70566a]">{value}</span>)}</div>
-          </section>)}
-        </div>}
-        {profile.lookingFor.length>0 && <section className="mt-5 border-t border-[#eee5e5] pt-4" aria-label="Looking for">
-          <h3 className="mb-2 flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[.16em] text-[#a28d9b]"><Heart size={12} className="text-[#b34b70]"/>Looking For</h3>
-          <div className="flex flex-wrap gap-1.5">{profile.lookingFor.map((value,index)=><span key={`${value}-${index}`} className="max-w-full whitespace-normal break-words rounded-full bg-[#f8e9e8] px-3 py-1.5 text-[10px] font-bold text-[#984d55]">{value==='Other' && profile.lookingForOther?.trim() ? `Other: ${profile.lookingForOther.trim()}` : value}</span>)}</div>
-        </section>}
-        {!profile.bio && details.length===0 && groups.length===0 && profile.lookingFor.length===0 && <p className="mt-5 text-sm text-[#857587]">Your profile details will appear here.</p>}
       </div>
   </section>
   </>;
