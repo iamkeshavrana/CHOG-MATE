@@ -68,6 +68,7 @@ router.post("/auth/verify", async (req, res): Promise<void> => {
         {
           id: verified.userId,
           wallet_address: verified.walletAddress.toLowerCase(),
+          wallet_verified: true,
           last_seen: new Date().toISOString(),
         },
         { onConflict: "id" },

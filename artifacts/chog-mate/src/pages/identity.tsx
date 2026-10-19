@@ -1,7 +1,7 @@
 import { type FormEvent, useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
-import { Activity, BadgeCheck, Check, ChevronDown, Copy, Eye, EyeOff, Globe2, Heart, LockKeyhole, LogOut, MapPin, RefreshCw, Save, ShieldCheck, Sparkles, Wallet } from 'lucide-react';
+import { Activity, BadgeCheck, Check, ChevronDown, Copy, Eye, EyeOff, Heart, LockKeyhole, LogOut, RefreshCw, Save, ShieldCheck, Sparkles, Wallet } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
 import { formatUnits, isAddress, type Address } from 'viem';
 import { useConnection, useDisconnect, useReadContract } from 'wagmi';
@@ -245,99 +245,43 @@ const profileGenderOptions = ['Male', 'Female', 'Gay', 'Trans', 'Alien'] as cons
 const profileLookingForOptions = ['Dating', 'Friendship', 'Networking', 'Collaboration', 'Other'] as const;
 
 function createLookingForValues(selected: string, other: string) {
-  const selectedValues = tags(selected);
-  const values = selectedValues.filter(value=>value!=='Other');
-  if (selectedValues.includes('Other') && other.trim()) values.push(...tags(other));
-  return [...new Set(values)];
+  void other;
+  return [...new Set(tags(selected).filter(value=>profileLookingForOptions.includes(value as typeof profileLookingForOptions[number])))];
 }
 
-type ProfilePreviewData = Pick<
-  Profile,
-  | 'username'
-  | 'displayName'
-  | 'name'
-  | 'gender'
-  | 'age'
-  | 'bio'
-  | 'location'
-  | 'timezone'
-  | 'interests'
-  | 'hobbies'
-  | 'skills'
-  | 'languages'
-  | 'lookingFor'
-  | 'chog'
->;
+type ProfilePreviewData = Pick<Profile, 'username' | 'displayName' | 'gender' | 'age' | 'bio' | 'interests' | 'hobbies' | 'languages' | 'lookingFor' | 'chog'>;
 
 function ProfilePreview({profile,testMode=false}:{profile:ProfilePreviewData;testMode?:boolean}) {
-  const hasDetails = Boolean(profile.name || profile.gender || profile.location || profile.timezone);
   const groups = [
-    { label: 'Interests', values: profile.interests, style: 'bg-[#f4e9f1] text-[#884866]' },
-    { label: 'Hobbies', values: profile.hobbies, style: 'bg-[#f7efe0] text-[#846432]' },
-    { label: 'Skills', values: profile.skills, style: 'border border-[#e7dce2] text-[#66536a]' },
-    { label: 'Languages', values: profile.languages, style: 'border border-[#e7dce2] text-[#66536a]' },
+    { label: 'Interests', values: profile.interests },
+    { label: 'Hobbies', values: profile.hobbies },
+    { label: 'Languages', values: profile.languages },
   ].filter(group => group.values.length > 0);
   return <>
     <style>{`
       .profile-preview-card{background:#fffaf8;border:1px solid rgba(116,66,89,.15);box-shadow:0 18px 45px rgba(79,43,64,.09)}
-      .profile-preview-top{background:#38253a}
       .profile-artwork img{transition:transform .7s cubic-bezier(.2,.75,.25,1)}
       .profile-preview-card:hover .profile-artwork img{transform:scale(1.025)}
-      .profile-preview-copy{background:linear-gradient(140deg,#fffaf8 0%,#fffdf9 100%)}
       @media(prefers-reduced-motion:reduce){.profile-artwork img{transition:none}}
     `}</style>
-    <section className="profile-preview-card overflow-hidden rounded-[30px]" aria-label="Public profile preview" data-testid="profile-preview">
-    <div className="profile-preview-top flex items-center justify-between gap-3 px-5 py-3.5 sm:px-7">
-      <div className="flex items-center gap-2 text-[#f8eaf0]">
-        <span className="grid h-7 w-7 place-items-center rounded-full bg-white/10"><Eye size={14}/></span>
-        <span><span className="block text-[10px] font-bold uppercase tracking-[.16em]">Public profile preview</span><span className="mt-0.5 block text-[9px] text-white/60">Updates as you edit</span></span>
-      </div>
-      <span className="flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[9px] font-bold uppercase tracking-[.12em] text-white/85">
-        {testMode ? <Activity size={12}/> : <BadgeCheck size={12}/>}
-        {testMode ? 'Test mode' : `Verified · #${profile.chog.tokenId}`}
-      </span>
-    </div>
-    <div className="grid md:grid-cols-[minmax(200px,.72fr)_1.28fr]">
-      <div className="profile-artwork relative aspect-[1.08] min-h-[250px] overflow-hidden bg-[#eadde2] md:aspect-auto md:min-h-[390px]">
+    <section className="profile-preview-card mx-auto max-w-[520px] overflow-hidden rounded-[30px]" aria-label="Public profile preview" data-testid="profile-preview">
+      <div className="profile-artwork relative aspect-[1/1.08] max-h-[460px] overflow-hidden bg-[#eadde2]">
         <ChogArtwork chog={profile.chog}/>
-        <div className="absolute inset-0 bg-gradient-to-t from-[#261529]/75 via-transparent to-transparent"/>
-        <div className="absolute bottom-5 left-5 right-5 flex items-end justify-between text-white">
-          <div>
-            <p className="text-[9px] font-bold uppercase tracking-[.2em] text-white/75">Chog Genesis</p>
-            <p className="display mt-1 text-[25px] leading-none text-white">#{profile.chog.tokenId}</p>
-          </div>
-          <span className="grid h-10 w-10 place-items-center rounded-full border border-white/30 bg-white/15 backdrop-blur"><Sparkles size={17}/></span>
+        <div className="absolute inset-0 bg-gradient-to-t from-[#261529]/85 via-transparent to-transparent"/>
+        <div className="absolute bottom-5 left-5 right-5 text-white">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/30 bg-white/15 px-3 py-1.5 text-[9px] font-bold uppercase tracking-[.13em] backdrop-blur"><BadgeCheck size={12}/>{testMode ? 'Local preview' : 'Verified holder'}</span>
+          <h2 className="display mt-3 break-words text-[34px] leading-none text-white sm:text-[42px]" data-testid="text-preview-display-name">{profile.displayName || 'Your name'}{profile.age !== null && <span className="ml-2 text-white/85">{profile.age}</span>}</h2>
+          <p className="mt-2 text-sm font-medium text-white/80" data-testid="text-preview-username">@{profile.username || 'your-handle'}</p>
         </div>
       </div>
-      <div className="profile-preview-copy p-5 sm:p-7 lg:p-8">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="mb-2 text-[9px] font-bold uppercase tracking-[.19em] text-[#a35b79]">A little about me</p>
-            <h2 className="display break-words text-[34px] leading-[.95] text-[#332037] sm:text-[42px]" data-testid="text-preview-display-name">{profile.displayName || 'Your name'}</h2>
-            <p className="mt-2 text-[13px] font-medium text-[#957f8d]" data-testid="text-preview-username">@{profile.username || 'your-handle'}</p>
-          </div>
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#f6e9ee] text-[#a8436a]" aria-label="Chog ownership verified"><BadgeCheck size={19}/></span>
+      <div className="space-y-4 p-5 sm:p-6">
+        <div className="flex items-center justify-between gap-3 border-b border-[#eee5e5] pb-3">
+          <div><p className="text-[9px] font-bold uppercase tracking-[.17em] text-[#a35b79]">Chog Genesis</p><p className="display text-lg text-[#332037]" data-testid="text-preview-chog-id">#{profile.chog.tokenId} <span className="font-sans text-xs font-semibold normal-case tracking-normal text-[#8c7182]">{profile.chog.tier || 'Verified'}</span></p></div>
+          {profile.gender && <span className="rounded-full bg-[#f7e9ee] px-3 py-1.5 text-[10px] font-bold text-[#984d67]">{profile.gender}</span>}
         </div>
-        <p className="mt-5 max-w-2xl whitespace-pre-line text-[13px] leading-6 text-[#685865]" data-testid="text-preview-bio">{profile.bio || 'Your introduction will live here. Share what makes you, you.'}</p>
-        {hasDetails && <div className="mt-5 flex flex-wrap gap-x-4 gap-y-2 border-t border-[#eee5e5] pt-4 text-[11px] text-[#776878]">
-          {profile.location && <span className="inline-flex items-center gap-1.5"><MapPin size={13} className="text-[#a35b79]"/>{profile.location}</span>}
-          {profile.timezone && <span className="inline-flex items-center gap-1.5"><Globe2 size={13} className="text-[#a35b79]"/>{profile.timezone}</span>}
-          {profile.name && <span>{profile.name}</span>}
-          {profile.gender && <span>{profile.gender}</span>}
-          {testMode && profile.age !== null && <span>{profile.age}</span>}
-        </div>}
-        {groups.length > 0 && <div className="mt-5 space-y-4">
-          {groups.map(group => <div key={group.label}>
-            <p className="mb-2 text-[9px] font-bold uppercase tracking-[.16em] text-[#a28d9b]">{group.label}</p>
-            <div className="flex flex-wrap gap-1.5">{group.values.map(value=><span key={value} className={`rounded-full px-3 py-1.5 text-[10px] font-semibold ${group.style}`}>{value}</span>)}</div>
-          </div>)}
-        </div>}
-        {profile.lookingFor.length > 0 && <div className="mt-5 border-t border-[#eee5e5] pt-4">
-          <p className="mb-2 flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[.16em] text-[#a28d9b]"><Heart size={12} className="text-[#b34b70]"/>Open to</p>
-          <div className="flex flex-wrap gap-1.5">{profile.lookingFor.map(value=><span key={value} className="rounded-full bg-[#f8e9e8] px-3 py-1.5 text-[10px] font-bold text-[#984d55]">{value}</span>)}</div>
-        </div>}
+        {profile.bio && <p className="whitespace-pre-line text-[13px] leading-6 text-[#685865]" data-testid="text-preview-bio">{profile.bio}</p>}
+        <div className="flex flex-wrap gap-1.5">{groups.flatMap(group=>group.values.map((value,index)=><span key={`${group.label}-${value}-${index}`} className="rounded-full bg-[#f5edf1] px-3 py-1.5 text-[10px] font-semibold text-[#70566a]" data-testid={`tag-preview-${group.label.toLowerCase()}-${index}`}>{value}</span>))}{profile.lookingFor.map((value,index)=><span key={`${value}-${index}`} className="rounded-full bg-[#f8e9e8] px-3 py-1.5 text-[10px] font-bold text-[#984d55]" data-testid={`tag-preview-looking-for-${index}`}>{value}</span>)}</div>
       </div>
-    </div>
     </section>
   </>;
 }
@@ -349,15 +293,11 @@ function testProfilePreview(
   return {
     username: fields.username,
     displayName: fields.displayName,
-    name: fields.name || null,
     gender: fields.gender || null,
     age: fields.age ? Number(fields.age) : null,
     bio: fields.bio || null,
-    location: fields.location || null,
-    timezone: fields.timezone || null,
     interests: tags(fields.interests),
     hobbies: tags(fields.hobbies),
-    skills: tags(fields.skills),
     languages: tags(fields.languages),
     lookingFor: tags(fields.lookingFor),
     chog,
@@ -488,17 +428,13 @@ function ManualTestProfilePage() {
               <div className="grid gap-5 sm:grid-cols-2">
                 <Field label="Display name" value={record.draft.displayName} onChange={value=>updateField('displayName',value)} placeholder="How people will meet you" maxLength={48} testId="input-display-name"/>
                 <Field label="Username" value={record.draft.username} onChange={value=>updateField('username',value.replace(/[^a-zA-Z0-9_]/g,''))} placeholder="Your public handle" maxLength={24} prefix="@" testId="input-username"/>
-                <Field label="Name" value={record.draft.name} onChange={value=>updateField('name',value)} placeholder="Name shown on your profile" maxLength={80} testId="input-profile-name"/>
                 <label><span className="mb-2 block text-xs font-bold text-[#5c5067]">Age <span className="font-normal text-[#958a9b]">(optional)</span></span><input className="field" type="number" min="18" max="120" step="1" inputMode="numeric" value={record.draft.age} onChange={event=>updateField('age',event.target.value)} placeholder="18+" data-testid="input-profile-age"/><span className="mt-1 block text-[10px] text-[#9b8fa0]">If entered, use a whole number from 18 to 120.</span></label>
-                <Field label="Gender" value={record.draft.gender} onChange={value=>updateField('gender',value)} placeholder="Optional" maxLength={50} testId="input-profile-gender"/>
+                 <label><span className="mb-2 block text-xs font-bold text-[#5c5067]">Gender</span><select className="field" value={record.draft.gender} onChange={event=>updateField('gender',event.target.value)} data-testid="select-profile-gender"><option value="">Select gender</option>{profileGenderOptions.map(option=><option key={option} value={option}>{option}</option>)}</select></label>
                 <label className="sm:col-span-2"><span className="mb-2 block text-xs font-bold text-[#5c5067]">Your introduction</span><textarea value={record.draft.bio} onChange={event=>updateField('bio',event.target.value)} maxLength={500} rows={4} className="field resize-y" placeholder="A little about what lights you up…" data-testid="input-bio"/><span className="mt-1 block text-right text-[10px] text-[#9c91a1]">{record.draft.bio.length}/500</span></label>
-                <Field label="Location" value={record.draft.location} onChange={value=>updateField('location',value)} placeholder="City, region" maxLength={100} testId="input-location"/>
-                <Field label="Timezone" value={record.draft.timezone} onChange={value=>updateField('timezone',value)} placeholder="e.g. UTC−5" maxLength={100} testId="input-timezone"/>
                 <TagField label="Interests" value={record.draft.interests} onChange={value=>updateField('interests',value)} placeholder="Art, climbing, long reads" testId="input-interests"/>
                 <TagField label="Hobbies" value={record.draft.hobbies} onChange={value=>updateField('hobbies',value)} placeholder="Hiking, cooking, photography" testId="input-hobbies"/>
-                <TagField label="Skills" value={record.draft.skills} onChange={value=>updateField('skills',value)} placeholder="Design, writing, Solidity" testId="input-skills"/>
                 <TagField label="Languages" value={record.draft.languages} onChange={value=>updateField('languages',value)} placeholder="English, Hindi, Spanish" testId="input-languages"/>
-                <TagField label="What are you looking for?" value={record.draft.lookingFor} onChange={value=>updateField('lookingFor',value)} placeholder="Dates, friends, collaborators" testId="input-looking-for"/>
+                 <fieldset className="sm:col-span-2"><legend className="mb-2 text-xs font-bold text-[#5c5067]">Looking For</legend><div className="flex flex-wrap gap-2">{profileLookingForOptions.map(option=><button type="button" key={option} aria-pressed={tags(record.draft.lookingFor).includes(option)} onClick={()=>{const selected=tags(record.draft.lookingFor);updateField('lookingFor',[...selected.filter(value=>value!==option),...(selected.includes(option)?[]:[option])].join(', '));}} className={`profile-visibility-choice px-3 ${tags(record.draft.lookingFor).includes(option)?'is-selected':''}`} data-testid={`button-test-looking-for-${option.toLowerCase()}`}>{option}</button>)}</div>{tags(record.draft.lookingFor).includes('Other')&&<Field label="Your option" value={record.draft.lookingForOther} onChange={value=>updateField('lookingForOther',value)} placeholder="Type your own option" maxLength={50} testId="input-test-looking-for-other"/>}</fieldset>
               </div>
               {notice && <p className={`mt-5 rounded-2xl px-4 py-3 text-sm ${notice.startsWith('Test profile saved')?'bg-[#eef8ea] text-[#447a43]':'bg-[#fff2ec] text-[#914c3c]'}`} role="status" data-testid="status-profile-save">{notice}</p>}
               <div className="mt-6 flex flex-col-reverse justify-between gap-4 border-t border-[#24133f10] pt-5 sm:flex-row sm:items-center">
@@ -510,8 +446,7 @@ function ManualTestProfilePage() {
               <Eyebrow>Selected test NFT</Eyebrow>
               <h2 className="display mt-1 text-2xl font-extrabold text-[#24133f]">Chog #{chog.tokenId}</h2>
               <div className="mt-4 aspect-square overflow-hidden rounded-2xl bg-[#f4eddf]"><ChogArtwork chog={chog}/></div>
-              <p className="mt-4 break-all text-[10px] leading-5 text-[#82778c]">Scanned address: {flow.walletAddress}</p>
-              <p className="mt-3 text-[11px] leading-5 text-[#998ea0]">The NFT image and token ID come from the verified Chog record. Ownership of the address is not proof that you control it.</p>
+               <p className="mt-3 text-[11px] leading-5 text-[#998ea0]">This address scan is a local-only preview. Ownership verification does not prove control of the wallet, create a signed-in account, or publish profile details.</p>
             </aside>
           </form>
         </div>
@@ -527,16 +462,11 @@ export function ProfilePage() {
 type ConnectedProfileFormValues = {
   username: string;
   displayName: string;
-  name: string;
   gender: string;
   age: string;
-  photoUrl: string;
   bio: string;
-  location: string;
-  timezone: string;
   interests: string;
   hobbies: string;
-  skills: string;
   languages: string;
   lookingFor: string;
   lookingForOther: string;
@@ -547,16 +477,11 @@ type ConnectedProfileFormValues = {
 const emptyConnectedProfile: ConnectedProfileFormValues = {
   username: '',
   displayName: '',
-  name: '',
   gender: '',
   age: '',
-  photoUrl: '',
   bio: '',
-  location: '',
-  timezone: '',
   interests: '',
   hobbies: '',
-  skills: '',
   languages: '',
   lookingFor: '',
   lookingForOther: '',
@@ -565,13 +490,9 @@ const emptyConnectedProfile: ConnectedProfileFormValues = {
 };
 
 function lookingForFormValues(values: string[]) {
-  const standardOptions = profileLookingForOptions.filter(option=>option!=='Other');
-  const standardValues = values.filter(value=>standardOptions.includes(value as typeof standardOptions[number]));
-  const customValues = values.filter(value=>!standardOptions.includes(value as typeof standardOptions[number]) && value!=='Other');
-  const hasOther = customValues.length > 0 || values.includes('Other');
   return {
-    lookingFor: [...standardValues, ...(hasOther ? ['Other'] : [])].join(', '),
-    lookingForOther: customValues.join(', ') || (values.includes('Other') ? 'Other' : ''),
+    lookingFor: values.filter(value=>profileLookingForOptions.includes(value as typeof profileLookingForOptions[number])).join(', '),
+    lookingForOther: '',
   };
 }
 
@@ -583,18 +504,14 @@ function connectedProfileFormValues(
   return {
     username: profile.username,
     displayName: profile.displayName,
-    name: profile.name || '',
     gender: profile.gender || '',
     age: profile.age === null ? '' : String(profile.age),
-    photoUrl: profile.photoUrl || '',
     bio: profile.bio || '',
-    location: profile.location || '',
-    timezone: profile.timezone || '',
     interests: joinTags(profile.interests),
     hobbies: joinTags(profile.hobbies),
-    skills: joinTags(profile.skills),
     languages: joinTags(profile.languages),
     ...lookingForFormValues(profile.lookingFor),
+    lookingForOther: profile.lookingForOther || '',
     selectedChogTokenId: selectedChogTokenId || profile.chog.tokenId,
     profileVisible: profileVisible ?? null,
   };
@@ -608,16 +525,11 @@ function ConnectedProfilePage() {
   const {
     username,
     displayName,
-    name,
     gender,
     age,
-    photoUrl,
     bio,
-    location,
-    timezone,
     interests,
     hobbies,
-    skills,
     languages,
     lookingFor,
     lookingForOther,
@@ -679,17 +591,20 @@ function ConnectedProfilePage() {
     if (!tokenIdForSave) { setNotice('Choose a verified Chog to show on your profile.'); return; }
     const numericAge = values.age.trim() ? Number(values.age) : null;
     if (numericAge !== null && (!Number.isInteger(numericAge) || numericAge < 18 || numericAge > 120)) { setNotice('Use a whole-number age from 18 to 120.'); return; }
-    const photoUrl = values.photoUrl.trim();
-    if (photoUrl) {
-      try {
-        const parsedPhotoUrl = new URL(photoUrl);
-        if (parsedPhotoUrl.protocol !== 'http:' && parsedPhotoUrl.protocol !== 'https:') throw new Error();
-      } catch {
-        setNotice('Use a public profile photo URL that starts with http:// or https://.');
-        return;
-      }
-    }
-    const data: ProfileInput = { username:cleanUsername,displayName:values.displayName.trim(),name:profile?values.name.trim()||null:null,gender:values.gender.trim()||null,age:numericAge,photoUrl:photoUrl||null,bio:values.bio||undefined,location:profile?values.location||undefined:undefined,timezone:profile?values.timezone||undefined:undefined,interests:tags(values.interests),hobbies:tags(values.hobbies),skills:profile?tags(values.skills):[],languages:tags(values.languages),lookingFor:lookingForValues,selectedChogTokenId:tokenIdForSave,...(values.profileVisible===null?{}:{profileVisible:values.profileVisible}) };
+    const data: ProfileInput = {
+      username: cleanUsername,
+      displayName: values.displayName.trim(),
+      gender: values.gender || null,
+      age: numericAge,
+      bio: values.bio || null,
+      interests: tags(values.interests),
+      hobbies: tags(values.hobbies),
+      languages: tags(values.languages),
+      lookingFor: lookingForValues,
+      lookingForOther: values.lookingFor.includes('Other') ? values.lookingForOther.trim() : '',
+      selectedChogTokenId: tokenIdForSave,
+      profileVisible: values.profileVisible ?? true,
+    };
     try {
       const saved = await update.mutateAsync({data});
       reset(connectedProfileFormValues(saved, saved.chog.tokenId, values.profileVisible));
@@ -734,9 +649,8 @@ function ConnectedProfilePage() {
   }
   const selectedChog = me.data?.chogs.find(chog=>chog.verified && chog.tokenId===selectedChogTokenId) || profile?.chog;
   const draftPreview: ProfilePreviewData | null = selectedChog ? {
-    username, displayName, name:name||null, gender:gender||null, age:age.trim()?Number(age):null,
-    bio:bio||null, location:location||null, timezone:timezone||null,
-    interests:tags(interests), hobbies:tags(hobbies), skills:tags(skills), languages:tags(languages),
+    username, displayName, gender:gender||null, age:age.trim()?Number(age):null,
+    bio:bio||null, interests:tags(interests), hobbies:tags(hobbies), languages:tags(languages),
     lookingFor:profile?tags(lookingFor):createLookingForValues(lookingFor,lookingForOther), chog:selectedChog,
   } : null;
   return <AppShell displayName={profile?.displayName}><div className="page-enter">
@@ -812,9 +726,8 @@ function ConnectedProfilePage() {
                  <div className="grid gap-4 sm:grid-cols-2">
                    <label><span className="profile-field-label">Name <span className="text-[#b45a78]">*</span></span><input className="field" value={displayName} onChange={event=>setValue('displayName',event.target.value,{shouldDirty:true})} placeholder="How people will meet you" maxLength={48} required data-testid="input-edit-display-name"/></label>
                    <label><span className="profile-field-label">Username <span className="text-[#b45a78]">*</span></span><span className="relative block"><span className="profile-field-prefix">@</span><input className={`field pl-8 ${usernameError?'!border-[#c65861]':''}`} value={username} onChange={event=>{setValue('username',event.target.value.replace(/[^a-zA-Z0-9_]/g,''),{shouldDirty:true});setUsernameError('');}} placeholder="Your public handle" maxLength={24} minLength={2} required aria-invalid={Boolean(usernameError)} aria-describedby={usernameError?'edit-username-help':'edit-username-format'} data-testid="input-edit-username"/></span><span id={usernameError?'edit-username-help':'edit-username-format'} className={`mt-1.5 block text-[10px] ${usernameError?'text-[#aa4848]':'text-[#978692]'}`}>{usernameError || '2–24 letters, numbers, or underscores.'}</span></label>
-                   <Field label="Gender" value={gender} onChange={value=>setValue('gender',value,{shouldDirty:true})} placeholder="Optional" maxLength={50} testId="input-edit-gender"/>
+                    <label><span className="profile-field-label">Gender</span><select className="field" value={gender} onChange={event=>setValue('gender',event.target.value,{shouldDirty:true})} data-testid="select-edit-gender"><option value="">Select gender</option>{profileGenderOptions.map(option=><option key={option} value={option}>{option}</option>)}</select></label>
                      <label><span className="profile-field-label">Age <span className="font-normal text-[#958a9b]">(optional)</span></span><input className="field" type="number" min="18" max="120" step="1" inputMode="numeric" value={age} onChange={event=>setValue('age',event.target.value,{shouldDirty:true})} placeholder="18+" data-testid="input-edit-profile-age"/><span className="mt-1.5 block text-[10px] leading-4 text-[#978692]">If entered, use a whole number from 18 to 120.</span></label>
-                     <label className="sm:col-span-2"><span className="profile-field-label">Profile photo URL <span className="font-normal text-[#958a9b]">(optional)</span></span><input className="field" type="url" value={photoUrl} onChange={event=>setValue('photoUrl',event.target.value,{shouldDirty:true})} placeholder="https://example.com/your-photo.jpg" maxLength={2048} aria-describedby="edit-profile-photo-help" data-testid="input-edit-profile-photo-url"/><span id="edit-profile-photo-help" className="mt-1.5 block text-[10px] leading-4 text-[#978692]">Add a public image URL if you want a photo on your Discover card.</span></label>
                    <label className="sm:col-span-2"><span className="profile-field-label">Introduction</span><textarea value={bio} onChange={event=>setValue('bio',event.target.value,{shouldDirty:true})} maxLength={500} rows={4} className="field resize-y" placeholder="What are you curious about lately? What do you love talking about?" data-testid="input-edit-bio"/><span className="mt-1.5 block text-right text-[10px] text-[#978692]">{bio.length}/500</span></label>
                    <TagField label="Interests" value={interests} onChange={value=>setValue('interests',value,{shouldDirty:true})} placeholder="Art, climbing, long reads" testId="input-edit-interests"/>
                    <TagField label="Hobbies" value={hobbies} onChange={value=>setValue('hobbies',value,{shouldDirty:true})} placeholder="Hiking, cooking, photography" testId="input-edit-hobbies"/>
@@ -846,67 +759,17 @@ function ConnectedProfilePage() {
                <div><p className="text-[9px] font-bold uppercase tracking-[.18em] text-[#a35b79]">{profile?'Profile details':'First, the basics'}</p><h2 className="display mt-1 text-[28px] text-[#38253a]">{profile?'Refine your introduction.':'Start with what feels like you.'}</h2></div>
                <span className="hidden h-10 w-10 shrink-0 place-items-center rounded-full bg-[#f7e9ed] text-[#ac4c70] sm:grid"><Sparkles size={18}/></span>
              </div>
-              {!profile ? <div className="space-y-7">
-                <div>
-                  <div className="mb-4 flex items-center gap-3"><span className="profile-section-index">01</span><div><h3 className="text-sm font-bold text-[#493b4d]">The essentials</h3><p className="mt-0.5 text-[11px] text-[#92818f]">Choose how you’ll appear to the community.</p></div></div>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <label><span className="profile-field-label">Name <span className="text-[#b45a78]">*</span></span><input className="field" value={displayName} onChange={event=>setValue('displayName',event.target.value,{shouldDirty:true})} placeholder="How people will meet you" maxLength={48} required aria-label="Name" data-testid="input-display-name"/></label>
-                    <label><span className="profile-field-label">Username <span className="text-[#b45a78]">*</span></span><span className="relative block"><span className="profile-field-prefix">@</span><input className={`field pl-8 ${usernameError?'!border-[#c65861]':''}`} value={username} onChange={event=>{setValue('username',event.target.value.replace(/[^a-zA-Z0-9_]/g,''),{shouldDirty:true});setUsernameError('');}} placeholder="Your public handle" maxLength={24} minLength={2} required aria-invalid={Boolean(usernameError)} aria-describedby={usernameError?'username-help':'username-format'} data-testid="input-username"/></span><span id={usernameError?'username-help':'username-format'} className={`mt-1.5 block text-[10px] ${usernameError?'text-[#aa4848]':'text-[#978692]'}`}>{usernameError || '2–24 letters, numbers, or underscores.'}</span></label>
-                    <fieldset className="sm:col-span-2">
-                      <legend className="profile-field-label">Gender</legend>
-                      <div className="flex flex-wrap gap-2" role="group" aria-label="Gender">
-                        {profileGenderOptions.map(option=><button key={option} type="button" aria-pressed={gender===option} onClick={()=>setValue('gender',gender===option?'':option,{shouldDirty:true})} className={`profile-visibility-choice min-h-10 px-4 ${gender===option?'is-selected':''}`} data-testid={`button-gender-${option.toLowerCase()}`}>{option}</button>)}
-                      </div>
-                    </fieldset>
-                     <label className="sm:col-span-2"><span className="profile-field-label">Profile photo URL <span className="font-normal text-[#958a9b]">(optional)</span></span><input className="field" type="url" value={photoUrl} onChange={event=>setValue('photoUrl',event.target.value,{shouldDirty:true})} placeholder="https://example.com/your-photo.jpg" maxLength={2048} aria-describedby="profile-photo-help" data-testid="input-profile-photo-url"/><span id="profile-photo-help" className="mt-1.5 block text-[10px] leading-4 text-[#978692]">Add a public image URL if you want a photo on your Discover card.</span></label>
-                  </div>
-                </div>
-                <div>
-                  <div className="mb-4 flex items-center gap-3"><span className="profile-section-index">02</span><div><h3 className="text-sm font-bold text-[#493b4d]">A little about you</h3><p className="mt-0.5 text-[11px] text-[#92818f]">Share what you enjoy and what you’d like to find.</p></div></div>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <label className="sm:col-span-2"><span className="profile-field-label">Introduction</span><textarea value={bio} onChange={event=>setValue('bio',event.target.value,{shouldDirty:true})} maxLength={500} rows={4} className="field resize-y" placeholder="What are you curious about lately? What do you love talking about?" data-testid="input-bio"/><span className="mt-1.5 block text-right text-[10px] text-[#978692]">{bio.length}/500</span></label>
-                    <TagField label="Interests" value={interests} onChange={value=>setValue('interests',value,{shouldDirty:true})} placeholder="Art, climbing, long reads" testId="input-interests"/>
-                    <TagField label="Hobbies" value={hobbies} onChange={value=>setValue('hobbies',value,{shouldDirty:true})} placeholder="Hiking, cooking, photography" testId="input-hobbies"/>
-                    <TagField label="Languages" value={languages} onChange={value=>setValue('languages',value,{shouldDirty:true})} placeholder="English, Hindi, Spanish" testId="input-languages"/>
-                    <fieldset className="sm:col-span-2">
-                      <legend className="profile-field-label">What are you looking for? <span className="text-[#b45a78]">*</span></legend>
-                      <p className="mb-3 text-[10px] leading-4 text-[#978692]">Choose one or more.</p>
-                      <div className="flex flex-wrap gap-2">
-                        {profileLookingForOptions.map(option=><button key={option} type="button" aria-pressed={tags(lookingFor).includes(option)} onClick={()=>toggleLookingForOption(option)} className={`profile-visibility-choice min-h-10 px-4 ${tags(lookingFor).includes(option)?'is-selected':''}`} data-testid={`button-looking-for-${option.toLowerCase()}`}>{option}</button>)}
-                      </div>
-                      {tags(lookingFor).includes('Other') && <label className="mt-3 block"><span className="profile-field-label">Your option <span className="text-[#b45a78]">*</span></span><input className="field" value={lookingForOther} onChange={event=>setValue('lookingForOther',event.target.value,{shouldDirty:true})} placeholder="Type your own option" maxLength={50} required data-testid="input-looking-for-other"/></label>}
-                    </fieldset>
-                  </div>
-                </div>
-              </div> : <div className="space-y-7">
-               <div>
-                 <div className="mb-4 flex items-center gap-3"><span className="profile-section-index">01</span><div><h3 className="text-sm font-bold text-[#493b4d]">The name they’ll remember</h3><p className="mt-0.5 text-[11px] text-[#92818f]">A name and handle for your community profile.</p></div></div>
-                 <div className="grid gap-4 sm:grid-cols-2">
-                    <label><span className="profile-field-label">Display name <span className="text-[#b45a78]">*</span></span><input className="field" value={displayName} onChange={e=>setValue('displayName',e.target.value,{shouldDirty:true})} placeholder="How people will meet you" maxLength={48} required aria-label="Display name" data-testid="input-display-name"/></label>
-                    <label><span className="profile-field-label">Username <span className="text-[#b45a78]">*</span></span><span className="relative block"><span className="profile-field-prefix">@</span><input className={`field pl-8 ${usernameError?'!border-[#c65861]':''}`} value={username} onChange={e=>{setValue('username',e.target.value.replace(/[^a-zA-Z0-9_]/g,''),{shouldDirty:true});setUsernameError('');}} placeholder="Your public handle" maxLength={24} minLength={2} required aria-invalid={Boolean(usernameError)} aria-describedby={usernameError?'username-help':'username-format'} data-testid="input-username"/></span><span id={usernameError?'username-help':'username-format'} className={`mt-1.5 block text-[10px] ${usernameError?'text-[#aa4848]':'text-[#978692]'}`}>{usernameError || '2–24 letters, numbers, or underscores.'}</span></label>
-                    <Field label="Name" value={name} onChange={value=>setValue('name',value,{shouldDirty:true})} placeholder="Name shown on your profile" maxLength={80} testId="input-profile-name"/>
-                    <Field label="Gender" value={gender} onChange={value=>setValue('gender',value,{shouldDirty:true})} placeholder="Optional" maxLength={50} testId="input-profile-gender"/>
-                     <label className="sm:col-span-2"><span className="profile-field-label">Profile photo URL <span className="font-normal text-[#958a9b]">(optional)</span></span><input className="field" type="url" value={photoUrl} onChange={e=>setValue('photoUrl',e.target.value,{shouldDirty:true})} placeholder="https://example.com/your-photo.jpg" maxLength={2048} aria-describedby="profile-photo-help" data-testid="input-profile-photo-url"/><span id="profile-photo-help" className="mt-1.5 block text-[10px] leading-4 text-[#978692]">Add a public image URL if you want a photo on your Discover card.</span></label>
-                 </div>
+               <div className="grid gap-4 sm:grid-cols-2">
+                 <label><span className="profile-field-label">Name <span className="text-[#b45a78]">*</span></span><input className="field" value={displayName} onChange={event=>setValue('displayName',event.target.value,{shouldDirty:true})} placeholder="How people will meet you" maxLength={48} required data-testid="input-display-name"/></label>
+                 <label><span className="profile-field-label">Username <span className="text-[#b45a78]">*</span></span><span className="relative block"><span className="profile-field-prefix">@</span><input className={`field pl-8 ${usernameError?'!border-[#c65861]':''}`} value={username} onChange={event=>{setValue('username',event.target.value.replace(/[^a-zA-Z0-9_]/g,''),{shouldDirty:true});setUsernameError('');}} placeholder="Your public handle" maxLength={24} minLength={2} required aria-invalid={Boolean(usernameError)} aria-describedby={usernameError?'username-help':'username-format'} data-testid="input-username"/></span><span id={usernameError?'username-help':'username-format'} className={`mt-1.5 block text-[10px] ${usernameError?'text-[#aa4848]':'text-[#978692]'}`}>{usernameError || '2–24 letters, numbers, or underscores.'}</span></label>
+                 <label><span className="profile-field-label">Age <span className="font-normal text-[#958a9b]">(optional)</span></span><input className="field" type="number" min="18" max="120" step="1" inputMode="numeric" value={age} onChange={event=>setValue('age',event.target.value,{shouldDirty:true})} placeholder="18+" data-testid="input-profile-age"/></label>
+                 <label><span className="profile-field-label">Gender</span><select className="field" value={gender} onChange={event=>setValue('gender',event.target.value,{shouldDirty:true})} data-testid="select-profile-gender"><option value="">Select gender</option>{profileGenderOptions.map(option=><option key={option} value={option}>{option}</option>)}</select></label>
+                 <label className="sm:col-span-2"><span className="profile-field-label">About</span><textarea value={bio} onChange={event=>setValue('bio',event.target.value,{shouldDirty:true})} maxLength={500} rows={3} className="field resize-y" placeholder="What are you curious about lately?" data-testid="input-bio"/><span className="mt-1.5 block text-right text-[10px] text-[#978692]">{bio.length}/500</span></label>
+                 <TagField label="Interests" value={interests} onChange={value=>setValue('interests',value,{shouldDirty:true})} placeholder="Art, climbing, long reads" testId="input-interests"/>
+                 <TagField label="Hobbies" value={hobbies} onChange={value=>setValue('hobbies',value,{shouldDirty:true})} placeholder="Hiking, cooking, photography" testId="input-hobbies"/>
+                 <TagField label="Languages" value={languages} onChange={value=>setValue('languages',value,{shouldDirty:true})} placeholder="English, Hindi, Spanish" testId="input-languages"/>
+                 <fieldset className="sm:col-span-2"><legend className="profile-field-label">Looking For <span className="text-[#b45a78]">*</span></legend><p className="mb-3 text-[10px] leading-4 text-[#978692]">Choose one or more.</p><div className="flex flex-wrap gap-2">{profileLookingForOptions.map(option=><button key={option} type="button" aria-pressed={tags(lookingFor).includes(option)} onClick={()=>toggleLookingForOption(option)} className={`profile-visibility-choice min-h-10 px-4 ${tags(lookingFor).includes(option)?'is-selected':''}`} data-testid={`button-looking-for-${option.toLowerCase()}`}>{option}</button>)}</div>{tags(lookingFor).includes('Other') && <label className="mt-3 block"><span className="profile-field-label">Your option <span className="text-[#b45a78]">*</span></span><input className="field" value={lookingForOther} onChange={event=>setValue('lookingForOther',event.target.value,{shouldDirty:true})} placeholder="Type your own option" maxLength={50} required data-testid="input-looking-for-other"/></label>}</fieldset>
                </div>
-               <div>
-                 <div className="mb-4 flex items-center gap-3"><span className="profile-section-index">02</span><div><h3 className="text-sm font-bold text-[#493b4d]">A little of your story</h3><p className="mt-0.5 text-[11px] text-[#92818f]">Give someone a good reason to say hello.</p></div></div>
-                 <div className="grid gap-4 sm:grid-cols-2">
-                    <label className="sm:col-span-2"><span className="profile-field-label">Your introduction</span><textarea value={bio} onChange={e=>setValue('bio',e.target.value,{shouldDirty:true})} maxLength={500} rows={4} className="field resize-y" placeholder="What are you curious about lately? What do you love talking about?" data-testid="input-bio"/><span className="mt-1.5 block text-right text-[10px] text-[#978692]">{bio.length}/500</span></label>
-                    <Field label="Location" value={location} onChange={value=>setValue('location',value,{shouldDirty:true})} placeholder="City, region" maxLength={100} testId="input-location"/>
-                    <Field label="Timezone" value={timezone} onChange={value=>setValue('timezone',value,{shouldDirty:true})} placeholder="e.g. UTC−5" maxLength={100} testId="input-timezone"/>
-                    <TagField label="Interests" value={interests} onChange={value=>setValue('interests',value,{shouldDirty:true})} placeholder="Art, climbing, long reads" testId="input-interests"/>
-                    <TagField label="Hobbies" value={hobbies} onChange={value=>setValue('hobbies',value,{shouldDirty:true})} placeholder="Hiking, cooking, photography" testId="input-hobbies"/>
-                    <TagField label="Skills" value={skills} onChange={value=>setValue('skills',value,{shouldDirty:true})} placeholder="Design, writing, Solidity" testId="input-skills"/>
-                    <TagField label="Languages" value={languages} onChange={value=>setValue('languages',value,{shouldDirty:true})} placeholder="English, Hindi, Spanish" testId="input-languages"/>
-                 </div>
-               </div>
-               <div>
-                 <div className="mb-4 flex items-center gap-3"><span className="profile-section-index">03</span><div><h3 className="text-sm font-bold text-[#493b4d]">Who would you like to meet?</h3><p className="mt-0.5 text-[11px] text-[#92818f]">Pick the kinds of connections you’re open to.</p></div></div>
-                  <TagField label="What are you looking for?" value={lookingFor} onChange={value=>setValue('lookingFor',value,{shouldDirty:true})} placeholder="Dates, friends, collaborators" testId="input-looking-for"/>
-                    <label className="mt-4 block max-w-sm"><span className="profile-field-label">Age <span className="font-normal text-[#958a9b]">(optional)</span></span><input className="field" type="number" min="18" max="120" step="1" inputMode="numeric" value={age} onChange={event=>setValue('age',event.target.value,{shouldDirty:true})} placeholder="18+" data-testid="input-profile-age"/><span className="mt-1.5 block text-[10px] leading-4 text-[#978692]">If entered, use a whole number from 18 to 120.</span></label>
-               </div>
-              </div>}
              {notice && <p className={`mt-6 flex items-start gap-2.5 rounded-2xl px-4 py-3 text-sm leading-5 ${notice.startsWith('Your profile is saved')?'border border-[#bed8c0] bg-[#edf6ec] text-[#3d7048]':'border border-[#ebc9c5] bg-[#fff1ed] text-[#914c3c]'}`} role="status" data-testid="status-profile-save"><span className="mt-0.5"><Check size={15}/></span>{notice}</p>}
              <div className="mt-7 flex flex-col-reverse justify-between gap-4 border-t border-[#eadde2] pt-5 sm:flex-row sm:items-center">
                <p className="max-w-xs text-[10px] leading-5 text-[#958692]">Your wallet, verified ownership, and token ID are protected and can’t be edited here.</p>
@@ -919,7 +782,8 @@ function ConnectedProfilePage() {
                 <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#f6e9ee] text-[#a64b70]"><BadgeCheck size={17}/></span>
               </div>
               <p className="mt-2 text-[11px] leading-5 text-[#897985]">{profile?'Choose which verified Chog represents you.':'Select the verified NFT you want on your profile.'}</p>
-              <div className="mt-4 grid grid-cols-2 gap-2.5">{me.data.chogs.filter(chog=>chog.verified).map(chog=><button type="button" onClick={()=>setValue('selectedChogTokenId',chog.tokenId,{shouldDirty:true})} key={chog.tokenId} aria-pressed={selectedChogTokenId===chog.tokenId} className={`profile-chog-choice overflow-hidden rounded-[17px] text-left ${selectedChogTokenId===chog.tokenId?'is-selected':''}`} data-testid={`button-select-chog-${chog.tokenId}`}><div className="relative aspect-square"><ChogArtwork chog={chog}/>{me.data.selectedChogTokenId===chog.tokenId && <span className="absolute right-1.5 top-1.5 rounded-full bg-[#35243a]/90 px-2 py-1 text-[8px] font-bold uppercase tracking-wide text-white">Active</span>}{selectedChogTokenId===chog.tokenId && <span className="absolute bottom-1.5 left-1.5 grid h-5 w-5 place-items-center rounded-full bg-[#fffaf7] text-[#a64b70]"><Check size={12}/></span>}</div><div className="bg-[#fffaf8] px-2.5 py-2"><span className="block text-[11px] font-bold text-[#4b3c4c]">Chog #{chog.tokenId}</span>{chog.tier && <span className="mt-0.5 block text-[9px] text-[#9b8797]">{chog.tier}</span>}</div></button>)}</div>
+              <label className="mt-4 block"><span className="profile-field-label">Selected Chog</span><select className="field" value={selectedChogTokenId} onChange={event=>setValue('selectedChogTokenId',event.target.value,{shouldDirty:true})} data-testid="select-profile-chog">{me.data.chogs.filter(chog=>chog.verified).map(chog=><option key={chog.tokenId} value={chog.tokenId}>Chog #{chog.tokenId}{chog.tier?` · ${chog.tier}`:''}</option>)}</select></label>
+              {selectedChog && <div className="mt-3 flex items-center gap-3 rounded-2xl border border-[#eadde2] bg-[#fffaf8] p-3" data-testid="card-selected-chog-preview"><div className="h-16 w-16 overflow-hidden rounded-xl bg-[#f2e6eb]"><ChogArtwork chog={selectedChog}/></div><div><p className="text-[9px] font-bold uppercase tracking-[.15em] text-[#a35b79]">Profile identity</p><p className="display mt-1 text-base text-[#38253a]">Chog #{selectedChog.tokenId}</p><p className="text-[10px] text-[#897985]">{selectedChog.tier || 'Genesis'}</p></div></div>}
               {profile ? <div className="mt-4 border-t border-[#eadde2] pt-4"><p className="text-[10px] leading-5 text-[#897985]">Switching changes only your active Chog identity. Your profile details stay exactly as they are.</p><button type="button" onClick={()=>void switchActiveChog()} disabled={selectActiveChog.isPending || !selectedChogTokenId || selectedChogTokenId===me.data.selectedChogTokenId} className="button-primary mt-3 w-full rounded-full px-4 py-3 text-xs font-bold disabled:opacity-50" data-testid="button-set-active-chog">{selectActiveChog.isPending?'Revalidating ownership…':selectedChogTokenId===me.data.selectedChogTokenId?'Active Chog':'Make active Chog'}</button></div> : <p className="mt-3 text-[10px] leading-5 text-[#897985]">Your selected Chog becomes your active profile identity when you save.</p>}
               {profile && <div className="mt-5 border-t border-[#eadde2] pt-4">
                 <p className="mb-3 flex items-center gap-2 text-xs font-bold text-[#493b4d]"><Eye size={15} className="text-[#a34d70]"/>Discovery visibility</p>
@@ -941,66 +805,44 @@ function ConnectedProfilePage() {
 
 function MyProfileCard({profile}:{profile:Profile}) {
   const groups = [
-    {label:'Interests',values:profile.interests,style:'bg-[#f4e9f1] text-[#884866]'},
-    {label:'Hobbies',values:profile.hobbies,style:'bg-[#f7efe0] text-[#846432]'},
-    {label:'Skills',values:profile.skills,style:'border border-[#e7dce2] text-[#66536a]'},
-    {label:'Languages',values:profile.languages,style:'border border-[#e7dce2] text-[#66536a]'},
+    {label:'Interests',values:profile.interests},
+    {label:'Hobbies',values:profile.hobbies},
+    {label:'Languages',values:profile.languages},
   ].filter(group=>group.values.length>0);
   const details = [
-    profile.name ? ['Name',profile.name] : null,
     profile.gender ? ['Gender',profile.gender] : null,
     profile.age !== null ? ['Age',String(profile.age)] : null,
-    profile.location ? ['Location',profile.location] : null,
-    profile.timezone ? ['Timezone',profile.timezone] : null,
   ].filter((item): item is [string,string]=>item!==null);
 
   return <>
   <style>{`
     .profile-preview-card{background:#fffaf8;border:1px solid rgba(116,66,89,.15);box-shadow:0 18px 45px rgba(79,43,64,.09)}
-    .profile-preview-top{background:#38253a}
     .profile-artwork img{transition:transform .7s cubic-bezier(.2,.75,.25,1)}
-    .profile-preview-copy{background:linear-gradient(140deg,#fffaf8 0%,#fffdf9 100%)}
     @media(prefers-reduced-motion:reduce){.profile-artwork img{transition:none}}
   `}</style>
   <section className="profile-preview-card overflow-hidden rounded-[30px]" aria-label="My complete profile" data-testid="my-profile-card">
-    <div className="profile-preview-top flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 sm:px-7">
-      <div className="flex items-center gap-2 text-[#f8eaf0]">
-        <span className="grid h-7 w-7 place-items-center rounded-full bg-white/10"><Eye size={14}/></span>
-        <span className="text-[10px] font-bold uppercase tracking-[.16em]">Your profile</span>
-      </div>
-      <span className="flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[9px] font-bold uppercase tracking-[.12em] text-white/85" data-testid="text-profile-chog-identity">
-        <BadgeCheck size={12}/> Verified · Chog #{profile.chog.tokenId}
-      </span>
-    </div>
-    <div className="grid md:grid-cols-[minmax(200px,.72fr)_1.28fr]">
-      <div className="profile-artwork relative aspect-[1.08] min-h-[260px] overflow-hidden bg-[#eadde2] md:aspect-auto md:min-h-[470px]">
+    <div className="profile-artwork relative mx-auto aspect-[1/1.08] max-h-[540px] max-w-[500px] overflow-hidden bg-[#eadde2]">
         <ChogArtwork chog={profile.chog}/>
         <div className="absolute inset-0 bg-gradient-to-t from-[#261529]/80 via-transparent to-transparent"/>
         <div className="absolute bottom-5 left-5 right-5 text-white">
-          <p className="text-[9px] font-bold uppercase tracking-[.2em] text-white/75">Chog Genesis</p>
-          <p className="display mt-1 text-[30px] leading-none" data-testid="text-profile-token-id">#{profile.chog.tokenId}</p>
-          {profile.chog.tier && <p className="mt-2 inline-flex rounded-full border border-white/25 bg-white/15 px-3 py-1.5 text-[10px] font-bold backdrop-blur" data-testid="text-profile-chog-tier">{profile.chog.tier}</p>}
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/30 bg-white/15 px-3 py-1.5 text-[9px] font-bold uppercase tracking-[.13em] backdrop-blur"><BadgeCheck size={12}/>Verified Chog Genesis</span>
+          <h2 className="display mt-3 break-words text-[38px] leading-none text-white sm:text-[48px]" data-testid="text-profile-display-name">{profile.displayName}{profile.age !== null && <span className="ml-2 text-white/85">{profile.age}</span>}</h2>
+          <p className="mt-2 text-sm text-white/85" data-testid="text-profile-username">@{profile.username}</p>
         </div>
       </div>
-      <div className="profile-preview-copy p-5 sm:p-7 lg:p-8">
-        <div className="flex flex-wrap items-center gap-4">
-          {profile.photoUrl
-            ? <img src={profile.photoUrl} alt={`${profile.displayName} profile photo`} className="h-16 w-16 shrink-0 rounded-full object-cover ring-4 ring-white shadow-sm" data-testid="img-profile-photo"/>
-            : <div className="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-[#f4e9f1] text-[#884866] ring-4 ring-white shadow-sm" aria-hidden="true"><span className="display text-2xl font-extrabold">{profile.displayName.slice(0,1) || 'C'}</span></div>}
-          <div className="min-w-0">
-            <p className="mb-1.5 text-[9px] font-bold uppercase tracking-[.19em] text-[#a35b79]">Chog MATE member</p>
-            <h2 className="display break-words text-[32px] leading-[.98] text-[#332037] sm:text-[40px]" data-testid="text-profile-display-name">{profile.displayName}</h2>
-            <p className="mt-2 text-[13px] font-medium text-[#957f8d]" data-testid="text-profile-username">@{profile.username}</p>
-          </div>
+      <div className="mx-auto max-w-[500px] p-5 sm:p-6">
+        <div className="mb-4 flex items-center justify-between gap-3 border-b border-[#eee5e5] pb-3">
+          <div><p className="text-[9px] font-bold uppercase tracking-[.17em] text-[#a35b79]">Your verified Chog</p><p className="display text-xl text-[#332037]" data-testid="text-profile-token-id">#{profile.chog.tokenId} <span className="font-sans text-xs font-semibold normal-case tracking-normal text-[#8c7182]" data-testid="text-profile-chog-tier">{profile.chog.tier || 'Genesis'}</span></p></div>
+          {profile.gender && <span className="rounded-full bg-[#f7e9ee] px-3 py-1.5 text-[10px] font-bold text-[#984d67]">{profile.gender}</span>}
         </div>
-        {profile.bio && <p className="mt-5 max-w-2xl whitespace-pre-line text-[13px] leading-6 text-[#685865]" data-testid="text-profile-introduction">{profile.bio}</p>}
+        {profile.bio && <p className="whitespace-pre-line text-[13px] leading-6 text-[#685865]" data-testid="text-profile-introduction">{profile.bio}</p>}
         {details.length>0 && <dl className="mt-5 flex flex-wrap gap-x-5 gap-y-2 border-t border-[#eee5e5] pt-4 text-[11px] text-[#776878]">
           {details.map(([label,value])=><div key={label} className="flex gap-1"><dt className="font-bold text-[#594d64]">{label}:</dt><dd data-testid={`text-profile-${label.toLowerCase()}`}>{value}</dd></div>)}
         </dl>}
         {groups.length>0 && <div className="mt-5 space-y-4">
           {groups.map(group=><section key={group.label} aria-label={group.label}>
             <h3 className="mb-2 text-[9px] font-bold uppercase tracking-[.16em] text-[#a28d9b]">{group.label}</h3>
-            <div className="flex flex-wrap gap-1.5">{group.values.map((value,index)=><span key={`${value}-${index}`} className={`rounded-full px-3 py-1.5 text-[10px] font-semibold ${group.style}`}>{value}</span>)}</div>
+            <div className="flex flex-wrap gap-1.5">{group.values.map((value,index)=><span key={`${value}-${index}`} className="rounded-full bg-[#f5edf1] px-3 py-1.5 text-[10px] font-semibold text-[#70566a]">{value}</span>)}</div>
           </section>)}
         </div>}
         {profile.lookingFor.length>0 && <section className="mt-5 border-t border-[#eee5e5] pt-4" aria-label="Looking for">
@@ -1009,7 +851,6 @@ function MyProfileCard({profile}:{profile:Profile}) {
         </section>}
         {!profile.bio && details.length===0 && groups.length===0 && profile.lookingFor.length===0 && <p className="mt-5 text-sm text-[#857587]">Your profile details will appear here.</p>}
       </div>
-    </div>
   </section>
   </>;
 }

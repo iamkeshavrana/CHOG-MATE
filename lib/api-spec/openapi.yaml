@@ -382,6 +382,20 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/LikeInboxItem"
+  /likes/sent:
+    get:
+      operationId: getSentLikes
+      tags: [matching]
+      summary: List the signed-in user's outgoing Likes and Super Likes that have not become Matches
+      responses:
+        "200":
+          description: Outgoing pending likes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LikeInboxItem"
   /matches:
     get:
       operationId: getMatches
@@ -646,6 +660,9 @@ components:
         description: { type: ["string", "null"] }
         tier: { type: ["string", "null"] }
         imageUrl: { type: ["string", "null"], format: uri }
+        imageUrls:
+          type: array
+          items: { type: string, format: uri }
         metadataUrl: { type: ["string", "null"], format: uri }
         traits:
           type: array
@@ -659,26 +676,20 @@ components:
         rarity: { type: ["number", "null"], minimum: 0, maximum: 100 }
     Profile:
       type: object
-      required: [userId, username, displayName, name, gender, age, walletAddress, photoUrl, chog, interests, hobbies, skills, languages, lookingFor]
+      required: [userId, username, displayName, gender, age, walletAddress, walletVerified, bio, chog, interests, hobbies, languages, lookingFor, lookingForOther]
       properties:
         userId: { type: string, format: uuid }
         username: { type: string }
         displayName: { type: string }
-        name: { type: ["string", "null"] }
-        gender: { type: ["string", "null"] }
+        gender: { type: ["string", "null"], enum: [Male, Female, Gay, Trans, Alien, null] }
         age: { type: ["integer", "null"], minimum: 18, maximum: 120 }
         walletAddress: { type: string }
-        photoUrl: { type: ["string", "null"], format: uri, maxLength: 2048 }
+        walletVerified: { type: boolean }
         bio: { type: ["string", "null"] }
-        location: { type: ["string", "null"] }
-        timezone: { type: ["string", "null"] }
         interests:
           type: array
           items: { type: string }
         hobbies:
-          type: array
-          items: { type: string }
-        skills:
           type: array
           items: { type: string }
         languages:
@@ -686,7 +697,8 @@ components:
           items: { type: string }
         lookingFor:
           type: array
-          items: { type: string }
+          items: { type: string, enum: [Dating, Friendship, Networking, Collaboration, Other] }
+        lookingForOther: { type: ["string", "null"], maxLength: 200 }
         chog: { $ref: "#/components/schemas/Chog" }
         compatibility: { type: ["integer", "null"], minimum: 0, maximum: 100 }
         whyYouMatch:
@@ -708,26 +720,18 @@ components:
         profile: { oneOf: [{ $ref: "#/components/schemas/Profile" }, { type: "null" }] }
     ProfileInput:
       type: object
-      required: [username, displayName, interests, hobbies, skills, languages, lookingFor, selectedChogTokenId]
+      required: [username, displayName, interests, hobbies, languages, lookingFor, lookingForOther, selectedChogTokenId]
       properties:
         username: { type: string, minLength: 2, maxLength: 24, pattern: "^[a-zA-Z0-9_]+$" }
         displayName: { type: string, minLength: 1, maxLength: 48 }
-        name: { type: ["string", "null"], maxLength: 80 }
-        gender: { type: ["string", "null"], maxLength: 50 }
+        gender: { type: ["string", "null"], enum: [Male, Female, Gay, Trans, Alien, null] }
         age: { type: ["integer", "null"], minimum: 18, maximum: 120 }
-        photoUrl: { type: ["string", "null"], format: uri, maxLength: 2048, pattern: "^https?://" }
         bio: { type: ["string", "null"], maxLength: 500 }
-        location: { type: ["string", "null"], maxLength: 100 }
-        timezone: { type: ["string", "null"], maxLength: 100 }
         interests:
           type: array
           maxItems: 20
           items: { type: string, maxLength: 50 }
         hobbies:
-          type: array
-          maxItems: 20
-          items: { type: string, maxLength: 50 }
-        skills:
           type: array
           maxItems: 20
           items: { type: string, maxLength: 50 }
@@ -738,8 +742,10 @@ components:
         lookingFor:
           type: array
           minItems: 1
-          maxItems: 10
-          items: { type: string, maxLength: 50 }
+          maxItems: 5
+          uniqueItems: true
+          items: { type: string, enum: [Dating, Friendship, Networking, Collaboration, Other] }
+        lookingForOther: { type: ["string", "null"], maxLength: 200 }
         selectedChogTokenId: { type: string }
         profileVisible: { type: boolean }
     DiscoverVisibilityInput:
@@ -754,13 +760,12 @@ components:
         visible: { type: boolean }
     BlockedUser:
       type: object
-      required: [userId, walletAddress, username, displayName, photoUrl]
+      required: [userId, walletAddress, username, displayName]
       properties:
         userId: { type: string, format: uuid }
         walletAddress: { type: ["string", "null"] }
         username: { type: ["string", "null"] }
         displayName: { type: ["string", "null"] }
-        photoUrl: { type: ["string", "null"], format: uri }
     ChogSelectionInput:
       type: object
       required: [tokenId]

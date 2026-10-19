@@ -6,7 +6,7 @@ import {
   isAddress,
   type Address,
 } from "viem";
-import { getOpenSeaChogImage } from "./opensea";
+import { getOpenSeaChogImageCandidates } from "./opensea";
 
 const DEFAULT_CHOG_CONTRACT_ADDRESS =
   "0xc96d31f8626c6d03fae5dcd3d61e3fb9f4a73763";
@@ -109,6 +109,7 @@ export interface ChogToken {
   description: string | null;
   tier: string | null;
   imageUrl: string | null;
+  imageUrls: string[];
   metadataUrl: string | null;
   metadata: Metadata | null;
   traits: ChogTrait[];
@@ -195,9 +196,11 @@ export async function getChog(tokenId: string): Promise<ChogToken | null> {
   const metadata = await readTokenMetadata(metadataUrl);
   const traits = mapTraits(metadata);
   const normalizedTokenId = tokenNumber.toString();
-  const imageUrl =
-    (await getOpenSeaChogImage(normalizedTokenId).catch(() => null)) ??
-    metadataImage(metadata);
+  const imageUrls = mergeImageCandidates(
+    await getOpenSeaChogImageCandidates(normalizedTokenId).catch(() => []),
+    metadataImageCandidates(metadata),
+  );
+  const imageUrl = imageUrls[0] ?? null;
   return {
     tokenId: normalizedTokenId,
     contractAddress: CHOG_CONTRACT_ADDRESS,
@@ -207,6 +210,7 @@ export async function getChog(tokenId: string): Promise<ChogToken | null> {
     description: metadataText(metadata?.description, 2_000),
     tier: metadataTier(metadata, traits),
     imageUrl,
+    imageUrls,
     metadataUrl,
     metadata,
     traits,
@@ -266,9 +270,11 @@ async function loadOwnedChogs(walletAddress: Address): Promise<ChogToken[]> {
       const metadata = await readTokenMetadata(metadataUrl);
       const traits = mapTraits(metadata);
       const normalizedTokenId = tokenNumber.toString();
-      const imageUrl =
-        (await getOpenSeaChogImage(normalizedTokenId).catch(() => null)) ??
-        metadataImage(metadata);
+      const imageUrls = mergeImageCandidates(
+        await getOpenSeaChogImageCandidates(normalizedTokenId).catch(() => []),
+        metadataImageCandidates(metadata),
+      );
+      const imageUrl = imageUrls[0] ?? null;
       return {
         tokenId: normalizedTokenId,
         contractAddress: CHOG_CONTRACT_ADDRESS,
@@ -278,6 +284,7 @@ async function loadOwnedChogs(walletAddress: Address): Promise<ChogToken[]> {
         description: metadataText(metadata?.description, 2_000),
         tier: metadataTier(metadata, traits),
         imageUrl,
+        imageUrls,
         metadataUrl,
         metadata,
         traits,
@@ -341,17 +348,66 @@ function metadataTier(metadata: Metadata | null, traits: ChogTrait[]): string | 
 }
 
 function resolveGatewayUrl(uri: string): string {
-  if (uri.startsWith("ipfs://")) return `https://ipfs.io/ipfs/${uri.slice(7)}`;
-  if (uri.startsWith("ar://")) return `https://arweave.net/${uri.slice(5)}`;
+  if (/^ipfs:\/\//i.test(uri)) {
+    const path = uri.slice("ipfs://".length).replace(/^ipfs\//i, "");
+    return `https://ipfs.io/ipfs/${path}`;
+  }
+  if (/^ar:\/\//i.test(uri)) return `https://arweave.net/${uri.slice("ar://".length)}`;
+  if (/^http:\/\//i.test(uri)) return uri.replace(/^http:/i, "https:");
   return uri;
 }
 
-function metadataImage(metadata: Metadata | null): string | null {
-  if (!metadata) return null;
-  const image = typeof metadata.image_url === "string" ? metadata.image_url : metadata.image;
-  if (typeof image !== "string") return null;
-  const resolved = resolveGatewayUrl(image);
-  return /^https?:\/\//i.test(resolved) ? resolved : null;
+function metadataImageCandidates(metadata: Metadata | null): string[] {
+  if (!metadata) return [];
+  return mergeImageCandidates(
+    metadata.image_url,
+    metadata.image,
+  );
+}
+
+export function resolveChogImageCandidates(
+  imageUrl: unknown,
+  metadata: unknown,
+): string[] {
+  const parsedMetadata =
+    metadata && typeof metadata === "object" && !Array.isArray(metadata)
+      ? metadata as Metadata
+      : null;
+  return mergeImageCandidates(imageUrl, metadataImageCandidates(parsedMetadata));
+}
+
+function mergeImageCandidates(...values: unknown[]): string[] {
+  return values
+    .flatMap((value) => {
+      if (Array.isArray(value)) return value.flatMap((item) => normalizeImageCandidates(item));
+      return normalizeImageCandidates(value);
+    })
+    .filter((value, index, all) => all.indexOf(value) === index);
+}
+
+function normalizeImageCandidates(value: unknown): string[] {
+  if (typeof value !== "string" || !value.trim()) return [];
+  const raw = value.trim();
+  if (/^ipfs:\/\//i.test(raw)) {
+    const path = raw.slice("ipfs://".length).replace(/^ipfs\//i, "");
+    if (!path) return [];
+    return [
+      `https://ipfs.io/ipfs/${path}`,
+      `https://cloudflare-ipfs.com/ipfs/${path}`,
+      `https://gateway.pinata.cloud/ipfs/${path}`,
+    ];
+  }
+  if (/^ar:\/\//i.test(raw)) {
+    const path = raw.slice("ar://".length);
+    return path ? [`https://arweave.net/${path}`] : [];
+  }
+  try {
+    const url = new URL(raw);
+    if (url.protocol === "http:") url.protocol = "https:";
+    return url.protocol === "https:" ? [url.toString()] : [];
+  } catch {
+    return [];
+  }
 }
 
 function mapTraits(metadata: Metadata | null): ChogTrait[] {

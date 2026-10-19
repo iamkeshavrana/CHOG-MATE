@@ -1,6 +1,6 @@
 import type { ChogToken } from "./chogs";
 import { getSupabaseAdmin } from "./supabase";
-import { CHOG_CONTRACT_ADDRESS } from "./chogs";
+import { CHOG_CONTRACT_ADDRESS, resolveChogImageCandidates } from "./chogs";
 
 export interface DbProfile {
   id: string;
@@ -11,7 +11,7 @@ export interface DbProfile {
   gender: string | null;
   age: number | null;
   bio: string | null;
-  photo_url: string | null;
+  looking_for_other: string | null;
   location: string | null;
   timezone: string | null;
   looking_for: string[];
@@ -28,6 +28,7 @@ export interface DbProfile {
 export interface DbUser {
   id: string;
   wallet_address: string;
+  wallet_verified: boolean;
   created_at?: string;
   last_seen?: string;
 }
@@ -257,25 +258,50 @@ export function profileToApi(
   bundle: ProfileBundle,
   compatibility: number | null = null,
   whyYouMatch: string[] = [],
-  includeAge = false,
+  includeAge = true,
 ) {
+  const supportedGenders = new Set(["Male", "Female", "Gay", "Trans", "Alien"]);
+  const gender = supportedGenders.has(bundle.profile.gender ?? "")
+    ? bundle.profile.gender
+    : null;
+  const canonicalLookingFor = new Map([
+    ["dating", "Dating"],
+    ["friendship", "Friendship"],
+    ["networking", "Networking"],
+    ["collaboration", "Collaboration"],
+    ["other", "Other"],
+  ]);
+  const storedLookingFor = bundle.profile.looking_for ?? [];
+  const lookingFor = [
+    ...new Set(
+      storedLookingFor
+        .map((value) => canonicalLookingFor.get(value.trim().toLowerCase()))
+        .filter((value): value is string => value !== undefined),
+    ),
+  ];
+  const legacyOther = storedLookingFor
+    .filter((value) => !canonicalLookingFor.has(value.trim().toLowerCase()))
+    .join(", ");
+  const lookingForOther =
+    bundle.profile.looking_for_other?.trim() || legacyOther || null;
+  if ((lookingForOther || storedLookingFor.some((value) => value.trim().toLowerCase() === "other"))
+    && !lookingFor.includes("Other")) {
+    lookingFor.push("Other");
+  }
   return {
     userId: bundle.user.id,
     username: bundle.profile.username,
     displayName: bundle.profile.display_name,
-    name: bundle.profile.name,
-    gender: bundle.profile.gender,
+    gender,
     age: includeAge ? bundle.profile.age : null,
     walletAddress: bundle.user.wallet_address,
-    photoUrl: bundle.profile.photo_url,
+    walletVerified: Boolean(bundle.user.wallet_verified),
     bio: bundle.profile.bio,
-    location: bundle.profile.location,
-    timezone: bundle.profile.timezone,
     interests: bundle.profile.interests ?? [],
     hobbies: bundle.profile.hobbies ?? [],
-    skills: bundle.profile.skills ?? [],
     languages: bundle.profile.languages ?? [],
-    lookingFor: bundle.profile.looking_for ?? [],
+    lookingFor,
+    lookingForOther,
     chog: bundle.chog,
     compatibility,
     whyYouMatch,
@@ -288,6 +314,7 @@ export function mapDbChog(chog: DbChog, traits: DbTrait[]): ChogToken {
     traitValue: trait.trait_value,
     rarity: trait.rarity,
   }));
+  const imageUrls = resolveChogImageCandidates(chog.image_url, chog.metadata);
   return {
     tokenId: chog.token_id,
     contractAddress: chog.contract_address,
@@ -298,7 +325,8 @@ export function mapDbChog(chog: DbChog, traits: DbTrait[]): ChogToken {
     tier: chog.tier ??
       mappedTraits.find((trait) => trait.traitType.trim().toLowerCase() === "tier")
         ?.traitValue ?? null,
-    imageUrl: chog.image_url,
+    imageUrl: imageUrls[0] ?? null,
+    imageUrls,
     metadataUrl: chog.metadata_url,
     metadata: chog.metadata,
     traits: mappedTraits,

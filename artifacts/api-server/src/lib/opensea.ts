@@ -55,7 +55,7 @@ interface TimedValue<T> {
 }
 
 const liveSalesCache = new Map<string, TimedValue<LiveSalesPage>>();
-const chogImageCache = new Map<string, TimedValue<string | null>>();
+const chogImageCache = new Map<string, TimedValue<string[]>>();
 let collectionStatsCache: TimedValue<CollectionStats> | null = null;
 
 export class NftIndexerError extends Error {
@@ -131,7 +131,13 @@ export async function getChogCollectionPage(
 export async function getOpenSeaChogImage(
   tokenId: string,
 ): Promise<string | null> {
-  if (!process.env.OPENSEA_API_KEY?.trim()) return null;
+  return (await getOpenSeaChogImageCandidates(tokenId))[0] ?? null;
+}
+
+export async function getOpenSeaChogImageCandidates(
+  tokenId: string,
+): Promise<string[]> {
+  if (!process.env.OPENSEA_API_KEY?.trim()) return [];
   const cached = chogImageCache.get(tokenId);
   if (cached && cached.expiresAt > Date.now()) return cached.value;
 
@@ -156,16 +162,16 @@ export async function getOpenSeaChogImage(
     throw new NftIndexerError("OpenSea returned a different NFT than requested.", 502);
   }
 
-  const imageUrl = [
+  const imageUrls = [
     ...imageGatewayUrls(nft.display_image_url),
     ...imageGatewayUrls(nft.image_url),
     ...imageGatewayUrls(nft.original_image_url),
-  ][0] ?? null;
+  ].filter((image, index, all) => all.indexOf(image) === index);
   chogImageCache.set(tokenId, {
-    value: imageUrl,
+    value: imageUrls,
     expiresAt: Date.now() + CHOG_IMAGE_CACHE_MS,
   });
-  return imageUrl;
+  return imageUrls;
 }
 
 export async function getLiveSales(cursor?: string): Promise<LiveSalesPage> {
@@ -505,19 +511,20 @@ function isHttpsUrl(value: unknown): value is string {
 
 function imageGatewayUrls(value: unknown): string[] {
   if (typeof value !== "string" || value.length === 0) return [];
-  if (value.startsWith("ipfs://")) {
-    const path = value.slice("ipfs://".length).replace(/^ipfs\//, "");
+  if (value.toLowerCase().startsWith("ipfs://")) {
+    const path = value.slice("ipfs://".length).replace(/^ipfs\//i, "");
     return [
       `https://ipfs.io/ipfs/${path}`,
       `https://cloudflare-ipfs.com/ipfs/${path}`,
       `https://gateway.pinata.cloud/ipfs/${path}`,
     ];
   }
-  if (value.startsWith("ar://")) {
+  if (value.toLowerCase().startsWith("ar://")) {
     return [`https://arweave.net/${value.slice("ar://".length)}`];
   }
   try {
     const url = new URL(value);
+    if (url.protocol === "http:") url.protocol = "https:";
     return url.protocol === "https:" ? [url.toString()] : [];
   } catch {
     return [];

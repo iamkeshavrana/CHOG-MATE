@@ -19,7 +19,7 @@ import {
   UnblockUserParams,
   UnmatchProfileParams,
 } from "@workspace/api-zod";
-import { getAddress } from "viem";
+import { getAddress, isAddress } from "viem";
 import { calculateCompatibility } from "../lib/compatibility";
 import { isCurrentChogOwner } from "../lib/chogs";
 import {
@@ -122,6 +122,15 @@ router.post("/swipes", async (req, res): Promise<void> => {
     const target = targetMap.get(targetId);
     if (!target) {
       res.status(404).json({ error: "This profile is no longer available." });
+      return;
+    }
+    if (
+      parsed.data.action === "super_like" &&
+      (!target.user.wallet_verified || !isAddress(target.user.wallet_address))
+    ) {
+      res.status(409).json({
+        error: "This member has not connected and verified a wallet that can receive $CHOG.",
+      });
       return;
     }
     const targetOwns = await isCurrentChogOwner(
@@ -318,6 +327,95 @@ router.get("/likes/inbox", async (req, res): Promise<void> => {
     }
     inbox.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     res.json(GetLikeInboxResponse.parse(inbox));
+  } catch (error) {
+    sendSocialError(req, res, error);
+  }
+});
+
+router.get("/likes/sent", async (req, res): Promise<void> => {
+  const session = requireWalletSession(req, res);
+  if (!session) return;
+
+  try {
+    await requireEligibleProfile(session);
+    const admin = getSupabaseAdmin();
+    const [
+      sentLikes,
+      sentSuperLikes,
+      blocksFrom,
+      blocksTo,
+      matchesA,
+      matchesB,
+    ] = await Promise.all([
+      admin.from("likes").select("id,to_user_id,created_at").eq("from_user_id", session.userId),
+      admin
+        .from("super_likes")
+        .select("id,to_user_id,created_at")
+        .eq("from_user_id", session.userId)
+        .not("transaction_hash", "is", null),
+      admin.from("blocks").select("blocked_user_id").eq("blocker_id", session.userId),
+      admin.from("blocks").select("blocker_id").eq("blocked_user_id", session.userId),
+      admin.from("matches").select("user_b").eq("user_a", session.userId).eq("status", "active"),
+      admin.from("matches").select("user_a").eq("user_b", session.userId).eq("status", "active"),
+    ]);
+    if ([sentLikes, sentSuperLikes, blocksFrom, blocksTo, matchesA, matchesB]
+      .some((result) => result.error)) {
+      throw new SocialDataError("CHOG MATE likes are not ready yet.");
+    }
+
+    const excluded = new Set<string>([session.userId]);
+    for (const row of blocksFrom.data ?? []) excluded.add(row.blocked_user_id);
+    for (const row of blocksTo.data ?? []) excluded.add(row.blocker_id);
+    for (const row of matchesA.data ?? []) excluded.add(row.user_b);
+    for (const row of matchesB.data ?? []) excluded.add(row.user_a);
+
+    const byRecipient = new Map<string, {
+      id: string;
+      type: "like" | "super_like";
+      createdAt: string;
+    }>();
+    for (const row of sentLikes.data ?? []) {
+      if (!excluded.has(row.to_user_id)) {
+        byRecipient.set(row.to_user_id, {
+          id: row.id,
+          type: "like",
+          createdAt: row.created_at,
+        });
+      }
+    }
+    for (const row of sentSuperLikes.data ?? []) {
+      if (!excluded.has(row.to_user_id)) {
+        byRecipient.set(row.to_user_id, {
+          id: row.id,
+          type: "super_like",
+          createdAt: row.created_at,
+        });
+      }
+    }
+
+    const bundles = await loadProfileBundles([...byRecipient.keys()]);
+    const outgoing = [];
+    for (const [recipientId, like] of byRecipient) {
+      const bundle = bundles.get(recipientId);
+      if (!bundle) continue;
+      const owns = await isCurrentChogOwner(
+        getAddress(bundle.user.wallet_address),
+        bundle.chog.tokenId,
+      );
+      if (owns === null) {
+        res.status(503).json({ error: "Ownership checks are temporarily unavailable." });
+        return;
+      }
+      if (!owns) continue;
+      outgoing.push({
+        id: like.id,
+        type: like.type,
+        createdAt: like.createdAt,
+        profile: profileToApi(bundle),
+      });
+    }
+    outgoing.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    res.json(GetLikeInboxResponse.parse(outgoing));
   } catch (error) {
     sendSocialError(req, res, error);
   }
@@ -680,7 +778,7 @@ router.get("/blocks", async (req, res): Promise<void> => {
       admin.from("users").select("id,wallet_address").in("id", blockedUserIds),
       admin
         .from("profiles")
-        .select("user_id,username,display_name,photo_url")
+        .select("user_id,username,display_name")
         .in("user_id", blockedUserIds),
     ]);
     if (usersResult.error || profilesResult.error) {
@@ -696,7 +794,6 @@ router.get("/blocks", async (req, res): Promise<void> => {
         walletAddress: user?.wallet_address ?? null,
         username: profile?.username ?? null,
         displayName: profile?.display_name ?? null,
-        photoUrl: profile?.photo_url ?? null,
       };
     });
     res.json(GetBlockedUsersResponse.parse(response));
