@@ -77,3 +77,5 @@
  .explore-profile-dialog { position:fixed; top:auto!important; right:0!important; bottom:0!important; left:0!important; width:100%; max-width:none; max-height:90dvh; transform:none!important; border-radius:24px 24px 0 0; }.explore-dialog-profile { display:block; }.explore-dialog-art { height:230px; min-height:0; }.explore-dialog-art img { height:100%; max-height:100%; padding:10px; }.explore-dialog-copy { padding:18px 17px calc(20px + env(safe-area-inset-bottom)); }.explore-dialog-copy h2 { font-size:29px; }
 }
 @media (prefers-reduced-motion:reduce) { .explore-category { animation:none; } }
+.explore-age-error { margin:7px 0 0; color:#b34372; font-size:9px; line-height:1.45; }
+.explore-filter-apply:disabled { opacity:.48; box-shadow:none; cursor:not-allowed; }

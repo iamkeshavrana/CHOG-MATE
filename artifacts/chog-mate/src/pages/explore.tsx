@@ -171,6 +171,12 @@ export function ExplorePage() {
   const isFilterActive = (key: FilterControlKey) => key === 'age'
     ? Boolean(filters.minAge || filters.maxAge)
     : filters[key] !== '' && filters[key] !== false;
+  const minAge = draftFilters.minAge ? Number(draftFilters.minAge) : undefined;
+  const maxAge = draftFilters.maxAge ? Number(draftFilters.maxAge) : undefined;
+  const ageRangeInvalid = [minAge, maxAge].some(value =>
+    value !== undefined && (!Number.isInteger(value) || value < 18 || value > 120),
+  ) || (minAge !== undefined && maxAge !== undefined && minAge > maxAge);
+  const draftFilterCount = countActiveFilters(draftFilters);
 
   return <AppShell>
     <div className="explore-page page-enter">
@@ -186,7 +192,7 @@ export function ExplorePage() {
         <label className="explore-search">
           <Search size={19} aria-hidden="true" />
           <span className="sr-only">Search people by name, username, or Chog token ID</span>
-          <input value={searchInput} onChange={event => setSearchInput(event.target.value)} placeholder="Search Chog Mates…" data-testid="input-explore-search" />
+          <input value={searchInput} onChange={event => setSearchInput(event.target.value)} placeholder="Search Chog Mates…" maxLength={100} data-testid="input-explore-search" />
           {searchInput && <button type="button" onClick={() => setSearchInput('')} aria-label="Clear search" data-testid="button-clear-search"><X size={16} /></button>}
           <span className="explore-search-shortcut">/</span>
         </label>
@@ -291,16 +297,16 @@ export function ExplorePage() {
             {key === 'gender' && <select value={draftFilters.gender} onChange={event => updateFilter('gender', event.target.value)} className="field" aria-label="Gender" data-testid="select-filter-gender">
               <option value="">Any gender</option>{['Male', 'Female', 'Gay', 'Trans', 'Alien'].map(value => <option key={value} value={value}>{value}</option>)}
             </select>}
-            {key === 'age' && <div className="explore-age-fields"><label><span>Minimum</span><input type="number" min="18" max="120" placeholder="18" value={draftFilters.minAge} onChange={event => updateFilter('minAge', event.target.value)} className="field" aria-label="Minimum age" data-testid="input-filter-min-age" /></label><i>to</i><label><span>Maximum</span><input type="number" min="18" max="120" placeholder="120" value={draftFilters.maxAge} onChange={event => updateFilter('maxAge', event.target.value)} className="field" aria-label="Maximum age" data-testid="input-filter-max-age" /></label></div>}
-            {key === 'location' && <input value={draftFilters.location} onChange={event => updateFilter('location', event.target.value)} className="field" placeholder="City, region, or UTC offset" aria-label="Location or timezone" data-testid="input-filter-location" />}
-            {key === 'interests' && <input value={draftFilters.interests} onChange={event => updateFilter('interests', event.target.value)} className="field" placeholder="For example: design, web3" aria-label="Interests" data-testid="input-filter-interests" />}
-            {key === 'hobbies' && <input value={draftFilters.hobbies} onChange={event => updateFilter('hobbies', event.target.value)} className="field" placeholder="For example: climbing, film" aria-label="Hobbies" data-testid="input-filter-hobbies" />}
-            {key === 'languages' && <input value={draftFilters.languages} onChange={event => updateFilter('languages', event.target.value)} className="field" placeholder="For example: English, Japanese" aria-label="Languages" data-testid="input-filter-languages" />}
-            {key === 'chogTier' && <input value={draftFilters.chogTier} onChange={event => updateFilter('chogTier', event.target.value)} className="field" placeholder="Enter a Chog tier" aria-label="Chog tier" data-testid="input-filter-chog-tier" />}
+            {key === 'age' && <><div className="explore-age-fields"><label><span>Minimum</span><input type="number" min="18" max="120" step="1" placeholder="18" value={draftFilters.minAge} onChange={event => updateFilter('minAge', event.target.value)} className="field" aria-label="Minimum age" aria-invalid={ageRangeInvalid} data-testid="input-filter-min-age" /></label><i>to</i><label><span>Maximum</span><input type="number" min="18" max="120" step="1" placeholder="120" value={draftFilters.maxAge} onChange={event => updateFilter('maxAge', event.target.value)} className="field" aria-label="Maximum age" aria-invalid={ageRangeInvalid} data-testid="input-filter-max-age" /></label></div>{ageRangeInvalid && <p className="explore-age-error" role="alert">Use whole ages from 18 to 120, with the minimum no higher than the maximum.</p>}</>}
+            {key === 'location' && <input value={draftFilters.location} onChange={event => updateFilter('location', event.target.value)} maxLength={100} className="field" placeholder="City, region, or UTC offset" aria-label="Location or timezone" data-testid="input-filter-location" />}
+            {key === 'interests' && <input value={draftFilters.interests} onChange={event => updateFilter('interests', event.target.value)} maxLength={100} className="field" placeholder="For example: design, web3" aria-label="Interests" data-testid="input-filter-interests" />}
+            {key === 'hobbies' && <input value={draftFilters.hobbies} onChange={event => updateFilter('hobbies', event.target.value)} maxLength={100} className="field" placeholder="For example: climbing, film" aria-label="Hobbies" data-testid="input-filter-hobbies" />}
+            {key === 'languages' && <input value={draftFilters.languages} onChange={event => updateFilter('languages', event.target.value)} maxLength={100} className="field" placeholder="For example: English, Japanese" aria-label="Languages" data-testid="input-filter-languages" />}
+            {key === 'chogTier' && <input value={draftFilters.chogTier} onChange={event => updateFilter('chogTier', event.target.value)} maxLength={100} className="field" placeholder="Enter a Chog tier" aria-label="Chog tier" data-testid="input-filter-chog-tier" />}
             {key === 'recentlyActive' && <button type="button" className={`explore-active-toggle ${draftFilters.recentlyActive ? 'is-on' : ''}`} onClick={() => updateFilter('recentlyActive', !draftFilters.recentlyActive)} aria-pressed={draftFilters.recentlyActive} data-testid="toggle-filter-recently-active"><span>{draftFilters.recentlyActive ? <Check size={14} /> : <Clock3 size={14} />}</span>{draftFilters.recentlyActive ? 'Only recently active' : 'Any activity'}</button>}
           </section>)}
         </div>
-        <div className="explore-filter-actions"><button type="button" className="explore-filter-cancel" onClick={() => setFiltersOpen(false)} data-testid="button-cancel-filters">Cancel</button><button type="button" className="explore-filter-apply" onClick={() => { setFilters(draftFilters); resetPaging(); setFiltersOpen(false); }} data-testid="button-apply-filters">Show profiles <span>{countActiveFilters(draftFilters) ? `· ${countActiveFilters(draftFilters)} on` : ''}</span></button></div>
+        <div className="explore-filter-actions"><button type="button" className="explore-filter-cancel" onClick={() => setFiltersOpen(false)} data-testid="button-cancel-filters">Cancel</button><button type="button" className="explore-filter-apply" onClick={() => { setFilters(draftFilters); resetPaging(); setFiltersOpen(false); }} disabled={ageRangeInvalid} data-testid="button-apply-filters">Show profiles <span>{draftFilterCount ? `· ${draftFilterCount} on` : ''}</span></button></div>
       </DialogContent>
     </Dialog>
 
