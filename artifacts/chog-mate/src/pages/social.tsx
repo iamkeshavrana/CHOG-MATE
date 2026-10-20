@@ -1,7 +1,7 @@
 import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowRight, BadgeCheck, FileText, Heart, Image as ImageIcon, MessageCircle, Mic, MoreHorizontal, Paperclip, Search, Send, Sparkles, Video, X } from 'lucide-react';
+import { ArrowRight, BadgeCheck, FileText, Heart, Image as ImageIcon, MessageCircle, Mic, MoreHorizontal, Paperclip, Search, Send, Sparkles, Undo2, Video, X } from 'lucide-react';
 import { Link } from 'wouter';
 import {
   getGetAuthSessionQueryKey,
@@ -76,14 +76,12 @@ function DiscoverCard({
   onOpenProfile,
   onAuthRequired,
   canInteract,
-  pending,
 }: {
   profile: Profile;
   onAction: (action: 'pass'|'like'|'super_like') => void;
   onOpenProfile: () => void;
   onAuthRequired: () => void;
   canInteract: boolean;
-  pending: boolean;
 }) {
   const touchStart = useRef<number | null>(null);
   const sections = [
@@ -155,11 +153,6 @@ function DiscoverCard({
         <button type="button" onClick={event => { event.stopPropagation(); onOpenProfile(); }} className="inline-flex min-h-9 min-w-0 items-center gap-1 rounded-lg text-left text-[11px] font-bold text-[#7047b5] underline-offset-4 transition hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a77ad5]" data-testid={`button-open-profile-${profile.userId}`}>
           View full profile <ArrowRight size={13} aria-hidden="true"/>
         </button>
-        <div className="flex shrink-0 items-center justify-center gap-2" aria-label="Profile actions">
-          <button type="button" disabled={pending} onClick={event => { event.stopPropagation(); onAction('pass'); }} className="grid h-10 w-10 place-items-center rounded-full border border-[#e8dce7] bg-[#fffdfb] text-[#8a7387] transition hover:-translate-y-0.5 hover:border-[#e9a5af] hover:text-[#c5546a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d98190] disabled:cursor-not-allowed disabled:opacity-50" aria-label={`Pass on ${profile.displayName}`} data-testid={`button-pass-${profile.userId}`}><X size={19} aria-hidden="true"/></button>
-          <button type="button" disabled={pending} onClick={event => { event.stopPropagation(); onAction('super_like'); }} className="grid h-9 w-9 place-items-center rounded-full bg-[#eee5fb] text-[#7851bd] transition hover:-translate-y-0.5 hover:bg-[#e4d6f7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a77ad5] disabled:cursor-not-allowed disabled:opacity-50" aria-label={`Super like ${profile.displayName}`} data-testid={`button-super-like-${profile.userId}`}><Sparkles size={16} aria-hidden="true"/></button>
-          <button type="button" disabled={pending} onClick={event => { event.stopPropagation(); onAction('like'); }} className="grid h-11 w-11 place-items-center rounded-full bg-[#a34b83] text-[#fffaf6] shadow-[0_7px_16px_-7px_#81386888] transition hover:-translate-y-0.5 hover:bg-[#923f75] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d59abb] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" aria-label={`Like ${profile.displayName}`} data-testid={`button-like-${profile.userId}`}><Heart size={20} fill="currentColor" aria-hidden="true"/></button>
-        </div>
       </div>
     </div>
   </article>;
@@ -452,17 +445,23 @@ function formatTokenAmount(value: bigint, decimals: number): string {
 }
 
 export function DiscoverPage() {
+  const maxPreviousCards = 8;
+  const swipeFeedbackDuration = 920;
   const [cursor, setCursor] = useState<string | undefined>();
   const [mode, setMode] = useState<DiscoverProfilesMode>('discover');
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [toast, setToast] = useState('');
   const [profileIndex, setProfileIndex] = useState(0);
+  const [previousCards, setPreviousCards] = useState<Profile[]>([]);
+  const [restoredCard, setRestoredCard] = useState<Profile | null>(null);
   const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
-  const [likeAnimation, setLikeAnimation] = useState(false);
+  const [swipeFeedback, setSwipeFeedback] = useState<'pass' | 'like' | null>(null);
   const [walletDialogOpen, setWalletDialogOpen] = useState(false);
   const [viewingProfile, setViewingProfile] = useState<Profile | null>(null);
   const [superLikeTarget, setSuperLikeTarget] = useState<Profile | null>(null);
+  const swipeFeedbackStartedAt = useRef<number | null>(null);
+  const swipeFeedbackTimeout = useRef<number | null>(null);
   const qc = useQueryClient();
   const swipe = useSwipeProfile();
   const authSession = useGetAuthSession({
@@ -509,13 +508,69 @@ export function DiscoverPage() {
     setProfileIndex(0);
     setToast('');
     setSwipeDirection(null);
-    setLikeAnimation(false);
+    clearSwipeFeedback();
   }, [cursor, mode, search]);
+
+  useEffect(() => {
+    setPreviousCards([]);
+    setRestoredCard(null);
+  }, [mode, search]);
+
+  useEffect(() => () => {
+    if (swipeFeedbackTimeout.current !== null) {
+      window.clearTimeout(swipeFeedbackTimeout.current);
+    }
+  }, []);
+
+  function clearSwipeFeedback() {
+    if (swipeFeedbackTimeout.current !== null) {
+      window.clearTimeout(swipeFeedbackTimeout.current);
+      swipeFeedbackTimeout.current = null;
+    }
+    swipeFeedbackStartedAt.current = null;
+    setSwipeFeedback(null);
+  }
+
+  function beginSwipeFeedback(selected: 'pass' | 'like') {
+    if (swipeFeedbackTimeout.current !== null) {
+      window.clearTimeout(swipeFeedbackTimeout.current);
+    }
+    swipeFeedbackStartedAt.current = Date.now();
+    setSwipeFeedback(selected);
+    swipeFeedbackTimeout.current = window.setTimeout(() => {
+      swipeFeedbackTimeout.current = null;
+      swipeFeedbackStartedAt.current = null;
+      setSwipeFeedback(null);
+    }, swipeFeedbackDuration);
+  }
+
+  async function finishSwipeFeedback() {
+    const startedAt = swipeFeedbackStartedAt.current;
+    const remaining = startedAt === null
+      ? 0
+      : Math.max(0, swipeFeedbackDuration - (Date.now() - startedAt));
+    if (remaining > 0) {
+      await new Promise<void>(resolve => window.setTimeout(resolve, remaining));
+    }
+  }
+
   async function recordSwipe(
     profile: Profile,
     selected: 'pass'|'like'|'super_like',
     transactionHash?: Hex,
   ) {
+    const wasRestored = restoredCard?.userId === profile.userId;
+    if (selected === 'pass' && wasRestored) {
+      // The Pass is already persisted. Replaying it only advances this local
+      // session; posting the same action again would be rejected by the API.
+      await finishSwipeFeedback();
+      setPreviousCards(cards => [...cards, profile].slice(-maxPreviousCards));
+      setRestoredCard(null);
+      setSwipeDirection(null);
+      setToast('Profile passed.');
+      return;
+    }
+
     const result = await swipe.mutateAsync({
       data: {
         targetUserId: profile.userId,
@@ -526,17 +581,18 @@ export function DiscoverPage() {
     if (!result.recorded) {
       throw new Error('This action was already recorded. Refresh discovery before trying again.');
     }
-    if (selected === 'like') {
-      setLikeAnimation(true);
-      await new Promise<void>(resolve => {
-        window.setTimeout(resolve, 720);
-      });
-    } else if (selected === 'pass') {
-      await new Promise<void>(resolve => window.setTimeout(resolve, 260));
+    if (selected === 'pass') {
+      setPreviousCards(cards => [...cards, profile].slice(-maxPreviousCards));
     }
-    setProfileIndex(index => index + 1);
+    if (selected !== 'super_like') {
+      await finishSwipeFeedback();
+    }
+    if (wasRestored) {
+      setRestoredCard(null);
+    } else {
+      setProfileIndex(index => index + 1);
+    }
     setSwipeDirection(null);
-    setLikeAnimation(false);
     setToast(
       result.matched
         ? "It's a match. Open Matches to start a conversation."
@@ -548,7 +604,6 @@ export function DiscoverPage() {
     );
     void qc.invalidateQueries({ queryKey: getGetMatchesQueryKey() });
     void qc.invalidateQueries({ queryKey: getGetLikeInboxQueryKey() });
-    void qc.invalidateQueries({ queryKey: getDiscoverProfilesQueryKey() });
   }
 
   function action(selected: 'pass'|'like'|'super_like') {
@@ -562,7 +617,7 @@ export function DiscoverPage() {
       );
       return;
     }
-    const profile = profiles[profileIndex];
+    const profile = restoredCard ?? profiles[profileIndex];
     if (!profile) return;
     if (selected === 'super_like') {
       setSuperLikeTarget(profile);
@@ -570,14 +625,25 @@ export function DiscoverPage() {
     }
     setToast('');
     setSwipeDirection(selected === 'like' ? 'right' : 'left');
-    setLikeAnimation(false);
+    beginSwipeFeedback(selected);
     void recordSwipe(profile, selected).catch(error => {
       setSwipeDirection(null);
-      setLikeAnimation(false);
+      clearSwipeFeedback();
       setToast(error instanceof Error ? error.message : 'Your action could not be saved. Please try again.');
     });
   }
-  const currentCard = profiles[profileIndex];
+  function restorePreviousCard() {
+    if (swipe.isPending || swipeDirection || superLikeTarget) return;
+    const previous = previousCards[previousCards.length - 1];
+    if (!previous) return;
+    setPreviousCards(cards => cards.slice(0, -1));
+    setRestoredCard(previous);
+    setToast('');
+    setSwipeDirection(null);
+    clearSwipeFeedback();
+  }
+  const currentCard = restoredCard ?? profiles[profileIndex];
+  const actionPending = swipe.isPending || Boolean(swipeDirection) || Boolean(superLikeTarget);
   return <AppShell><div className="page-enter discover-page">
      <header className="discover-heading">
        <Eyebrow>The good kind of scrolling</Eyebrow>
@@ -608,66 +674,88 @@ export function DiscoverPage() {
      {me.isError && !isUnauthorized(me.error) && <p className="mx-auto mb-4 max-w-[620px] rounded-2xl border border-[#ead8ce] bg-[#fff8f1] px-4 py-3 text-sm text-[#755247]" role="status">Your account status could not be loaded. Public profiles are still available; sign-in may be unavailable.</p>}
       <div className="discover-results">
       <QueryState loading={isLoading} error={isError} retry={()=>void refetch()}>
-      {currentCard ? <>
-        <AnimatePresence initial={false} mode="wait">
-          <motion.div
-            key={currentCard.userId}
-             className="discover-card-motion w-full"
-            initial={{ opacity: 0, y: 18, scale: 0.985 }}
-            animate={swipeDirection
-              ? { x: swipeDirection === 'right' ? '110%' : '-110%', opacity: 0, rotate: swipeDirection === 'right' ? 8 : -8 }
-              : { x: 0, y: 0, opacity: 1, scale: 1, rotate: 0 }}
-            exit={swipeDirection
-              ? { x: swipeDirection === 'right' ? '110%' : '-110%', opacity: 0, rotate: swipeDirection === 'right' ? 8 : -8 }
-              : { opacity: 0, y: -8, scale: 0.98 }}
-            transition={{ duration: swipeDirection ? 0.26 : 0.28, ease: 'easeOut' }}
-            data-testid={`discover-card-transition-${currentCard.userId}`}
-          >
-            <DiscoverCard profile={currentCard} onAction={action} onOpenProfile={()=>setViewingProfile(currentCard)} onAuthRequired={()=>setWalletDialogOpen(true)} canInteract={canInteract} pending={swipe.isPending} />
-          </motion.div>
-        </AnimatePresence>
-        <div className="mx-auto mt-5 flex max-w-[620px] items-center justify-between"><p className="text-xs text-[#92869a]">Real holders. Real possibilities.</p>{profileIndex >= profiles.length && data?.nextCursor && <button onClick={()=>{setCursor(data.nextCursor || undefined);setProfileIndex(0);}} className="button-soft inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold" data-testid="button-load-more">More people <ArrowRight size={14}/></button>}</div>
-      </> : data?.nextCursor ? <EmptyState mark="cm" title="Looking a little further." detail="No complete profiles in this group yet. Continue to the next set of real Chog holders." action={<button onClick={()=>setCursor(data.nextCursor || undefined)} className="button-soft rounded-full px-5 py-2.5 text-sm font-bold" data-testid="button-load-more">Continue discovery</button>} /> :
+       {currentCard ? <AnimatePresence initial={false} mode="wait">
+           <motion.div
+             key={currentCard.userId}
+             className="discover-card-motion"
+             initial={{ opacity: 0, y: 18, scale: 0.985 }}
+             animate={swipeDirection
+               ? { x: swipeDirection === 'right' ? '110%' : '-110%', opacity: 0, rotate: swipeDirection === 'right' ? 8 : -8 }
+               : { x: 0, y: 0, opacity: 1, scale: 1, rotate: 0 }}
+             exit={swipeDirection
+               ? { x: swipeDirection === 'right' ? '110%' : '-110%', opacity: 0, rotate: swipeDirection === 'right' ? 8 : -8 }
+               : { opacity: 0, y: -8, scale: 0.98 }}
+             transition={{ duration: swipeDirection ? 0.82 : 0.3, ease: 'easeInOut' }}
+             data-testid={`discover-card-transition-${currentCard.userId}`}
+           >
+             <DiscoverCard profile={currentCard} onAction={action} onOpenProfile={()=>setViewingProfile(currentCard)} onAuthRequired={()=>setWalletDialogOpen(true)} canInteract={canInteract} />
+           </motion.div>
+         </AnimatePresence> : data?.nextCursor ? <EmptyState mark="cm" title="Looking a little further." detail="No complete profiles in this group yet. Continue to the next set of real Chog holders." action={<button onClick={()=>setCursor(data.nextCursor || undefined)} className="button-soft rounded-full px-5 py-2.5 text-sm font-bold" data-testid="button-load-more">Continue discovery</button>} /> :
        search ? <EmptyState mark="cm" title="No Chog Mates found." detail="Search includes profiles whose owner has Discover visibility on and still holds a verified Chog." action={<button onClick={()=>setSearchInput('')} className="button-soft rounded-full px-5 py-2.5 text-sm font-bold" data-testid="button-clear-search-empty">Clear search</button>} /> :
        <EmptyState mark="cm" title="No one new, for now." detail="Profiles appear when their owner turns Discover visibility on and still holds a verified Chog." action={<button onClick={()=>{setProfileIndex(0);void refetch();}} className="button-soft rounded-full px-5 py-2.5 text-sm font-bold" data-testid="button-refresh-discovery">Check again</button>} />}
-    </QueryState>
-      </div>
-    <AnimatePresence>
-      {likeAnimation && <motion.div
-        className="fixed inset-0 z-[80] flex items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_50%_42%,#6a35a6f2_0%,#321447f5_48%,#180d25fa_100%)] px-6 backdrop-blur-xl"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.18 }}
-        role="status"
-        aria-live="assertive"
-        aria-label="Like sent"
-        data-testid="overlay-like-sent"
-      >
-        <motion.div
-          className="relative flex flex-col items-center text-center text-white"
-          initial={{ scale: 0.72, y: 18 }}
-          animate={{ scale: 1, y: 0 }}
-          exit={{ scale: 0.92, y: -8 }}
-          transition={{ type: 'spring', stiffness: 240, damping: 18 }}
+     </QueryState>
+       </div>
+      <div className="discover-action-area" role="group" aria-label="Discover actions">
+        <button
+          type="button"
+          className="discover-previous-button"
+          onClick={restorePreviousCard}
+          disabled={previousCards.length === 0 || Boolean(restoredCard) || actionPending}
+          aria-label="Restore the previous passed profile"
+          title="Previous"
+          data-testid="button-discover-previous"
         >
-          <span className="absolute -left-16 top-1 h-2 w-2 rounded-full bg-[#f5d8ff] shadow-[0_0_18px_#f5d8ff]" aria-hidden="true"/>
-          <span className="absolute -right-14 top-9 h-1.5 w-1.5 rounded-full bg-[#f2b6d8] shadow-[0_0_16px_#f2b6d8]" aria-hidden="true"/>
-          <span className="absolute -left-10 bottom-7 h-1.5 w-1.5 rounded-full bg-[#c8adff] shadow-[0_0_16px_#c8adff]" aria-hidden="true"/>
-          <motion.div
-            className="grid h-28 w-28 place-items-center rounded-full border border-white/25 bg-white/10 text-[#fff5ff] shadow-[0_0_70px_#dc8aff77] backdrop-blur-md"
-            animate={{ scale: [1, 1.08, 1], boxShadow: ['0 0 55px #dc8aff55', '0 0 90px #dc8aff99', '0 0 55px #dc8aff55'] }}
-            transition={{ duration: 0.9, ease: 'easeInOut' }}
-          >
-            <Heart size={54} strokeWidth={1.8} fill="currentColor" aria-hidden="true"/>
-          </motion.div>
-          <p className="mt-7 text-[10px] font-extrabold uppercase tracking-[.28em] text-white/70">CHOG MATE</p>
-          <h2 className="display mt-2 text-3xl font-extrabold tracking-[.06em] sm:text-4xl">LIKE SENT</h2>
-          <p className="mt-2 text-sm text-white/75">If they like you back, it’s a match.</p>
-          <Sparkles className="mt-6 text-[#f6d7ff]" size={19} aria-hidden="true"/>
-        </motion.div>
-      </motion.div>}
-    </AnimatePresence>
+          <Undo2 size={19} aria-hidden="true" />
+          <span>Previous</span>
+        </button>
+        <button
+          type="button"
+          className="discover-action-button discover-action-pass"
+          disabled={!currentCard || actionPending}
+          onClick={() => action('pass')}
+          aria-label={currentCard ? `Pass on ${currentCard.displayName}` : 'No profile to pass on'}
+          title="Pass"
+          data-testid={`button-pass-${currentCard?.userId ?? 'disabled'}`}
+        ><X size={31} strokeWidth={2.1} aria-hidden="true" /></button>
+        <button
+          type="button"
+          className="discover-action-button discover-action-super-like"
+          disabled={!currentCard || actionPending}
+          onClick={() => action('super_like')}
+          aria-label={currentCard ? `Super like ${currentCard.displayName}` : 'No profile to Super Like'}
+          title="Super Like · 100 $CHOG"
+          data-testid={`button-super-like-${currentCard?.userId ?? 'disabled'}`}
+        ><Sparkles size={27} strokeWidth={1.9} aria-hidden="true" /></button>
+        <button
+          type="button"
+          className="discover-action-button discover-action-like"
+          disabled={!currentCard || actionPending}
+          onClick={() => action('like')}
+          aria-label={currentCard ? `Like ${currentCard.displayName}` : 'No profile to like'}
+          title="Like"
+          data-testid={`button-like-${currentCard?.userId ?? 'disabled'}`}
+        ><Heart size={28} strokeWidth={1.9} fill="currentColor" aria-hidden="true" /></button>
+      </div>
+      <div className="discover-footer">
+        <p>Real holders. Real possibilities.</p>
+        {!restoredCard && profileIndex >= profiles.length && data?.nextCursor && <button onClick={()=>{setCursor(data.nextCursor || undefined);setProfileIndex(0);}} className="button-soft inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold" data-testid="button-load-more">More people <ArrowRight size={14}/></button>}
+      </div>
+     <AnimatePresence>
+       {swipeFeedback && <motion.div
+         key={swipeFeedback}
+         className={`discover-swipe-feedback discover-swipe-feedback-${swipeFeedback}`}
+         initial={{ opacity: 0, scale: 0.55, rotate: swipeFeedback === 'pass' ? -18 : 0 }}
+         animate={{ opacity: [0, 1, 0.95, 0], scale: [0.55, 1.06, 1, 1.14], rotate: swipeFeedback === 'pass' ? [-18, 0, 0, 8] : [0, -4, 4, 0] }}
+         exit={{ opacity: 0, scale: 1.16 }}
+         transition={{ duration: swipeFeedbackDuration / 1000, times: [0, 0.25, 0.72, 1], ease: 'easeInOut' }}
+         aria-hidden="true"
+         data-testid={`overlay-${swipeFeedback}-result`}
+       >
+         {swipeFeedback === 'like'
+           ? <Heart className="discover-result-heart" size={92} strokeWidth={1.5} fill="currentColor" />
+           : <X className="discover-result-pass" size={96} strokeWidth={1.55} />}
+       </motion.div>}
+     </AnimatePresence>
     <ProfileDetailsDialog profile={viewingProfile} open={Boolean(viewingProfile)} onOpenChange={open=>{if(!open)setViewingProfile(null);}}/>
     <SuperLikeDialog
       profile={superLikeTarget}
