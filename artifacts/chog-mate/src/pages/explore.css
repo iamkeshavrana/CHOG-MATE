@@ -17,6 +17,15 @@
 .explore-search-shortcut { display:grid; width:22px; height:22px; flex:none; place-items:center; border:1px solid #e4dbee; border-radius:6px; color:#9e91aa; font-family:var(--app-font-mono); font-size:12px; }
 .explore-filter-toggle { display:flex; height:52px; flex:none; align-items:center; gap:9px; border:1px solid rgba(112,72,255,.2); border-radius:16px; background:rgba(255,249,239,.76); padding:0 16px; color:#51377b; font-size:12px; font-weight:700; box-shadow:0 8px 22px rgba(53,32,92,.04); transition:background .2s,transform .2s,border-color .2s; }
 .explore-filter-toggle:hover,.explore-filter-toggle.is-active { transform:translateY(-1px); border-color:rgba(112,72,255,.45); background:#f2ecff; }.explore-filter-toggle b { display:grid; min-width:20px; height:20px; place-items:center; border-radius:50%; background:#7048ff; color:#fff9ef; font-family:var(--app-font-mono); font-size:10px; }
+.explore-filter-toolbar { display:flex; align-items:center; gap:10px; margin-top:17px; border:1px solid rgba(112,72,255,.1); border-radius:16px; background:rgba(255,250,242,.5); padding:10px 11px; }
+.explore-filter-toolbar-label { display:inline-flex; flex:none; align-items:center; gap:6px; color:#967da7; font-family:var(--app-font-mono); font-size:8px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+.explore-filter-chip-list { display:flex; min-width:0; flex:1; flex-wrap:wrap; gap:6px; }
+.explore-filter-chip { position:relative; display:inline-flex; min-height:32px; align-items:center; justify-content:center; gap:6px; border:1px solid rgba(112,72,255,.12); border-radius:999px; background:rgba(255,255,255,.55); padding:0 10px; color:#766384; font-size:9px; font-weight:700; transition:transform .18s,border-color .18s,background .18s,color .18s; }
+.explore-filter-chip:hover { transform:translateY(-1px); border-color:rgba(112,72,255,.3); background:#f7f1ff; color:#6849a0; }
+.explore-filter-chip.is-active { border-color:rgba(112,72,255,.38); background:#f1eaff; color:#60429b; }
+.explore-filter-chip i { width:5px; height:5px; border-radius:50%; background:#c25391; }
+.explore-filter-toolbar .explore-filter-toggle { height:34px; gap:6px; border-radius:999px; padding:0 10px; font-size:9px; }
+.explore-filter-control.is-focused { border-color:rgba(112,72,255,.38); background:rgba(245,239,255,.68); box-shadow:0 0 0 3px rgba(139,99,255,.07); }
 .explore-section-heading,.explore-results-heading { display:flex; align-items:flex-end; justify-content:space-between; gap:14px; }
 .explore-kicker { display:block; color:#9a77bb; font-family:var(--app-font-mono); font-size:8px; font-weight:700; letter-spacing:.15em; text-transform:uppercase; }
 .explore-section-heading h2,.explore-results-heading h2 { margin:4px 0 0; color:#2f1c4e; font-family:var(--app-font-display); font-size:clamp(22px,3vw,31px); font-weight:800; letter-spacing:-.025em; line-height:1; text-transform:uppercase; }
@@ -51,7 +60,16 @@
  .explore-page { padding-top:10px; }.explore-heading { align-items:flex-start; margin-bottom:17px; }.explore-heading-stamp { display:none; }
  .explore-heading-copy h1 { font-size:39px; }.explore-heading-copy p { max-width:330px; font-size:11px; line-height:1.55; }
  .explore-search-row { gap:7px; margin-bottom:22px; }.explore-search { height:48px; gap:8px; border-radius:15px; padding:0 10px 0 12px; }.explore-search input { font-size:11px; }.explore-search-shortcut { display:none; }
- .explore-filter-toggle { width:49px; height:48px; justify-content:center; gap:0; border-radius:15px; padding:0; }.explore-filter-toggle > span,.explore-filter-toggle > svg:last-child { display:none; }.explore-filter-toggle b { position:absolute; transform:translate(17px,-16px); min-width:17px; height:17px; font-size:8px; }
+ .explore-filter-toolbar { display:grid; grid-template-columns:1fr auto; gap:8px; margin-top:13px; border-radius:14px; padding:9px; }
+ .explore-filter-toolbar-label { font-size:7px; }
+ .explore-filter-chip-list { grid-column:1 / -1; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:5px; }
+ .explore-filter-chip { min-width:0; min-height:32px; gap:4px; padding:0 4px; font-size:8px; white-space:nowrap; }
+ .explore-filter-chip svg { width:12px; height:12px; flex:none; }
+ .explore-filter-chip span { overflow:hidden; text-overflow:ellipsis; }
+ .explore-filter-toolbar .explore-filter-toggle { width:auto; height:30px; justify-content:center; gap:5px; border-radius:999px; padding:0 8px; font-size:8px; }
+ .explore-filter-toolbar .explore-filter-toggle > span { display:inline; }
+ .explore-filter-toolbar .explore-filter-toggle > svg:last-child { display:none; }
+ .explore-filter-toolbar .explore-filter-toggle b { min-width:16px; height:16px; font-size:8px; }
  .explore-section-heading h2,.explore-results-heading h2 { font-size:23px; }.explore-category-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:11px; }.explore-category { min-height:102px; border-radius:16px; padding:11px; }.explore-category-label { font-size:15px; }.explore-category-note { font-size:8px; }.explore-category-icon { width:30px; height:30px; }
  .explore-results { margin-top:26px; }.explore-profile-grid { grid-template-columns:1fr; gap:11px; }.explore-profile-card { display:grid; grid-template-columns:112px minmax(0,1fr); border-radius:17px; }.explore-profile-open { display:contents; }.explore-card-art { grid-row:1 / 3; height:100%; min-height:167px; }.explore-card-art > img { padding:7px; }.explore-card-art .explore-card-verified { right:5px; bottom:6px; padding:4px 6px; font-size:7px; }.explore-card-info { padding:13px 10px 6px; }.explore-card-name-line { display:block; }.explore-card-name-line h3 { font-size:19px; }.explore-card-token { display:block; margin-top:4px; }.explore-card-username { font-size:9px; }.explore-card-bio { margin-top:7px; font-size:9px; }.explore-looking-tags { margin-top:7px; }.explore-looking-tags span { padding:4px 7px; font-size:7px; }.explore-card-footer { grid-column:2; min-height:37px; border-top:0; padding:4px 9px 9px; }.explore-match-score { font-size:7px; }.explore-like-button { min-height:29px; padding:0 10px; font-size:9px; }
  .explore-results-heading { align-items:flex-end; }.explore-result-meta { flex-direction:column; align-items:flex-end; gap:3px; font-size:7px; }.explore-result-meta span { padding:4px 6px; }.explore-clear { font-size:9px; }.explore-state { min-height:210px; padding:20px; }

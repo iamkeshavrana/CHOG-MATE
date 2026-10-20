@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
-  ArrowDownWideNarrow, BadgeCheck, BriefcaseBusiness, Check, ChevronDown, Clock3, Compass, Gamepad2, Globe2,
+  BadgeCheck, BriefcaseBusiness, Cake, Check, ChevronDown, Clock3, Compass, Gamepad2, Globe2,
   Heart, Languages, MapPin, Search, SlidersHorizontal, Sparkles, UsersRound, X, Palette, Rocket, Code2, Handshake,
 } from 'lucide-react';
 import {
@@ -12,6 +12,7 @@ import type { DiscoverProfilesMode, DiscoverProfilesParams, Profile } from '@wor
 import { AppShell, ChogArtwork, Eyebrow, PageTitle } from '@/components/shared';
 import { WalletConnectionDialog } from '@/components/wallet-connection-dialog';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import './explore.css';
 
 const categories: { label: string; mode: DiscoverProfilesMode; icon: typeof Heart; tint: string; note: string }[] = [
   { label: 'Dating', mode: 'date', icon: Heart, tint: 'rose', note: 'A little more than a like' },
@@ -29,9 +30,23 @@ type Filters = {
   gender: string; minAge: string; maxAge: string; location: string;
   interests: string; hobbies: string; languages: string; chogTier: string; recentlyActive: boolean;
 };
+type FilterControlKey = keyof Filters | 'age';
 const emptyFilters: Filters = {
   gender: '', minAge: '', maxAge: '', location: '', interests: '', hobbies: '', languages: '', chogTier: '', recentlyActive: false,
 };
+
+function countActiveFilters(filters: Filters): number {
+  return [
+    Boolean(filters.gender),
+    Boolean(filters.minAge || filters.maxAge),
+    Boolean(filters.location.trim()),
+    Boolean(filters.interests.trim()),
+    Boolean(filters.hobbies.trim()),
+    Boolean(filters.languages.trim()),
+    Boolean(filters.chogTier.trim()),
+    filters.recentlyActive,
+  ].filter(Boolean).length;
+}
 
 export function ExplorePage() {
   const queryClient = useQueryClient();
@@ -39,7 +54,9 @@ export function ExplorePage() {
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState<Filters>(emptyFilters);
+  const [draftFilters, setDraftFilters] = useState<Filters>(emptyFilters);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [focusedFilter, setFocusedFilter] = useState<FilterControlKey | null>(null);
   const [walletDialogOpen, setWalletDialogOpen] = useState(false);
   const [viewingProfile, setViewingProfile] = useState<Profile | null>(null);
   const [notice, setNotice] = useState('');
@@ -89,8 +106,12 @@ export function ExplorePage() {
   }, [discovery.data, cursor]);
 
   function updateFilter<K extends keyof Filters>(key: K, value: Filters[K]) {
-    setFilters(current => ({ ...current, [key]: value }));
-    resetPaging();
+    setDraftFilters(current => ({ ...current, [key]: value }));
+  }
+  function openFilters(filter: FilterControlKey | null = null) {
+    setDraftFilters(filters);
+    setFocusedFilter(filter);
+    setFiltersOpen(true);
   }
   function resetPaging() {
     setCursor(undefined);
@@ -103,6 +124,7 @@ export function ExplorePage() {
   }
   function clearFilters() {
     setFilters(emptyFilters);
+    setDraftFilters(emptyFilters);
     setMode('discover');
     setSearchInput('');
     setSearch('');
@@ -132,27 +154,30 @@ export function ExplorePage() {
     }
   }
 
-  const activeFilterCount = Object.values(filters).filter(value => value !== '' && value !== false).length;
+  const activeFilterCount = countActiveFilters(filters);
   const profiles = loadedProfiles.length ? loadedProfiles : (discovery.data?.profiles ?? []);
   const hasSearch = Boolean(searchInput.trim());
   const currentCategory = categories.find(category => category.mode === mode);
   const filterControls = [
-    { key: 'gender' as const, label: 'Gender', icon: UsersRound },
-    { key: 'age' as const, label: 'Age range', icon: ArrowDownWideNarrow },
-    { key: 'location' as const, label: 'Location / timezone', icon: MapPin },
-    { key: 'interests' as const, label: 'Interests', icon: Sparkles },
-    { key: 'hobbies' as const, label: 'Hobbies', icon: Compass },
-    { key: 'languages' as const, label: 'Languages', icon: Languages },
-    { key: 'chogTier' as const, label: 'Chog tier', icon: BadgeCheck },
-    { key: 'recentlyActive' as const, label: 'Recently active', icon: Clock3 },
+    { key: 'gender' as const, label: 'Gender', shortLabel: 'Gender', icon: UsersRound },
+    { key: 'age' as const, label: 'Age range', shortLabel: 'Age', icon: Cake },
+    { key: 'location' as const, label: 'Location / timezone', shortLabel: 'Location', icon: MapPin },
+    { key: 'interests' as const, label: 'Interests', shortLabel: 'Interests', icon: Sparkles },
+    { key: 'hobbies' as const, label: 'Hobbies', shortLabel: 'Hobbies', icon: Compass },
+    { key: 'languages' as const, label: 'Languages', shortLabel: 'Languages', icon: Languages },
+    { key: 'chogTier' as const, label: 'Chog tier', shortLabel: 'Chog tier', icon: BadgeCheck },
+    { key: 'recentlyActive' as const, label: 'Recently active', shortLabel: 'Active', icon: Clock3 },
   ];
+  const isFilterActive = (key: FilterControlKey) => key === 'age'
+    ? Boolean(filters.minAge || filters.maxAge)
+    : filters[key] !== '' && filters[key] !== false;
 
   return <AppShell>
-    <main className="explore-page page-enter">
+    <div className="explore-page page-enter">
       <header className="explore-heading">
         <div className="explore-heading-copy">
           <Eyebrow>A shared collection. A world of people.</Eyebrow>
-          <PageTitle title="Explore your orbit." description="Real people, verified Chogs. Find the connection you came here for." />
+          <PageTitle eyebrow="Real people. Verified Chogs." title="Explore your orbit." description="Find the connection you came here for." />
         </div>
         <div className="explore-heading-stamp" aria-hidden="true"><span>CHOG</span><b>GENESIS</b><i>•</i><span>HOLDERS</span></div>
       </header>
@@ -161,20 +186,17 @@ export function ExplorePage() {
         <label className="explore-search">
           <Search size={19} aria-hidden="true" />
           <span className="sr-only">Search people by name, username, or Chog token ID</span>
-          <input value={searchInput} onChange={event => setSearchInput(event.target.value)} placeholder="Search name, @username, or Chog token…" data-testid="input-explore-search" />
+          <input value={searchInput} onChange={event => setSearchInput(event.target.value)} placeholder="Search Chog Mates…" data-testid="input-explore-search" />
           {searchInput && <button type="button" onClick={() => setSearchInput('')} aria-label="Clear search" data-testid="button-clear-search"><X size={16} /></button>}
           <span className="explore-search-shortcut">/</span>
         </label>
-        <button type="button" className={`explore-filter-toggle ${filtersOpen ? 'is-active' : ''}`} onClick={() => setFiltersOpen(true)} data-testid="button-open-filters" aria-haspopup="dialog">
-          <SlidersHorizontal size={17} /><span>Filters</span>{activeFilterCount > 0 && <b>{activeFilterCount}</b>}<ChevronDown size={14} />
-        </button>
       </section>
 
       <section className="explore-categories" aria-labelledby="explore-categories-title">
         <div className="explore-section-heading">
           <div><span className="explore-kicker">Choose your direction</span><h2 id="explore-categories-title">What are you here for?</h2></div>
-          <button className="explore-clear" type="button" onClick={clearFilters} data-testid="button-clear-filters" disabled={mode === 'discover' && activeFilterCount === 0 && !searchInput}>
-            <X size={14} /> Clear all
+            <button className="explore-clear" type="button" onClick={clearFilters} data-testid="button-clear-filters" disabled={mode === 'discover' && activeFilterCount === 0 && !searchInput}>
+              <X size={14} /> Clear Filters
           </button>
         </div>
         <div className="explore-category-grid">
@@ -193,6 +215,26 @@ export function ExplorePage() {
             <span className="explore-category-arrow" aria-hidden="true">↗</span>
           </button>)}
         </div>
+      </section>
+
+      <section className="explore-filter-toolbar" aria-label="Explore filters">
+        <span className="explore-filter-toolbar-label"><SlidersHorizontal size={14} /> Refine</span>
+        <div className="explore-filter-chip-list">
+          {filterControls.map(({ key, label, shortLabel, icon: Icon }) => <button
+            key={key}
+            type="button"
+            className={`explore-filter-chip ${isFilterActive(key) ? 'is-active' : ''}`}
+            onClick={() => openFilters(key)}
+            aria-label={`Filter by ${label}`}
+            aria-haspopup="dialog"
+            data-testid={`button-filter-${key}`}
+          >
+            <Icon size={14} /><span>{shortLabel}</span>{isFilterActive(key) && <i aria-hidden="true" />}
+          </button>)}
+        </div>
+        <button type="button" className={`explore-filter-toggle ${filtersOpen && focusedFilter === null ? 'is-active' : ''}`} onClick={() => openFilters()} data-testid="button-open-filters" aria-haspopup="dialog">
+          <SlidersHorizontal size={15} /><span>All filters</span>{activeFilterCount > 0 && <b>{activeFilterCount}</b>}
+        </button>
       </section>
 
       <section className="explore-results" aria-labelledby="explore-results-title">
@@ -235,30 +277,30 @@ export function ExplorePage() {
           {discovery.isFetching ? 'Loading profiles…' : `Load more · page ${pageNumber + 1}`} <ChevronDown size={16} />
         </button>}
       </section>
-    </main>
+    </div>
 
-    <Dialog open={filtersOpen} onOpenChange={setFiltersOpen}>
+    <Dialog open={filtersOpen} onOpenChange={open => { setFiltersOpen(open); if (!open) setFocusedFilter(null); }}>
       <DialogContent className="explore-filter-dialog">
         <DialogHeader className="explore-filter-dialog-head">
-          <div><span className="explore-kicker">Refine your orbit</span><DialogTitle>Find your people.</DialogTitle><DialogDescription>Combine as many filters as you like.</DialogDescription></div>
-          <button type="button" className="explore-clear explore-dialog-clear" onClick={() => { setFilters(emptyFilters); resetPaging(); }} data-testid="button-reset-filter-controls">Reset filters</button>
+          <div><span className="explore-kicker">Refine your orbit</span><DialogTitle>{focusedFilter ? `Filter by ${filterControls.find(item => item.key === focusedFilter)?.label}` : 'Find your people.'}</DialogTitle><DialogDescription>Combine as many filters as you like.</DialogDescription></div>
+          <button type="button" className="explore-clear explore-dialog-clear" onClick={() => setDraftFilters(emptyFilters)} data-testid="button-reset-filter-controls">Reset filters</button>
         </DialogHeader>
         <div className="explore-filter-body">
-          {filterControls.map(({ key, label, icon: Icon }) => <section className={`explore-filter-control explore-control-${key}`} key={key}>
+          {filterControls.map(({ key, label, icon: Icon }) => <section className={`explore-filter-control explore-control-${key} ${focusedFilter === key ? 'is-focused' : ''}`} key={key}>
             <h3><span><Icon size={15} /></span>{label}</h3>
-            {key === 'gender' && <select value={filters.gender} onChange={event => updateFilter('gender', event.target.value)} className="field" aria-label="Gender" data-testid="select-filter-gender">
+            {key === 'gender' && <select value={draftFilters.gender} onChange={event => updateFilter('gender', event.target.value)} className="field" aria-label="Gender" data-testid="select-filter-gender">
               <option value="">Any gender</option>{['Male', 'Female', 'Gay', 'Trans', 'Alien'].map(value => <option key={value} value={value}>{value}</option>)}
             </select>}
-            {key === 'age' && <div className="explore-age-fields"><label><span>Minimum</span><input type="number" min="18" max="120" placeholder="18" value={filters.minAge} onChange={event => updateFilter('minAge', event.target.value)} className="field" aria-label="Minimum age" data-testid="input-filter-min-age" /></label><i>to</i><label><span>Maximum</span><input type="number" min="18" max="120" placeholder="120" value={filters.maxAge} onChange={event => updateFilter('maxAge', event.target.value)} className="field" aria-label="Maximum age" data-testid="input-filter-max-age" /></label></div>}
-            {key === 'location' && <input value={filters.location} onChange={event => updateFilter('location', event.target.value)} className="field" placeholder="City, region, or UTC offset" aria-label="Location or timezone" data-testid="input-filter-location" />}
-            {key === 'interests' && <input value={filters.interests} onChange={event => updateFilter('interests', event.target.value)} className="field" placeholder="For example: design, web3" aria-label="Interests" data-testid="input-filter-interests" />}
-            {key === 'hobbies' && <input value={filters.hobbies} onChange={event => updateFilter('hobbies', event.target.value)} className="field" placeholder="For example: climbing, film" aria-label="Hobbies" data-testid="input-filter-hobbies" />}
-            {key === 'languages' && <input value={filters.languages} onChange={event => updateFilter('languages', event.target.value)} className="field" placeholder="For example: English, Japanese" aria-label="Languages" data-testid="input-filter-languages" />}
-            {key === 'chogTier' && <input value={filters.chogTier} onChange={event => updateFilter('chogTier', event.target.value)} className="field" placeholder="Enter a Chog tier" aria-label="Chog tier" data-testid="input-filter-chog-tier" />}
-            {key === 'recentlyActive' && <button type="button" className={`explore-active-toggle ${filters.recentlyActive ? 'is-on' : ''}`} onClick={() => updateFilter('recentlyActive', !filters.recentlyActive)} aria-pressed={filters.recentlyActive} data-testid="toggle-filter-recently-active"><span>{filters.recentlyActive ? <Check size={14} /> : <Clock3 size={14} />}</span>{filters.recentlyActive ? 'Only recently active' : 'Any activity'}</button>}
+            {key === 'age' && <div className="explore-age-fields"><label><span>Minimum</span><input type="number" min="18" max="120" placeholder="18" value={draftFilters.minAge} onChange={event => updateFilter('minAge', event.target.value)} className="field" aria-label="Minimum age" data-testid="input-filter-min-age" /></label><i>to</i><label><span>Maximum</span><input type="number" min="18" max="120" placeholder="120" value={draftFilters.maxAge} onChange={event => updateFilter('maxAge', event.target.value)} className="field" aria-label="Maximum age" data-testid="input-filter-max-age" /></label></div>}
+            {key === 'location' && <input value={draftFilters.location} onChange={event => updateFilter('location', event.target.value)} className="field" placeholder="City, region, or UTC offset" aria-label="Location or timezone" data-testid="input-filter-location" />}
+            {key === 'interests' && <input value={draftFilters.interests} onChange={event => updateFilter('interests', event.target.value)} className="field" placeholder="For example: design, web3" aria-label="Interests" data-testid="input-filter-interests" />}
+            {key === 'hobbies' && <input value={draftFilters.hobbies} onChange={event => updateFilter('hobbies', event.target.value)} className="field" placeholder="For example: climbing, film" aria-label="Hobbies" data-testid="input-filter-hobbies" />}
+            {key === 'languages' && <input value={draftFilters.languages} onChange={event => updateFilter('languages', event.target.value)} className="field" placeholder="For example: English, Japanese" aria-label="Languages" data-testid="input-filter-languages" />}
+            {key === 'chogTier' && <input value={draftFilters.chogTier} onChange={event => updateFilter('chogTier', event.target.value)} className="field" placeholder="Enter a Chog tier" aria-label="Chog tier" data-testid="input-filter-chog-tier" />}
+            {key === 'recentlyActive' && <button type="button" className={`explore-active-toggle ${draftFilters.recentlyActive ? 'is-on' : ''}`} onClick={() => updateFilter('recentlyActive', !draftFilters.recentlyActive)} aria-pressed={draftFilters.recentlyActive} data-testid="toggle-filter-recently-active"><span>{draftFilters.recentlyActive ? <Check size={14} /> : <Clock3 size={14} />}</span>{draftFilters.recentlyActive ? 'Only recently active' : 'Any activity'}</button>}
           </section>)}
         </div>
-        <div className="explore-filter-actions"><button type="button" className="explore-filter-cancel" onClick={() => setFiltersOpen(false)} data-testid="button-cancel-filters">Cancel</button><button type="button" className="explore-filter-apply" onClick={() => { resetPaging(); setFiltersOpen(false); }} data-testid="button-apply-filters">Show profiles <span>{activeFilterCount ? `· ${activeFilterCount} on` : ''}</span></button></div>
+        <div className="explore-filter-actions"><button type="button" className="explore-filter-cancel" onClick={() => setFiltersOpen(false)} data-testid="button-cancel-filters">Cancel</button><button type="button" className="explore-filter-apply" onClick={() => { setFilters(draftFilters); resetPaging(); setFiltersOpen(false); }} data-testid="button-apply-filters">Show profiles <span>{countActiveFilters(draftFilters) ? `· ${countActiveFilters(draftFilters)} on` : ''}</span></button></div>
       </DialogContent>
     </Dialog>
 
