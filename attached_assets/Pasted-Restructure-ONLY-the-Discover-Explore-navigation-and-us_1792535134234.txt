@@ -1,0 +1,307 @@
+Restructure ONLY the Discover/Explore navigation and user discovery UI.
+
+IMPORTANT:
+Do NOT redesign the entire website.
+Do NOT change authentication, database structure, wallet logic, NFT logic, Likes, Matches, Messages or profile functionality.
+
+==================================================
+1. DISCOVER PAGE
+==================================================
+
+Keep Discover as the clean Tinder-style swipe experience.
+
+REMOVE from Discover:
+- Search button/search bar
+- Category filters
+- Filter controls
+- Extra filtering UI
+
+Discover should focus only on:
+- Tinder-style profile card
+- Chog NFT artwork
+- Name
+- Age
+- Swipe interactions
+- Pass
+- Like
+- Super Like
+- Previous/Undo
+
+Do not remove any existing Discover functionality.
+
+==================================================
+2. ADD NEW "EXPLORE" NAVBAR OPTION
+==================================================
+
+Add a new authenticated/public navigation item:
+
+Explore
+
+Navbar order should be:
+
+Home
+Discover
+Explore
+Matches
+Messages
+My Chog
+My Profile
+
+Follow the existing navbar design language.
+
+Explore should be its own route/page.
+
+==================================================
+3. EXPLORE PAGE — SEARCH
+==================================================
+
+At the top of Explore add a large premium search bar:
+
+"Search Chog Mates..."
+
+Search REAL registered users by:
+
+- Name
+- Username
+- Chog Token ID
+
+Use debounced search.
+
+Search must respect all existing Discover visibility/security rules.
+
+Do NOT use fake users or mock data.
+
+==================================================
+4. EXPLORE PAGE — LARGE CATEGORY BLOCKS
+==================================================
+
+Below the search bar create large premium category blocks/cards.
+
+Categories:
+
+1. Dating
+2. Friendship
+3. Networking
+4. Collaboration
+5. Gaming
+6. Startup & Business
+7. Creative
+8. Hackathon / Teammates
+9. Other
+
+Each category should have:
+- Clear icon
+- Category name
+- Short subtle description
+- Premium glass/futuristic CHOG MATE styling
+- Hover/tap animation
+
+Make these feel like large Explore discovery blocks, not tiny filter chips.
+
+Example:
+
+[DATING]
+Meet people looking for dating
+
+[FRIENDSHIP]
+Find new friends
+
+[COLLABORATION]
+Find people to build with
+
+etc.
+
+==================================================
+5. CATEGORY BEHAVIOR
+==================================================
+
+When a user clicks a category:
+
+Open the corresponding Explore results.
+
+Example:
+
+Explore → Dating
+
+Show real users whose "Looking For" includes Dating.
+
+Explore → Friendship
+
+Show users looking for Friendship.
+
+Explore → Collaboration
+
+Show users looking for Collaboration.
+
+Explore → Gaming
+
+Show relevant users based on their existing profile interests/hobbies/looking-for data.
+
+Do NOT invent user categories or fake metadata.
+
+If a category cannot be determined from existing profile data, use the existing stored profile fields only.
+
+==================================================
+6. EXPLORE FILTERS
+==================================================
+
+Move the detailed filters OUT of Discover and into Explore.
+
+Place filters below the category section/results in a Tinder/Explore-inspired layout.
+
+Use icon-based filter controls.
+
+Filters should include:
+
+- Gender
+- Age
+- Location / Timezone
+- Interests
+- Hobbies
+- Languages
+- Chog Tier
+- Recently Active
+
+Do NOT show all filters as huge cards.
+
+Use compact icon-based controls.
+
+For example:
+
+[⚥ Gender] [🎂 Age] [📍 Location] [🎯 Interests]
+
+[🧩 Hobbies] [🗣 Languages] [🟣 Chog Tier] [🔥 Active]
+
+Clicking a filter should open an appropriate dropdown, popover, modal or bottom sheet.
+
+On mobile, prefer a bottom-sheet/filter-panel experience.
+
+==================================================
+7. RESULTS
+==================================================
+
+Explore results must use REAL CHOG MATE users.
+
+Apply the existing discovery rules:
+
+- completed profile
+- valid Chog
+- Discover visibility ON
+- not current user
+- not blocked
+- not blocked by current user
+- existing discovery/security rules
+
+Do NOT create mock profiles.
+
+Do NOT expose hidden users through Explore.
+
+Category and filter combinations should work together.
+
+Example:
+
+Dating + Female + Age 20-25
+
+should return only users matching those active filters.
+
+==================================================
+8. CLEAR FILTERS
+==================================================
+
+Add:
+
+"Clear Filters"
+
+When cleared:
+- category selection resets
+- filters reset
+- normal Explore results return
+
+Search clearing should also return to normal Explore results.
+
+==================================================
+9. VISUAL STYLE
+==================================================
+
+Use the existing CHOG MATE visual language:
+
+- Chog purple
+- warm cream
+- glassmorphism
+- subtle violet/pink glow
+- premium futuristic styling
+- smooth hover/tap animations
+- clean typography
+- responsive layout
+
+Large category blocks should feel visually important.
+
+Filters should feel lighter and more compact.
+
+Do NOT make Explore look like a generic admin dashboard.
+
+Do NOT use generic blue Web3 styling.
+
+==================================================
+10. PUBLIC USERS
+==================================================
+
+Keep the existing public Discover behavior.
+
+Explore can also be publicly browsable.
+
+Anonymous users can:
+- search
+- browse categories
+- view real public profiles
+
+But they cannot:
+- Like
+- Pass
+- Super Like
+- Message
+- Match
+- Gift
+- Call
+
+Interaction should prompt them to connect/create an account.
+
+==================================================
+11. IMPORTANT — PRESERVE BACKEND
+==================================================
+
+Reuse the existing Discover/search/filter APIs wherever possible.
+
+Do NOT create duplicate user-loading logic if an existing API already supports it.
+
+Only add backend filtering/query support if required for the new Explore categories.
+
+Do NOT change database schema unless absolutely necessary.
+
+Do NOT create fake data.
+
+==================================================
+12. FINAL TEST
+==================================================
+
+Test:
+
+1. Discover opens clean Tinder-style swipe UI.
+2. Search is no longer visible on Discover.
+3. Filters are no longer visible on Discover.
+4. Explore appears in navbar.
+5. Explore search works.
+6. Category blocks appear.
+7. Clicking Dating shows Dating users.
+8. Clicking Friendship shows Friendship users.
+9. Filters work.
+10. Multiple filters combine correctly.
+11. Clear Filters works.
+12. Anonymous users can browse but cannot interact.
+13. Authenticated users can interact according to existing rules.
+14. Mobile layout works.
+15. Existing Discover swipe functionality still works.
+
+Run typecheck and production build.
+
+Report exactly what was changed and any remaining issue.
