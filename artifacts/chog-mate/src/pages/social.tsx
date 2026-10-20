@@ -101,18 +101,28 @@ function DiscoverCard({
       data-testid={`swipe-surface-${profile.userId}`}
       aria-label={`Verified Chog artwork and profile for ${profile.displayName}. Swipe right to like or left to pass.`}
     >
-      <ChogArtwork chog={profile.chog} fit="contained-natural" />
-    </div>
-    <div className="discover-profile-details min-w-0">
+      <ChogArtwork chog={profile.chog} fit="contain" className="discover-profile-image" />
+      <div className="discover-profile-topline" aria-hidden="true">
+        <span className="discover-profile-verified"><BadgeCheck size={13} strokeWidth={2.2} /> Verified Chog</span>
+        <span className="discover-profile-token">
+          Chog #{profile.chog.tokenId}{profile.chog.tier ? <span> · {profile.chog.tier}</span> : null}
+        </span>
+      </div>
       <button
         type="button"
         onClick={event => { event.stopPropagation(); onOpenProfile(); }}
-        className="discover-profile-name"
+        className="discover-profile-details"
         aria-label={`View ${profile.displayName}${profile.age !== null ? `, ${profile.age}` : ''}'s full profile`}
         data-testid={`button-open-profile-${profile.userId}`}
       >
-        <span className="display" data-testid={`text-display-name-${profile.userId}`}>{profile.displayName}</span>
-        {profile.age !== null && <span className="discover-profile-age">, {profile.age}</span>}
+        <span className="discover-profile-name-line">
+          <span className="display discover-profile-name" data-testid={`text-display-name-${profile.userId}`}>{profile.displayName}</span>
+          {profile.age !== null && <span className="discover-profile-age">, {profile.age}</span>}
+        </span>
+        <span className="discover-profile-username">@{profile.username}</span>
+        {profile.lookingFor[0] && <span className="discover-profile-secondary">
+          {profile.lookingFor[0]}{profile.interests[0] ? ` · ${profile.interests[0]}` : ''}
+        </span>}
       </button>
     </div>
   </article>;
