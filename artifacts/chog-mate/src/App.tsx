@@ -5,6 +5,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
 import HomePage from '@/pages/home';
+import ExplorePage from '@/pages/explore';
 import { DiscoverPage, MatchesPage, MessagesPage } from '@/pages/social';
 import { MyChogPage, ProfilePage, SettingsPage } from '@/pages/identity';
 import {
@@ -32,6 +33,7 @@ function Router() {
       <Switch>
         <Route path="/" component={HomePage} />
         <Route path="/discover" component={DiscoverPage} />
+        <Route path="/explore" component={ExplorePage} />
         <Route path="/matches">
           <RequireSession><MatchesPage /></RequireSession>
         </Route>

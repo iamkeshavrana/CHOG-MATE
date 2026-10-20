@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect, useState } from 'react';
 import { Link, useLocation } from 'wouter';
-import { BadgeCheck, Compass, Heart, House, Image, MessageCircle, Settings, UserRound, Wallet } from 'lucide-react';
+import { BadgeCheck, Compass, Heart, House, Image, MessageCircle, Search, Settings, UserRound, Wallet } from 'lucide-react';
 import type { Chog, Profile } from '@workspace/api-client-react';
 import { getGetAuthSessionQueryKey, useGetAuthSession } from '@workspace/api-client-react';
 import { ChogBalance } from '@/components/chog-balance';
@@ -23,12 +23,13 @@ export function Brand({ inverse = false }: { inverse?: boolean }) {
 const links = [
   { href: '/', label: 'Home', icon: House },
   { href: '/discover', label: 'Discover', icon: Compass },
+  { href: '/explore', label: 'Explore', icon: Search },
   { href: '/matches', label: 'Matches', icon: Heart },
   { href: '/messages', label: 'Messages', icon: MessageCircle },
   { href: '/my-chog', label: 'My Chog', icon: Image },
   { href: '/profile', label: 'My Profile', icon: UserRound },
 ];
-const publicLinks = links.slice(0, 2);
+const publicLinks = links.slice(0, 3);
 const mobileLinks = links.filter(({ href }) => href !== '/my-chog');
 
 export function AppShell({ children, displayName }: { children: ReactNode; displayName?: string }) {
@@ -83,7 +84,7 @@ export function AppShell({ children, displayName }: { children: ReactNode; displ
       </div>
     </header>
     <main className="relative z-[1] mx-auto w-full max-w-[1440px] px-5 pb-28 pt-7 md:px-9 md:pb-12 md:pt-10">{children}</main>
-    <nav className={`mobile-tabbar fixed bottom-0 left-0 right-0 z-30 grid ${authenticated ? 'grid-cols-5' : 'grid-cols-3'} px-2 pb-[max(env(safe-area-inset-bottom),8px)] pt-2 md:hidden ${headerHidden ? 'is-hidden' : ''}`} aria-label="Mobile navigation">
+    <nav className={`mobile-tabbar fixed bottom-0 left-0 right-0 z-30 grid ${authenticated ? 'grid-cols-6' : 'grid-cols-4'} px-2 pb-[max(env(safe-area-inset-bottom),8px)] pt-2 md:hidden ${headerHidden ? 'is-hidden' : ''}`} aria-label="Mobile navigation">
       {(authenticated ? mobileLinks : publicLinks).map(({ href, label, icon: Icon }) => <Link key={href} href={href} aria-current={path === href ? 'page' : undefined} className={`mobile-tab flex flex-col items-center gap-1 rounded-xl py-1.5 text-[9px] font-semibold ${path === href ? 'active' : ''}`} data-testid={`mobile-nav-${label.toLowerCase().replace(' ', '-')}`}><Icon size={18} strokeWidth={2} />{label === 'My Profile' ? 'Profile' : label}</Link>)}
       {!authenticated && <button type="button" onClick={() => setWalletDialogOpen(true)} className="mobile-tab flex flex-col items-center gap-1 rounded-xl py-1.5 text-[9px] font-semibold" data-testid="mobile-nav-connect-wallet"><Wallet size={18} strokeWidth={2}/>Connect Wallet</button>}
     </nav>
