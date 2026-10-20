@@ -387,24 +387,6 @@ export default function WalletAuthPanel({
                           {chog.description}
                         </p>
                       )}
-                      {chog.traits?.length ? (
-                        <div className="mt-2 flex flex-wrap gap-1">
-                          {chog.traits.map((trait, index) => (
-                            <span
-                              key={`${trait.traitType}-${index}`}
-                              className="max-w-full truncate rounded-full bg-[#f4effb] px-2 py-1 text-[9px] font-semibold text-[#715795]"
-                            >
-                              {trait.traitType}: {trait.traitValue}
-                              {typeof trait.rarity === "number" &&
-                                ` · ${trait.rarity}%`}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="mt-1 text-[10px] text-[#958a9b]">
-                          No trait data returned
-                        </p>
-                      )}
                       {chog.metadataUrl && (
                         <a
                           href={chog.metadataUrl}

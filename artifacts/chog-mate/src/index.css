@@ -349,11 +349,11 @@ select option { background:#fffaf6;color:#442d35; }
 .my-profile-info-card { position:relative; min-width:0; overflow:hidden; border:1px solid rgba(53,32,92,.09); border-radius:17px; background:rgba(255,249,239,.78); box-shadow:0 8px 24px rgba(53,32,92,.045); padding:12px 14px; backdrop-filter:blur(12px); }
 .my-profile-about { grid-column:span 7; grid-row:1; }
 .my-profile-looking-for { grid-column:span 5; grid-row:1; }
-.my-profile-trait { grid-column:span 4; grid-row:2; }
+.my-profile-info-group { grid-column:span 4; grid-row:2; }
 @media (min-width:768px) {
   .my-profile-information-grid:not(:has(.my-profile-about)) .my-profile-looking-for { grid-column:span 12; }
   .my-profile-information-grid:not(:has(.my-profile-looking-for)) .my-profile-about { grid-column:span 12; }
-  .my-profile-information-grid:not(:has(.my-profile-about)):not(:has(.my-profile-looking-for)) .my-profile-trait { grid-row:auto; }
+  .my-profile-information-grid:not(:has(.my-profile-about)):not(:has(.my-profile-looking-for)) .my-profile-info-group { grid-row:auto; }
 }
 .my-profile-section-label { display:flex; align-items:center; gap:7px; margin:0 0 7px; color:#7350b9; font-size:8px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; }
 .my-profile-section-label > span { width:5px; height:5px; flex:none; border-radius:50%; background:#e85a9f; }
@@ -375,7 +375,7 @@ select option { background:#fffaf6;color:#442d35; }
   .app-shell:has(.my-profile-page) > main { padding-right:24px; padding-left:24px; }
   .my-profile-hero { grid-template-columns:minmax(0,250px) minmax(0,1fr); gap:22px; }
   .my-profile-about,.my-profile-looking-for { grid-column:span 6; }
-  .my-profile-trait { grid-column:span 6; }
+  .my-profile-info-group { grid-column:span 6; }
 }
 
 @media (max-width:767px) {
@@ -395,7 +395,7 @@ select option { background:#fffaf6;color:#442d35; }
   .my-profile-hero-footer { margin-top:8px; }
   .my-profile-information-grid { grid-template-columns:minmax(0,1fr); gap:7px; }
   .my-profile-info-card { border-radius:15px; padding:11px 12px; }
-  .my-profile-about,.my-profile-looking-for,.my-profile-trait { grid-column:auto; grid-row:auto; }
+  .my-profile-about,.my-profile-looking-for,.my-profile-info-group { grid-column:auto; grid-row:auto; }
   .my-profile-chog-identity { gap:8px; }
   .my-profile-chog-verified { max-width:136px; font-size:6px; }
 }

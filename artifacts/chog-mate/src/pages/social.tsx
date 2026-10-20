@@ -168,15 +168,6 @@ function ProfileDetailsDialog({
           <h3>Chog identity</h3>
           <p className="mt-2 text-sm font-semibold text-[#594d64]" data-testid={`dialog-chog-token-${profile.userId}`}>Chog #{profile.chog.tokenId}</p>
           {profile.chog.tier && <p className="mt-1 text-sm text-[#75677c]" data-testid={`dialog-chog-tier-${profile.userId}`}>Tier: {profile.chog.tier}</p>}
-          <h4 className="mt-4 text-[10px] font-bold uppercase tracking-[.13em] text-[#9476a0]">Chog traits</h4>
-          {profile.chog.traits?.length
-            ? <dl className="mt-2 grid gap-2 sm:grid-cols-2">
-                {profile.chog.traits.map((trait, index) => <div key={`${trait.traitType}-${index}`} className="rounded-xl border border-white/35 bg-white/35 px-3 py-2" data-testid={`dialog-chog-trait-${profile.chog.tokenId}-${index}`}>
-                  <dt className="text-[10px] text-[#81758a]">{trait.traitType}</dt>
-                  <dd className="mt-0.5 break-words text-xs font-semibold text-[#594d64]">{trait.traitValue}{typeof trait.rarity === 'number' && <span className="ml-1 font-normal text-[#81758a]">({trait.rarity}%)</span>}</dd>
-                </div>)}
-              </dl>
-            : <p className="mt-2 text-xs text-[#81758a]">No Chog trait metadata is available for this profile.</p>}
         </section>
       </div>
     </DialogContent>

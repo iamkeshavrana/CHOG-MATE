@@ -208,17 +208,6 @@ export function MyChogPage() {
                           <h3 className="display text-lg font-extrabold text-[#24133f]" data-testid={`text-owned-chog-token-id-${item.tokenId}`}>Chog #{item.tokenId}</h3>
                           <span className="shrink-0 text-[10px] font-semibold text-[#715795]" data-testid={`text-owned-chog-tier-${item.tokenId}`}>{item.tier ? `Tier: ${item.tier}` : 'Tier unavailable'}</span>
                         </div>
-                        <div className="mt-4 border-t border-[#eee7e0] pt-3">
-                          <h4 className="text-[9px] font-bold uppercase tracking-[.16em] text-[#a28d9b]">Traits</h4>
-                          {item.traits?.length
-                            ? <dl className="mt-2 space-y-2">
-                                {item.traits.map((trait,index)=><div key={`${trait.traitType}-${index}`} className="flex items-start justify-between gap-3 rounded-xl bg-[#faf6ef] px-3 py-2" data-testid={`trait-${item.tokenId}-${index}`}>
-                                  <dt className="text-[10px] font-medium text-[#887c91]">{trait.traitType}</dt>
-                                  <dd className="text-right text-[10px] font-bold text-[#453454]">{trait.traitValue}{typeof trait.rarity==='number' && <span className="ml-1 font-medium text-[#9a8da0]">({trait.rarity}%)</span>}</dd>
-                                </div>)}
-                              </dl>
-                            : <p className="mt-2 text-[10px] text-[#958a9b]">No real trait metadata returned.</p>}
-                        </div>
                         <button type="button" onClick={()=>chooseChog(item.tokenId)} disabled={selectActiveChog.isPending || isActive} aria-pressed={isSelected} className="mt-4 w-full rounded-full border border-[#e6ddf2] px-4 py-2.5 text-[10px] font-bold text-[#7047ff] transition hover:bg-[#f6f1ff] disabled:cursor-default disabled:opacity-60" data-testid={`button-select-owned-chog-${item.tokenId}`} aria-live="polite">
                           {me.data.hasProfile
                             ? isActive
@@ -901,7 +890,7 @@ function MyProfileExperience({profile,onEdit}:{profile:Profile;onEdit:()=>void})
         </motion.section>}
 
         {groups.map((group,index)=><motion.section
-          className="my-profile-info-card my-profile-trait"
+          className="my-profile-info-card my-profile-info-group"
           key={group.label}
           aria-label={group.label}
           initial={{opacity:0,y:9}}

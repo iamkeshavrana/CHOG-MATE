@@ -319,7 +319,6 @@ export function ExplorePage() {
             {viewingProfile.bio && <p className="explore-dialog-bio">{viewingProfile.bio}</p>}
             {viewingProfile.lookingFor.length > 0 && <section className="explore-dialog-section"><h3>Looking for</h3><div>{viewingProfile.lookingFor.map(value => <span key={value}>{value}</span>)}</div></section>}
             {[['Interests', viewingProfile.interests], ['Hobbies', viewingProfile.hobbies], ['Languages', viewingProfile.languages]].filter(([, values]) => (values as string[]).length > 0).map(([label, values]) => <section className="explore-dialog-section" key={label as string}><h3>{label as string}</h3><div>{(values as string[]).map(value => <span key={value}>{value}</span>)}</div></section>)}
-            {viewingProfile.chog.traits?.length ? <section className="explore-dialog-section"><h3>Chog traits</h3><div className="explore-traits">{viewingProfile.chog.traits.map((trait, index) => <span key={`${trait.traitType}-${index}`}><b>{trait.traitType}</b>{trait.traitValue}</span>)}</div></section> : null}
             <button type="button" className="explore-dialog-like" onClick={() => void likeProfile(viewingProfile)} disabled={swipe.isPending} data-testid={`button-dialog-like-${viewingProfile.userId}`}><Heart size={17} /> Like profile</button>
           </div>
         </div>}
