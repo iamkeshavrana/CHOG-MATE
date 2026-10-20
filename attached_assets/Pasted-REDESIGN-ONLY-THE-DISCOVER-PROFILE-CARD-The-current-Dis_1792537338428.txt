@@ -1,0 +1,390 @@
+REDESIGN ONLY THE DISCOVER PROFILE CARD.
+
+The current Discover card is NOT acceptable.
+
+In the current UI the card looks like a small horizontal glass rectangle with a tiny NFT image in the center and a lot of empty space.
+
+I want the Discover card to feel like a REAL MODERN DATING/DISCOVERY APP CARD — inspired by the visual hierarchy and usability of Tinder-style profile cards, but with an original CHOG MATE design.
+
+DO NOT redesign the entire Discover page.
+DO NOT change the navbar.
+DO NOT change Explore.
+DO NOT change backend logic.
+DO NOT change Like / Pass / Super Like functionality.
+ONLY redesign the profile card and its card-level animations/layout.
+
+==================================================
+1. CARD SHAPE
+==================================================
+
+Replace the current short horizontal rectangle.
+
+The profile card must be:
+
+- Large
+- Portrait oriented
+- Tall
+- Centered
+- Visually dominant
+- Similar in proportions to a modern Tinder-style swipe card
+
+Use a responsive portrait ratio around:
+
+3:4 or 4:5
+
+Choose whichever fits the existing Discover viewport better.
+
+IMPORTANT:
+
+The card should occupy most of the available vertical space without causing unnecessary page scrolling.
+
+Desktop:
+- Large portrait card
+- Centered horizontally
+- Comfortable height within viewport
+
+Mobile:
+- Card should adapt to screen width
+- Maintain portrait proportions
+- Fit naturally inside the viewport
+
+Do NOT use the current tiny horizontal card.
+
+==================================================
+2. CHOG NFT = MAIN HERO IMAGE
+==================================================
+
+The Chog NFT artwork must be the PRIMARY visual element of the card.
+
+The NFT should fill almost the entire card.
+
+Do NOT show:
+- a separate profile photo
+- a tiny NFT thumbnail
+- two separate images
+- an image floating inside a small box
+
+There should be ONE main image:
+
+THE USER'S ACTUAL CHOG NFT.
+
+The NFT should occupy roughly 75–85% of the card visually.
+
+Preserve the NFT's actual aspect ratio.
+
+Do NOT:
+- stretch
+- distort
+- unnecessarily crop
+- shrink the NFT into a tiny centered square
+- put the NFT inside another visible frame
+- add an inner white/cream border
+
+The artwork itself should feel like the hero of the profile.
+
+If the source NFT is square, let it display naturally.
+If the source artwork is portrait/landscape, adapt responsively while keeping the complete artwork visible.
+
+==================================================
+3. IMAGE PRESENTATION
+==================================================
+
+Use the actual NFT artwork as the full visual background/hero of the card where appropriate.
+
+The card should feel visually similar to:
+
+[ LARGE CHOG NFT ARTWORK ]
+[                         ]
+[                         ]
+[                         ]
+[   subtle dark gradient  ]
+[   NAME, AGE             ]
+[   @username             ]
+
+The bottom section should overlay the lower portion of the artwork using a subtle gradient.
+
+Do NOT create a separate giant information box underneath the NFT.
+
+The transition between artwork and profile information should feel seamless.
+
+==================================================
+4. PROFILE INFORMATION
+==================================================
+
+Show the most important information directly on the card.
+
+Primary:
+
+NAME, AGE
+
+Example:
+
+GOKU, 22
+
+Below that:
+
+@username
+
+Then optionally show a very small secondary line such as:
+
+Dating • Delhi
+
+OR
+
+Friendship • Gaming
+
+Only show information that actually exists in the user's profile.
+
+Do NOT put the entire profile inside the card.
+
+Do NOT show:
+- full About text
+- long introduction
+- huge interests list
+- hobbies list
+- languages list
+- full Chog traits
+- huge token metadata section
+
+The card should be visually clean.
+
+==================================================
+5. CHOG IDENTITY
+==================================================
+
+Because CHOG MATE is built around Chog NFTs, add a subtle Chog identity indicator.
+
+For example:
+
+Chog #1103
+
+and/or
+
+Chog Tier
+
+Keep this small and elegant.
+
+Do NOT let NFT metadata overpower the person's profile.
+
+The Chog artwork remains the hero.
+
+==================================================
+6. PROFILE CARD VISUAL STYLE
+==================================================
+
+Use:
+
+- premium glassmorphism only where useful
+- soft warm cream / ivory
+- Chog purple
+- violet glow
+- subtle pink glow
+- subtle shadow
+- rounded large corners
+- smooth depth
+- premium modern typography
+
+But the card should NOT look like a generic glass dashboard.
+
+The artwork should remain visually strong.
+
+Think:
+
+MODERN DATING APP
++
+PREMIUM SOCIAL NETWORK
++
+CHOG PERSONALITY
++
+FUTURISTIC MONAD FEEL
+
+NOT:
+
+generic Web3 card
+generic SaaS card
+tiny NFT showcase
+
+==================================================
+7. CARD ACTIONS
+==================================================
+
+Keep the existing action buttons OUTSIDE the profile card.
+
+Layout:
+
+          [ PROFILE CARD ]
+
+       ↶     ✕     ✨     ♥
+     Undo   Pass Super   Like
+
+The action icons should remain separate floating controls.
+
+Do NOT put them inside the profile card.
+
+Do NOT put them inside solid circular backgrounds.
+
+Keep the existing glowing icon treatment.
+
+==================================================
+8. SWIPE BEHAVIOR
+==================================================
+
+Keep the existing swipe behavior exactly as it currently works.
+
+Pass:
+- card moves/swipes left
+- smooth animation
+
+Like:
+- card moves/swipes right
+- large premium heart animation
+
+Super Like:
+- existing Super Like behavior
+- do NOT change payment logic
+
+Previous:
+- existing undo behavior
+
+Do NOT break any existing backend interaction.
+
+==================================================
+9. SWIPE CARD STACK
+==================================================
+
+If the existing implementation supports stacked cards, make the next profile subtly visible behind the current card.
+
+Example:
+
+        ┌─────────────────┐
+       /   NEXT PROFILE    /
+      ┌─────────────────┐
+      │                 │
+      │ CURRENT CHOG    │
+      │                 │
+      │ Name, Age       │
+      └─────────────────┘
+
+The next card should be subtle.
+
+Do NOT make multiple cards visually distracting.
+
+If card stacking is not currently implemented, do not introduce complicated new backend logic just for this.
+
+==================================================
+10. CARD CLICK
+==================================================
+
+Clicking the person's name/profile area should open the existing full profile view.
+
+The full profile can contain:
+
+- large Chog NFT
+- Name
+- Age
+- Username
+- Gender
+- About
+- Interests
+- Hobbies
+- Languages
+- Looking For
+- Chog Token ID
+- Chog Tier
+- Chog Traits
+
+The compact Discover card should NOT contain all of this information.
+
+==================================================
+11. IMPORTANT — REMOVE CURRENT BAD LAYOUT
+==================================================
+
+Specifically fix the problems visible in the current screenshot:
+
+CURRENT:
+- horizontal short card
+- tiny NFT image
+- huge empty space
+- NFT separated from profile
+- card does not feel like a person/profile
+- weak visual hierarchy
+
+TARGET:
+- large portrait card
+- huge Chog artwork
+- artwork dominates the card
+- profile information sits naturally at bottom
+- name + age are immediately readable
+- username is secondary
+- subtle Chog identity
+- modern Tinder-style swipe experience
+- compact action row underneath
+
+==================================================
+12. RESPONSIVE TEST
+==================================================
+
+Test the card at:
+
+Desktop:
+1920x1080
+1366x768
+1280x720
+
+Mobile:
+390x844
+375x812
+360x800
+
+The card must:
+
+- remain portrait
+- fit naturally in viewport
+- not require unnecessary scrolling
+- not crop important NFT artwork
+- not become tiny
+- not leave huge empty areas
+
+==================================================
+13. IMPORTANT SCOPE
+==================================================
+
+ONLY change:
+
+- Discover profile card
+- Card image rendering
+- Card information hierarchy
+- Card-level animations if required
+
+DO NOT change:
+
+- Explore
+- Navbar
+- Profile creation
+- My Profile
+- My Chog
+- Matches
+- Messages
+- Settings
+- Supabase
+- database
+- authentication
+- wallet
+- NFT ownership logic
+- Like backend
+- Match backend
+- Super Like payment logic
+
+Use the existing data and APIs.
+
+Do NOT create fake users or fake NFT data.
+
+After implementation:
+
+1. Run typecheck.
+2. Run production build.
+3. Open Discover.
+4. Verify the card visually at desktop and mobile sizes.
+5. Confirm Like / Pass / Super Like / Previous still work.
+
+Report exactly what changed.
