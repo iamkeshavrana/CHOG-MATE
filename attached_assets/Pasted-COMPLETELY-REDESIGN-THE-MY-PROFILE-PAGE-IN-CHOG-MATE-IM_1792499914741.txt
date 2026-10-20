@@ -1,0 +1,374 @@
+COMPLETELY REDESIGN THE MY PROFILE PAGE IN CHOG MATE.
+
+IMPORTANT:
+This is a FULL visual and UX redesign of My Profile.
+
+Do NOT try to patch, resize, or slightly modify the existing My Profile card.
+
+The current My Profile design looks like a stretched generic card/form and does NOT feel like a real social/dating profile.
+
+I want a completely new, premium, futuristic and professional profile experience.
+
+Keep the existing profile data, Supabase integration and functionality, but replace the entire My Profile visual structure, layout, spacing, alignment, components and animations.
+
+==================================================
+CORE DESIGN DIRECTION
+==================================================
+
+CHOG MATE should feel like a premium futuristic social/dating platform.
+
+Design inspiration:
+- Tinder-level profile clarity
+- modern premium social app
+- futuristic Monad aesthetic
+- Chog personality
+- subtle glassmorphism
+- sophisticated motion design
+
+Do NOT make it look like:
+- a generic SaaS dashboard
+- a giant rectangular card
+- a traditional profile form
+- a Web3 admin panel
+- a crypto dashboard
+- a plain white profile page
+
+The profile should immediately communicate:
+
+"THIS IS A PERSON'S SOCIAL PROFILE."
+
+==================================================
+OVERALL PAGE
+==================================================
+
+Create a completely new My Profile page composition.
+
+Do NOT put the entire profile inside one giant bordered card.
+
+Instead, use a layered profile experience with clear visual hierarchy.
+
+The page should have:
+
+1. Premium profile hero
+2. Identity section
+3. About section
+4. Interests / Hobbies / Languages
+5. Looking For section
+6. Chog identity section
+7. Edit Profile action
+
+Use multiple visually connected sections instead of one huge card.
+
+The page should feel balanced and intentional.
+
+==================================================
+PROFILE HERO
+==================================================
+
+Create a large but controlled profile hero at the top.
+
+The Chog NFT is the user's ONLY profile image.
+
+IMPORTANT NFT IMAGE RULE:
+
+The NFT artwork must preserve its ACTUAL aspect ratio.
+
+Do NOT:
+- crop
+- stretch
+- distort
+- force 1:1
+- force 4:5
+- force a generic portrait ratio
+- cut off important artwork
+
+The artwork should determine its natural display ratio.
+
+Use responsive width + automatic height.
+
+The NFT should feel like the identity/avatar of the user.
+
+Do NOT create a separate uploaded profile photo.
+
+==================================================
+HERO COMPOSITION
+==================================================
+
+Use the NFT artwork as the visual focal point.
+
+Around/below the artwork show:
+
+Name
+Age
+@username
+
+Then a compact identity line such as:
+
+Chog #XXXX · Tier
+
+Gender can be shown subtly where appropriate.
+
+Do NOT make these elements look like a form.
+
+Make the typography premium and clean.
+
+The user's name should have a strong CHOG-inspired purple/violet treatment.
+
+==================================================
+PROFILE INFORMATION
+==================================================
+
+Below the hero, create clean sections for:
+
+ABOUT
+
+Show the user's Introduction/About text.
+
+INTERESTS
+
+Display interests as elegant pills/chips.
+
+HOBBIES
+
+Display hobbies as elegant pills/chips.
+
+LANGUAGES
+
+Display languages as elegant pills/chips.
+
+LOOKING FOR
+
+Display the selected Looking For options clearly.
+
+If "Other" was selected, show the custom option naturally.
+
+Do NOT show empty sections.
+
+If a field is empty, hide that section completely.
+
+==================================================
+CHOG IDENTITY
+==================================================
+
+Create a dedicated but compact Chog identity section.
+
+Show:
+
+Chog artwork thumbnail
+Chog #TokenID
+Tier
+Verified Chog Genesis indicator
+
+Keep this section visually secondary to the main profile hero.
+
+Do NOT turn this into a giant NFT marketplace-style card.
+
+==================================================
+EDIT PROFILE
+==================================================
+
+Add a premium "Edit Profile" button near the profile header.
+
+It should clearly look like an action button.
+
+When clicked, open the existing Edit Profile flow.
+
+Do NOT put editable inputs directly into the My Profile page.
+
+My Profile remains VIEW-ONLY.
+
+Preserve the existing Edit Profile functionality and fields.
+
+==================================================
+ANIMATIONS
+==================================================
+
+Add subtle futuristic animations using the existing animation system / Framer Motion.
+
+On page load:
+
+- profile hero gently fades/slides in
+- NFT artwork has a subtle scale-in
+- profile sections appear with staggered animation
+- chips/pills animate in softly
+- buttons have subtle hover/tap motion
+
+Add subtle ambient motion in the background:
+
+- soft purple/violet glow
+- very subtle pink glow
+- slow floating gradient/orb movement
+
+Do NOT make animations excessive.
+
+No crazy bouncing.
+
+No gaming-style effects.
+
+The animation should feel:
+
+premium
+smooth
+futuristic
+professional
+
+==================================================
+BACKGROUND
+==================================================
+
+Use the existing CHOG MATE visual identity but make it much more premium.
+
+Use:
+
+Deep Chog Purple
+#211338
+
+Secondary Purple
+#2B1748
+
+Dark Violet
+#35205C
+
+Rich Violet
+#7048FF
+
+Bright Violet
+#8B63FF
+
+Chog Pink
+#E85A9F
+
+Warm Cream
+#FFF1D9
+
+Warm White
+#FFF9EF
+
+Use subtle gradients and glass effects.
+
+Avoid excessive borders.
+
+Avoid huge white rectangular backgrounds.
+
+Avoid harsh shadows.
+
+==================================================
+LAYOUT / ALIGNMENT
+==================================================
+
+The current page has bad alignment and excessive vertical space.
+
+Completely fix:
+
+- spacing
+- margins
+- padding
+- widths
+- typography hierarchy
+- section alignment
+- image positioning
+- button placement
+- responsive behavior
+
+The profile should feel centered and intentionally composed.
+
+Do NOT create a giant full-width profile card.
+
+Do NOT make the profile unnecessarily tall.
+
+On desktop, use a sophisticated centered profile layout with a controlled maximum width.
+
+On mobile, stack sections naturally.
+
+The page must not feel like a form.
+
+==================================================
+RESPONSIVE BEHAVIOR
+==================================================
+
+Desktop:
+- balanced profile composition
+- profile hero clearly visible
+- comfortable spacing
+- no unnecessary page-wide empty space
+
+Tablet:
+- adapt hero and sections naturally
+
+Mobile:
+- NFT artwork remains fully visible
+- no horizontal overflow
+- no distorted images
+- no giant blank areas
+- sections stack cleanly
+
+Do NOT globally disable scrolling.
+
+Scrolling is allowed when the actual profile content requires it, but the page must not become unnecessarily long because of oversized containers or spacing.
+
+==================================================
+IMPORTANT: PRESERVE FUNCTIONALITY
+==================================================
+
+Do NOT change:
+
+- authentication
+- Supabase schema
+- profile database structure
+- profile save logic
+- Edit Profile functionality
+- Chog ownership verification
+- Chog switching
+- wallet logic
+- Discover
+- Matches
+- Messages
+- Notifications
+- Super Like
+- Gifts
+- Calls
+
+Only redesign the My Profile presentation and UX.
+
+Do NOT add:
+- Photo URL field
+- uploaded profile photo
+- wallet address as a profile field
+- technical IDs
+- database IDs
+- unnecessary metadata
+
+The Chog NFT remains the ONLY profile image.
+
+==================================================
+FINAL QUALITY BAR
+==================================================
+
+After redesigning, compare the result against this requirement:
+
+"My Profile should look like a premium person's social/dating profile, NOT like a large database card or settings form."
+
+If the page still looks like one giant rectangular card, redesign the composition again.
+
+Prioritize:
+1. Professional profile appearance
+2. Strong visual hierarchy
+3. Chog NFT as identity
+4. Clean alignment
+5. Premium futuristic animations
+6. Responsive sizing
+7. Minimal unnecessary empty space
+
+Do not make unrelated changes.
+
+Run:
+- typecheck
+- production build
+
+Then report exactly:
+- what My Profile components/layout were replaced
+- what animations were added
+- how NFT aspect ratio is handled
+- whether existing profile/edit functionality remains intact
+- typecheck result
+- production build result

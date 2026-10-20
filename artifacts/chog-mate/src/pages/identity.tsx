@@ -1,7 +1,8 @@
 import { type FormEvent, useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
-import { Activity, BadgeCheck, Check, ChevronDown, Copy, Eye, EyeOff, Heart, LockKeyhole, LogOut, RefreshCw, Save, ShieldCheck, Sparkles, Wallet } from 'lucide-react';
+import { Activity, BadgeCheck, Check, ChevronDown, Copy, Eye, EyeOff, Heart, Image as ImageIcon, LockKeyhole, LogOut, PencilLine, RefreshCw, Save, Settings2, ShieldCheck, Sparkles, Wallet } from 'lucide-react';
+import { MotionConfig, motion } from 'framer-motion';
 import { Link, useLocation } from 'wouter';
 import { formatUnits, isAddress, type Address } from 'viem';
 import { useConnection, useDisconnect, useReadContract } from 'wagmi';
@@ -680,17 +681,15 @@ function ConnectedProfilePage() {
       .profile-chog-choice:focus-visible,.profile-visibility-choice:focus-visible,.profile-form-panel button:focus-visible{outline:2px solid #a8436a;outline-offset:3px}
       @media(max-width:639px){.profile-page-heading:after{right:-180px;opacity:.55}}
     `}</style>
-    <div className={`profile-page-heading mb-7 overflow-hidden rounded-[30px] px-5 py-6 sm:px-8 sm:py-8 ${profile ? 'my-profile-heading' : ''}`}>
-      <div className={`flex flex-col justify-between gap-6 lg:flex-row lg:items-end ${profile ? 'my-profile-heading-row' : ''}`}>
+    {!profile && <div className="profile-page-heading mb-7 overflow-hidden rounded-[30px] px-5 py-6 sm:px-8 sm:py-8">
+      <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
         <div className="max-w-2xl">
           <div className="mb-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.18em] text-[#9d4b6b]"><span className="h-1.5 w-1.5 rounded-full bg-[#bf5678]"/>Your introduction to the community</div>
-          <h1 className="display text-[42px] leading-[.92] text-[#38253a] sm:text-[58px]" data-testid="heading-page">{profile ? 'My profile.' : 'Let’s meet.'}</h1>
-          <p className="mt-4 max-w-xl text-sm leading-6 text-[#756575]">{profile ? 'Your profile, just as other Chog holders see it.' : 'Your verified Chog gets you in the room. Add the details that help the right people find their way to you.'}</p>
+          <h1 className="display text-[42px] leading-[.92] text-[#38253a] sm:text-[58px]" data-testid="heading-page">Let’s meet.</h1>
+          <p className="mt-4 max-w-xl text-sm leading-6 text-[#756575]">Your verified Chog gets you in the room. Add the details that help the right people find their way to you.</p>
         </div>
-        <div className={`flex flex-wrap gap-2 ${profile ? 'my-profile-heading-actions' : ''}`}>
-          {profile
-            ? <button type="button" onClick={openEditProfile} className="button-primary inline-flex items-center rounded-full px-4 py-2.5 text-xs font-bold" data-testid="button-edit-profile">Edit Profile</button>
-            : <a href="#edit-profile" className="button-primary inline-flex items-center rounded-full px-4 py-2.5 text-xs font-bold" data-testid="link-edit-profile">Start your profile</a>}
+        <div className="flex flex-wrap gap-2">
+          <a href="#edit-profile" className="button-primary inline-flex items-center rounded-full px-4 py-2.5 text-xs font-bold" data-testid="link-edit-profile">Start your profile</a>
           <Link href="/my-chog" className="button-soft inline-flex items-center rounded-full px-4 py-2.5 text-xs font-bold" data-testid="link-profile-my-chog">My Chogs</Link>
           <Link href="/settings" className="button-soft inline-flex items-center rounded-full px-4 py-2.5 text-xs font-bold" data-testid="link-profile-settings">Settings</Link>
         </div>
@@ -700,18 +699,18 @@ function ConnectedProfilePage() {
           <span className={`font-mono text-[9px] font-bold ${index===0?'text-[#b04770]':'text-[#ad9ba5]'}`}>{step}</span><span className="text-[10px] font-semibold text-[#776575] sm:text-[11px]">{label}</span>
         </div>)}
       </div>}
-    </div>
+    </div>}
     <QueryState loading={me.isLoading} error={me.isError} retry={()=>void me.refetch()}>
       {!me.data ? <EmptyState title="Connect to create your profile." detail="Sign in with the wallet holding your Chog Genesis NFT to get started."/> :
        (!me.data.hasChog || !me.data.chogs.some(chog=>chog.verified)) ? <EmptyState title="No Chog Found" detail="A Chog NFT is required to create a CHOG MATE profile. Connect the wallet that owns a Chog NFT to continue."/> :
        (me.data.hasProfile && !profile) ? <EmptyState title="Choose an active Chog." detail="Your previous active Chog is no longer in this wallet. Choose another verified Chog to restore your profile; your saved details will stay unchanged." action={<Link href="/my-chog" className="button-primary inline-flex rounded-full px-5 py-3 text-xs font-bold" data-testid="link-restore-active-chog">Choose a Chog</Link>}/> :
-         <div className={profile ? 'my-profile-content' : 'space-y-6'}>
+          <div className={profile ? 'my-profile-page' : 'space-y-6'}>
            <div
              className={`flex items-start gap-3 rounded-2xl border px-4 py-3 text-xs leading-5 ${
                me.data.identityMode === 'address_only'
                  ? 'border-[#ead8ce] bg-[#fff8f1] text-[#755247]'
                  : 'border-[#cfe2cb] bg-[#eef8ea] text-[#447a43]'
-             }`}
+              } ${profile ? 'my-profile-identity-status' : ''}`}
              role="status"
              data-testid="status-profile-identity"
            >
@@ -723,8 +722,8 @@ function ConnectedProfilePage() {
              </span>
            </div>
          {profile ? <>
-           {notice && <p className="rounded-2xl border border-[#bed8c0] bg-[#edf6ec] px-4 py-3 text-sm text-[#3d7048]" role="status" data-testid="status-profile-save">{notice}</p>}
-           <MyProfileCard profile={profile}/>
+            {notice && <p className="my-profile-save-notice" role="status" data-testid="status-profile-save">{notice}</p>}
+            <MyProfileExperience profile={profile} onEdit={openEditProfile}/>
            <Dialog open={editOpen} onOpenChange={setEditOpen}>
               <DialogContent className="surface max-h-[92dvh] max-w-2xl overflow-y-auto rounded-[28px] border-[#e8dfd5] bg-[#fffaf6] p-5 sm:p-7">
                <DialogHeader className="pr-8 text-left">
@@ -820,48 +819,135 @@ function ConnectedProfilePage() {
   </div></AppShell>;
 }
 
-function MyProfileCard({profile}:{profile:Profile}) {
+function MyProfileExperience({profile,onEdit}:{profile:Profile;onEdit:()=>void}) {
   const groups = [
     {label:'Interests',values:profile.interests},
     {label:'Hobbies',values:profile.hobbies},
     {label:'Languages',values:profile.languages},
   ].filter(group=>group.values.length>0);
 
-  return <>
-  <section className="my-profile-card overflow-hidden rounded-[24px]" aria-label="My complete profile" data-testid="my-profile-card">
-      <div className="my-profile-artwork">
-        <ChogArtwork chog={profile.chog} fit="contained-natural"/>
-      </div>
-      <div className="my-profile-details">
-        <div className="my-profile-scroll">
-          <header className="my-profile-identity">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#ecdde3] bg-white/75 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[.12em] text-[#9b4d6b]"><BadgeCheck size={12}/>Verified Chog {profile.chog.tier || 'Genesis'}</span>
-            <h2 className="display mt-2 break-words text-[30px] leading-none text-[#332037] sm:text-[36px]" data-testid="text-profile-display-name">{profile.displayName}{profile.age !== null && <span className="ml-2 text-[.7em] text-[#876e80]">· {profile.age}</span>}</h2>
-            <p className="mt-1 text-xs font-medium text-[#776878]" data-testid="text-profile-username">@{profile.username}</p>
-          </header>
-          <div className="my-profile-facts mt-3 flex flex-wrap items-center justify-between gap-2 border-b border-[#eee5e5] pb-2.5">
-            <div><p className="text-[8px] font-bold uppercase tracking-[.15em] text-[#a35b79]">Your verified Chog</p><p className="display text-base text-[#332037]" data-testid="text-profile-token-id">#{profile.chog.tokenId} <span className="font-sans text-[10px] font-semibold normal-case tracking-normal text-[#8c7182]" data-testid="text-profile-chog-tier">{profile.chog.tier || 'Genesis'}</span></p></div>
-            {profile.gender && <div className="rounded-full bg-[#f7e9ee] px-2.5 py-1 text-[10px] font-bold text-[#984d67]"><span className="font-medium">Gender:</span> <span data-testid="text-profile-gender">{profile.gender}</span></div>}
-          </div>
-          {profile.bio && <section className="my-profile-about mt-3" aria-label="About">
-            <h3 className="mb-1 text-[8px] font-bold uppercase tracking-[.15em] text-[#a28d9b]">About</h3>
-            <p className="whitespace-pre-line break-words text-[11px] leading-[1.45] text-[#685865]" data-testid="text-profile-introduction">{profile.bio}</p>
-          </section>}
-          {groups.length>0 && <div className="my-profile-groups mt-3 flex flex-col gap-2">
-            {groups.map(group=><section key={group.label} aria-label={group.label}>
-              <h3 className="mb-1 text-[8px] font-bold uppercase tracking-[.15em] text-[#a28d9b]">{group.label}</h3>
-              <div className="flex flex-wrap gap-1">{group.values.map((value,index)=><span key={`${value}-${index}`} className="rounded-full bg-[#f5edf1] px-2.5 py-1 text-[9px] font-semibold text-[#70566a]">{value}</span>)}</div>
-            </section>)}
-          </div>}
-          {profile.lookingFor.length>0 && <section className="my-profile-looking-for mt-3 border-t border-[#eee5e5] pt-2.5" aria-label="Looking for">
-            <h3 className="mb-1 flex items-center gap-1.5 text-[8px] font-bold uppercase tracking-[.15em] text-[#a28d9b]"><Heart size={11} className="text-[#b34b70]"/>Looking For</h3>
-            <div className="flex flex-wrap gap-1">{profile.lookingFor.map((value,index)=><span key={`${value}-${index}`} className="max-w-full whitespace-normal break-words rounded-full bg-[#f8e9e8] px-2.5 py-1 text-[9px] font-bold text-[#984d55]">{value==='Other' && profile.lookingForOther?.trim() ? `Other: ${profile.lookingForOther.trim()}` : value}</span>)}</div>
-          </section>}
-          {!profile.bio && !profile.gender && groups.length===0 && profile.lookingFor.length===0 && <p className="mt-3 text-xs text-[#857587]">Your profile details will appear here.</p>}
+  const tier = profile.chog.tier || 'Genesis';
+
+  return <MotionConfig reducedMotion="user">
+    <section className="my-profile-experience" aria-label="My complete profile" data-testid="my-profile-card">
+      <header className="my-profile-page-heading">
+        <div className="my-profile-heading-copy">
+          <p className="my-profile-eyebrow"><Sparkles size={13}/>Your Chog Mate profile</p>
+          <h1 data-testid="heading-page">My profile</h1>
+          <p className="my-profile-heading-subtitle">Your introduction to the Chog community.</p>
         </div>
+        <div className="my-profile-heading-actions">
+          <motion.button
+            type="button"
+            onClick={onEdit}
+            className="my-profile-action my-profile-action-primary"
+            data-testid="button-edit-profile"
+            whileHover={{y:-2}}
+            whileTap={{scale:.97}}
+            transition={{duration:.18}}
+          >
+            <PencilLine size={14}/>Edit Profile
+          </motion.button>
+          <Link href="/my-chog" className="my-profile-action my-profile-action-secondary" data-testid="link-profile-my-chog"><ImageIcon size={13}/>My Chogs</Link>
+          <Link href="/settings" className="my-profile-action my-profile-action-secondary" data-testid="link-profile-settings"><Settings2 size={13}/>Settings</Link>
+        </div>
+      </header>
+
+      <motion.section
+        className="my-profile-hero"
+        aria-label="Profile introduction"
+        initial={{opacity:0,y:14}}
+        animate={{opacity:1,y:0}}
+        transition={{duration:.48,ease:'easeOut'}}
+      >
+        <motion.div
+          className="my-profile-hero-artwork"
+          initial={{opacity:0,scale:.97}}
+          animate={{opacity:1,scale:1}}
+          transition={{duration:.56,delay:.08,ease:'easeOut'}}
+        >
+          <ChogArtwork chog={profile.chog} fit="natural" className="my-profile-hero-image"/>
+          <span className="my-profile-art-caption"><span/>The Chog that is you</span>
+        </motion.div>
+
+        <div className="my-profile-hero-copy">
+          <span className="my-profile-verified"><BadgeCheck size={13}/>Verified Chog {tier}</span>
+          <h2 data-testid="text-profile-display-name">
+            {profile.displayName}
+            {profile.age !== null && <span className="my-profile-age">, {profile.age}</span>}
+          </h2>
+          <p className="my-profile-username" data-testid="text-profile-username">@{profile.username}</p>
+          <div className="my-profile-hero-rule"/>
+          <p className="my-profile-hero-label">Your Chog identity</p>
+          <p className="my-profile-hero-token" data-testid="text-profile-token-id">
+            Chog #{profile.chog.tokenId}<span>·</span><span data-testid="text-profile-chog-tier">{tier}</span>
+          </p>
+          <div className="my-profile-hero-footer">
+            {profile.gender && <span className="my-profile-gender" data-testid="text-profile-gender">{profile.gender}</span>}
+          </div>
+        </div>
+      </motion.section>
+
+      <div className="my-profile-information-grid">
+        {profile.bio?.trim() && <motion.section
+          className="my-profile-info-card my-profile-about"
+          aria-label="About"
+          initial={{opacity:0,y:9}}
+          animate={{opacity:1,y:0}}
+          transition={{duration:.34,delay:.16,ease:'easeOut'}}
+        >
+          <h3 className="my-profile-section-label"><span/>About</h3>
+          <p className="my-profile-about-copy" data-testid="text-profile-introduction">{profile.bio}</p>
+        </motion.section>}
+
+        {groups.map((group,index)=><motion.section
+          className="my-profile-info-card my-profile-trait"
+          key={group.label}
+          aria-label={group.label}
+          initial={{opacity:0,y:9}}
+          animate={{opacity:1,y:0}}
+          transition={{duration:.34,delay:.22+index*.06,ease:'easeOut'}}
+        >
+          <h3 className="my-profile-section-label"><span/>{group.label}</h3>
+          <div className="my-profile-tags">
+            {group.values.map((value,index)=><span className="my-profile-tag" key={`${value}-${index}`}>{value}</span>)}
+          </div>
+        </motion.section>)}
+
+        {profile.lookingFor.length>0 && <motion.section
+          className="my-profile-info-card my-profile-looking-for"
+          aria-label="Looking for"
+          initial={{opacity:0,y:9}}
+          animate={{opacity:1,y:0}}
+          transition={{duration:.34,delay:.38,ease:'easeOut'}}
+        >
+          <h3 className="my-profile-section-label"><span/>Looking For</h3>
+          <div className="my-profile-tags">
+            {profile.lookingFor.map((value,index)=><span className="my-profile-tag my-profile-tag-looking" key={`${value}-${index}`}>
+              {value==='Other' && profile.lookingForOther?.trim() ? `Other: ${profile.lookingForOther.trim()}` : value}
+            </span>)}
+          </div>
+        </motion.section>}
       </div>
-  </section>
-  </>;
+
+      <motion.section
+        className="my-profile-chog-identity"
+        aria-label="Chog identity"
+        initial={{opacity:0,y:9}}
+        animate={{opacity:1,y:0}}
+        transition={{duration:.34,delay:.42,ease:'easeOut'}}
+      >
+        <div className="my-profile-chog-thumb">
+          <ChogArtwork chog={profile.chog} fit="contained-natural" className="my-profile-chog-thumb-image"/>
+        </div>
+        <div className="my-profile-chog-copy">
+          <p className="my-profile-section-label"><span/>Chog identity</p>
+          <p className="my-profile-chog-title">Chog #{profile.chog.tokenId}<span>·</span>{tier}</p>
+        </div>
+        <span className="my-profile-chog-verified"><BadgeCheck size={14}/>Verified Chog {tier}</span>
+      </motion.section>
+    </section>
+  </MotionConfig>;
 }
 
 function Field({label,value,onChange,placeholder,maxLength,prefix,testId}:{label:string;value:string;onChange:(value:string)=>void;placeholder:string;maxLength?:number;prefix?:string;testId:string}) {

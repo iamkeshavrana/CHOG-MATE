@@ -117,6 +117,13 @@ body {
   font-weight: 600;
 }
 
+.current-preview-context {
+  color: rgba(255, 249, 239, .64);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: .14em;
+}
+
 .current-preview-main {
   max-width: 1440px;
   margin: 0 auto;

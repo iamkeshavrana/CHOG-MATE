@@ -104,7 +104,7 @@ export function Current() {
           <nav className="current-preview-nav" aria-label="Main navigation">
             <span>Home</span><span>Discover</span><span>Matches</span><span>Messages</span><span>My Profile</span>
           </nav>
-          <span className="text-xs font-semibold text-[#fff1d9]">MON · 1.4k</span>
+          <span className="current-preview-context">YOUR PROFILE</span>
         </div>
       </header>
 
