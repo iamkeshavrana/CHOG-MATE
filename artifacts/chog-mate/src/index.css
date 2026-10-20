@@ -216,9 +216,12 @@ select option { background:#fffaf6;color:#442d35; }
 .discover-filters { width:min(100%,760px); flex:none; margin:0 auto; scrollbar-width:none; }
 .discover-filters::-webkit-scrollbar { display:none; }
 .discover-results { display:flex; min-height:0; flex:1 1 0%; flex-direction:column; align-items:center; justify-content:center; }
-.discover-card-motion { display:flex; width:min(100%,760px); max-height:min(72dvh,760px); min-height:0; flex:1 1 0%; flex-direction:column; margin-inline:auto; }
+.discover-card-motion { display:flex; width:min(100%,560px); max-height:min(72dvh,760px); min-height:0; flex:1 1 0%; flex-direction:column; margin-inline:auto; }
 .discover-profile-card { display:grid; width:100%; max-height:min(72dvh,760px); min-height:0; flex:1 1 0%; grid-template-rows:minmax(100px,34%) minmax(0,1fr); }
-.discover-profile-art { display:flex; min-height:0; align-items:center; justify-content:center; overflow:hidden; }
+.surface.discover-profile-card { position:relative; isolation:isolate; overflow:hidden; border:1px solid rgba(255,255,255,.48); background:linear-gradient(140deg,rgba(255,249,239,.66),rgba(255,241,217,.55) 58%,rgba(255,249,239,.62)); color:#35205c; box-shadow:0 24px 72px -34px rgba(53,32,92,.42),0 10px 34px -24px rgba(232,90,159,.42),inset 0 1px 0 rgba(255,255,255,.62); backdrop-filter:blur(22px) saturate(1.08); -webkit-backdrop-filter:blur(22px) saturate(1.08); }
+.discover-profile-card::before { position:absolute; z-index:0; inset:0; background:radial-gradient(ellipse at 6% 0%,rgba(139,99,255,.11),transparent 43%),radial-gradient(ellipse at 96% 100%,rgba(232,90,159,.09),transparent 40%); content:""; pointer-events:none; }
+.discover-profile-card > * { position:relative; z-index:1; }
+.discover-profile-art { display:flex; min-height:0; align-items:center; justify-content:center; background:radial-gradient(ellipse at 50% 34%,rgba(139,99,255,.09),transparent 62%),radial-gradient(ellipse at 78% 100%,rgba(232,90,159,.07),transparent 56%); }
 .discover-profile-details { display:grid; min-height:0; grid-template-rows:minmax(0,1fr) auto; overflow:hidden; }
 .discover-profile-info { min-height:0; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; scrollbar-color:rgba(112,71,181,.28) transparent; }
 .discover-profile-actions { flex:none; }
@@ -254,9 +257,8 @@ select option { background:#fffaf6;color:#442d35; }
   .discover-heading .eyebrow { grid-column:1 / -1; margin-bottom:1px; }
   .discover-heading h1 { grid-row:2; }
   .discover-description { grid-column:2; grid-row:2; margin-top:0; }
-  .discover-profile-card { grid-template-columns:minmax(0,1.08fr) minmax(0,1fr); grid-template-rows:minmax(0,1fr); }
-  .discover-profile-art { grid-column:1; grid-row:1; }
-  .discover-profile-details { grid-column:2; grid-row:1; padding:18px 20px 16px; }
+  .discover-profile-card { grid-template-rows:minmax(100px,34%) minmax(0,1fr); }
+  .discover-profile-details { padding:12px 18px 12px; }
   .discover-heading h1 { font-size:clamp(28px,3vw,40px); }
   .discover-action-area { gap:clamp(18px,2vw,30px); }
 }

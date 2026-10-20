@@ -4,5 +4,6 @@
 - [Manual address onboarding](manual-wallet-test-profiles.md) — address-only sign-in creates persistent social accounts, but never proves wallet control or authorizes transactions.
 - [CHOG MATE public/auth access](chog-mate-public-auth-access.md) — Home and Discover are public; private navigation and social actions require a valid account session.
 - [CHOG MATE discovery visibility](chog-mate-discovery-visibility.md) — owners control visibility; never seed users or change it to fill Discover previews.
+- [Artifact-specific build environments](artifact-build-environments.md) — build a web artifact with its own configured PORT and BASE_PATH, not inherited values from sibling artifacts.
 - [Supabase Realtime topic reuse](supabase-realtime-topic-reuse.md) — channel(topic) returns the existing topic; serialize removal before resubscribing and ignore stale callbacks.
 - [CHOG MATE profile image](chog-mate-profile-image.md) — the selected verified Chog is the only profile image; preserve its aspect ratio and do not add photo uploads or URLs.

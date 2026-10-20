@@ -1,0 +1,525 @@
+Fix ONLY the CHOG MATE Discover experience for responsive sizing, action-button visuals, swipe animations, Previous/Undo, AND the visual glassmorphism styling of the Discover profile card.
+
+DO NOT redesign the Discover card structure again.
+Keep the current Tinder-style vertical card composition.
+
+==================================================
+1. RESPONSIVE PC + MOBILE SIZING
+==================================================
+
+The Discover experience must be properly responsive on BOTH desktop and mobile.
+
+Desktop / PC:
+- Center the profile card horizontally.
+- Card must have a controlled maximum width.
+- Do NOT stretch the card across the screen.
+- Do NOT make the card full-width.
+- The complete card + action buttons should fit comfortably within the available viewport.
+- Avoid unnecessary vertical scrolling.
+- Keep search/filter/navigation areas compact.
+
+Laptop / smaller desktop:
+- Automatically reduce card/image dimensions when viewport height is smaller.
+- Keep the action buttons visible without requiring excessive scrolling.
+
+Mobile:
+- Card width must automatically adapt to viewport width.
+- Leave a small, consistent horizontal margin on both sides.
+- No horizontal overflow.
+- No elements should go outside the viewport.
+- Action buttons must remain comfortably tappable.
+- Preserve the NFT artwork's complete aspect ratio.
+- Do not crop or distort the NFT.
+
+IMPORTANT:
+
+Do NOT use one fixed width/height for every screen.
+
+Use responsive CSS such as:
+- max-width
+- width: min(...)
+- viewport-aware sizing
+- responsive spacing
+- clamp() where useful
+- aspect-ratio only when appropriate
+
+Do NOT solve the problem by globally applying overflow:hidden.
+
+Do NOT hide content to make it fit.
+
+The card should naturally adapt to the available viewport.
+
+==================================================
+2. DISCOVER PROFILE CARD — PREMIUM GLASSMORPHISM
+==================================================
+
+The Discover user profile card must have a PREMIUM GLASSMORPHIC appearance.
+
+IMPORTANT:
+
+Do NOT use a solid white, solid cream, solid purple, or solid pink card background.
+
+The card should look like a translucent futuristic glass panel.
+
+Use:
+
+- semi-transparent warm-white / cream glass
+- backdrop blur
+- subtle transparency
+- soft purple/violet ambient glow
+- subtle Chog pink glow
+- thin translucent border
+- soft layered shadow
+- very subtle inner highlight
+
+The card should visually blend with the CHOG MATE background instead of looking like a separate solid rectangle.
+
+Suggested visual direction:
+
+background:
+rgba(255, 249, 239, 0.55–0.72)
+
+backdrop-filter:
+blur(18px–30px)
+
+border:
+1px solid rgba(255,255,255,0.35–0.55)
+
+shadow:
+soft violet/purple ambient shadow
+
+Add a very subtle purple/pink gradient glow around the card.
+
+DO NOT make the glass effect too opaque.
+
+The background behind the card should remain slightly visible through the glass.
+
+IMPORTANT:
+The text must still have strong readability and contrast.
+
+Do NOT use excessive blur.
+
+Do NOT make the card look foggy.
+
+Do NOT add thick borders.
+
+Do NOT use a generic blue Web3 glassmorphism style.
+
+It must feel like:
+
+CHOG + futuristic + premium + social/dating
+
+rather than generic crypto UI.
+
+==================================================
+3. NFT IMAGE
+==================================================
+
+The Chog NFT remains the ONLY profile image.
+
+Preserve the actual NFT image aspect ratio.
+
+DO NOT:
+- crop
+- stretch
+- distort
+- force all NFTs into the same generic ratio
+- cut off important artwork
+
+The image should remain completely visible while the overall profile card remains responsive.
+
+The NFT artwork should visually sit naturally inside the glass profile card.
+
+Do NOT put a solid-colored box behind the NFT unless required by the artwork itself.
+
+==================================================
+4. PROFILE CARD CONTENT
+==================================================
+
+Keep the existing Tinder-style vertical structure:
+
+NFT artwork
+↓
+Name + Age
+↓
+@username
+↓
+Chog #TokenID · Tier
+↓
+Short About
+↓
+Interests / relevant information
+
+Keep the information compact.
+
+Do NOT create a huge empty area.
+
+Do NOT turn the card into a dashboard.
+
+The card should feel like a real person's social/dating profile.
+
+==================================================
+5. ACTION BUTTONS — PREMIUM GLOW
+==================================================
+
+Redesign ONLY the three Discover action buttons:
+
+PASS / X
+SUPER LIKE / STAR
+LIKE / HEART
+
+The icons must look premium, futuristic and CHOG MATE branded.
+
+IMPORTANT:
+
+The icons must have NO solid background behind them.
+
+Do NOT use:
+- large white circles
+- gray button backgrounds
+- filled rectangular buttons
+- generic Bootstrap-style buttons
+
+Use clean standalone glowing icons.
+
+--------------------------------
+PASS / X
+--------------------------------
+
+Use a large clean X icon.
+
+Visual:
+- bright white/light lavender core
+- subtle purple/violet glow
+- soft outer bloom
+- transparent background
+
+On hover/tap:
+- slightly scale up
+- glow intensifies
+- subtle smooth rotation or pulse
+
+--------------------------------
+SUPER LIKE
+--------------------------------
+
+Use a premium sparkle/star icon.
+
+Visual:
+- bright violet/purple
+- luminous glow
+- subtle pink/violet bloom
+- transparent background
+
+On hover/tap:
+- subtle scale
+- glow intensifies
+- small sparkle animation
+
+--------------------------------
+LIKE / HEART
+--------------------------------
+
+Use a clean heart icon.
+
+Visual:
+- CHOG pink/purple
+- strong soft glow
+- transparent background
+- no solid circle behind it
+
+On hover/tap:
+- subtle heartbeat/pulse
+- glow intensifies
+
+The three icons should feel like part of one premium futuristic interaction system.
+
+Use Lucide icons or another existing icon library if already available.
+
+Do NOT add a new icon library unless absolutely necessary.
+
+==================================================
+6. SWIPE RESULT ANIMATIONS
+==================================================
+
+Keep the existing swipe behavior:
+
+LEFT → PASS
+RIGHT → LIKE
+UP → SUPER LIKE if already supported
+
+But make the result animations smooth and clearly visible.
+
+The current animations are too fast.
+
+Slow them down slightly.
+
+LIKE:
+- large glowing purple/pink heart
+- centered on screen
+- transparent/no background
+- smooth scale + fade
+- premium glow
+- noticeably slower than current animation
+
+PASS:
+- large glowing X
+- centered
+- transparent/no background
+- smooth scale + fade
+- noticeably slower than current animation
+
+Do NOT create a modal or rectangular overlay.
+
+The background should remain visible.
+
+==================================================
+7. PREVIOUS / UNDO SWIPE
+==================================================
+
+Add a "Previous" / "Undo" option to Discover.
+
+Purpose:
+
+If the user accidentally swipes LEFT / Passes a profile, they should be able to bring the immediately previous skipped profile back.
+
+Add a small premium Previous/Undo control near the Discover action area.
+
+Use an appropriate undo/rewind icon.
+
+The Previous/Undo control should also use the same transparent glass/glow visual language.
+
+IMPORTANT:
+
+This should restore the PREVIOUSLY PASSED PROFILE.
+
+Example:
+
+Profile A
+↓
+User swipes LEFT
+↓
+Profile B appears
+↓
+User presses Previous/Undo
+↓
+Profile A appears again
+
+The restored profile must behave like a normal Discover profile again.
+
+It should be possible to:
+- view it
+- swipe left again
+- swipe right
+- Super Like
+
+Do NOT create duplicate cards.
+
+Do NOT create duplicate profiles.
+
+Do NOT modify the user's actual profile.
+
+==================================================
+8. UNDO DATA BEHAVIOR
+==================================================
+
+Use the existing Discover/swipe state.
+
+Maintain a small local history/stack of recently passed profiles.
+
+At minimum support the immediately previous Pass.
+
+Prefer:
+
+previousCards = [most recent passed profiles]
+
+When Previous is pressed:
+- pop the most recent previous card
+- put it back as the active card
+- remove it from the temporary passed state
+
+Do NOT permanently delete the user's existing Pass record unless the existing product logic explicitly supports reversing a Pass.
+
+If the backend already has a pass/revert mechanism, use it.
+
+If not, do NOT invent a destructive database operation.
+
+The goal is:
+
+"Previous" restores the card to the current Discover session.
+
+Avoid duplicate API requests and duplicate cards.
+
+==================================================
+9. PREVIOUS BUTTON STATE
+==================================================
+
+If there is no previous passed profile:
+
+- disable the Previous control visually
+- keep it subtle
+- do not show an error
+
+When a previous profile exists:
+
+- make the icon clearly visible
+- allow clicking/tapping
+- use a subtle glow/hover effect
+
+==================================================
+10. RESPONSIVE ACTION AREA
+==================================================
+
+Desktop:
+
+Place:
+
+        Previous     X     Super Like     Heart
+
+in a clean centered action area below the card.
+
+Mobile:
+
+Keep the action controls comfortably spaced.
+
+Do not let buttons touch screen edges.
+
+Do not allow horizontal overflow.
+
+Make touch targets large enough for mobile interaction.
+
+The icons themselves can remain visually minimal/glowing while the invisible clickable area can be larger for accessibility.
+
+The action area should NOT use solid button backgrounds.
+
+Use transparent/glass-adjacent styling with glowing icons.
+
+==================================================
+11. CHOG MATE GLASS VISUAL SYSTEM
+==================================================
+
+Use the existing CHOG MATE palette:
+
+Deep Chog Purple:
+#211338
+
+Secondary Dark Purple:
+#2B1748
+
+Dark Violet:
+#35205C
+
+Rich Violet:
+#7048FF
+
+Bright Violet:
+#8B63FF
+
+Chog Pink:
+#E85A9F
+
+Soft Pink:
+#F2A1C4
+
+Warm Cream:
+#FFF1D9
+
+Warm White:
+#FFF9EF
+
+Use these colors through:
+
+- translucent glass
+- gradients
+- ambient glows
+- icon glows
+- subtle borders
+- background lighting
+
+Do NOT make every element purple.
+
+The overall interface should remain elegant and readable.
+
+Think:
+
+warm glass + deep purple environment + violet/pink light
+
+rather than:
+
+solid purple UI everywhere.
+
+==================================================
+12. DO NOT CHANGE EXISTING FEATURES
+==================================================
+
+Do NOT change:
+
+- authentication
+- profile creation
+- My Profile
+- My Chog
+- Matches
+- Messages
+- notifications
+- Super Like transaction logic
+- $CHOG contract
+- Like backend
+- Match backend
+- NFT ownership verification
+- database schema unless absolutely required
+
+Do NOT create fake users.
+Do NOT create fake NFTs.
+Do NOT create fake transactions.
+
+Super Like must continue using the existing real 100 $CHOG transaction flow.
+
+==================================================
+13. FINAL RESPONSIVE TEST
+==================================================
+
+Test the Discover page at:
+
+Desktop:
+- 1920x1080
+- 1366x768
+- 1280x720
+
+Mobile:
+- 390x844
+- 375x812
+- 360x800
+
+Verify:
+
+- card remains centered
+- card does not become full-width
+- glass card remains visually balanced
+- background remains subtly visible through card
+- no horizontal overflow
+- no unnecessary vertical scrolling
+- NFT remains fully visible
+- profile information remains readable
+- action icons remain visible
+- action icons have no solid background
+- X has glow
+- Super Like has glow
+- Heart has glow
+- Previous has appropriate glow
+- animations are not too fast
+- Previous restores the last passed profile
+- Previous does not create duplicate cards
+- Previous is disabled when history is empty
+
+Run:
+1. Typecheck
+2. Production build
+
+Report exactly:
+- responsive changes
+- glassmorphism changes
+- icon/glow changes
+- swipe animation timing changes
+- Previous/Undo implementation
+- test results
+- any remaining issue
