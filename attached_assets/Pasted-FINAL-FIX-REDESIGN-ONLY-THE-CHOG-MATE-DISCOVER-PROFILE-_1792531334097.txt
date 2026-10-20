@@ -1,0 +1,488 @@
+FINAL FIX — REDESIGN ONLY THE CHOG MATE DISCOVER PROFILE CARD.
+
+IMPORTANT:
+Do NOT redesign the overall Discover page.
+Do NOT change backend functionality.
+Do NOT change authentication or database.
+
+Fix ONLY the Discover profile card presentation, image sizing, compact profile information, responsive sizing, and name-click full profile behavior.
+
+==================================================
+1. FINAL DISCOVER CARD STRUCTURE
+==================================================
+
+The Discover card must contain ONLY:
+
+1. Chog NFT artwork
+2. Name
+3. Age
+
+Nothing else should be visible inside the compact Discover card.
+
+Structure:
+
+┌─────────────────────────────┐
+│                             │
+│                             │
+│        CHOG NFT             │
+│      FULL MAIN IMAGE        │
+│                             │
+│                             │
+├─────────────────────────────┤
+│                             │
+│        Goku, 22             │
+│                             │
+└─────────────────────────────┘
+
+Then the action icons/buttons stay BELOW the card.
+
+DO NOT show inside the compact card:
+
+- Username
+- About
+- Introduction
+- Interests
+- Hobbies
+- Languages
+- Looking For
+- Gender
+- Chog traits
+- Token ID
+- Tier
+- Wallet
+- View Full Profile button
+- Extra metadata
+- Any other profile information
+
+The Discover card is intentionally minimal.
+
+==================================================
+2. CHOG NFT IMAGE — MAIN FOCUS
+==================================================
+
+The Chog NFT artwork must be the MAIN and DOMINANT visual element.
+
+IMPORTANT:
+
+DO NOT minimize the NFT.
+
+DO NOT put a small NFT in the center of a large empty container.
+
+DO NOT create an inner frame around the NFT.
+
+DO NOT create a second card around the NFT.
+
+DO NOT add unnecessary padding around the NFT.
+
+DO NOT add a visible border around the NFT.
+
+DO NOT place the NFT inside another decorative box.
+
+The artwork should visually fill the available image area of the Discover card.
+
+Think:
+
+NFT = main hero image of the profile card.
+
+The image should use as much available card width as possible while preserving the original artwork.
+
+For example:
+
+CARD
+┌──────────────────────────────┐
+│██████████████████████████████│
+│████████  CHOG NFT  ██████████│
+│██████████████████████████████│
+│██████████████████████████████│
+├──────────────────────────────┤
+│        Goku, 22              │
+└──────────────────────────────┘
+
+The NFT should NOT look like a tiny centered thumbnail.
+
+==================================================
+3. IMAGE ASPECT RATIO
+==================================================
+
+Preserve the ORIGINAL NFT aspect ratio.
+
+Do NOT:
+
+- crop
+- stretch
+- distort
+- squash
+- cut off important artwork
+- force every NFT into 1:1
+- force every NFT into 4:5
+
+Scale the NFT UP while preserving its natural proportions.
+
+If the NFT is:
+
+1000 × 1000
+→ display large and square.
+
+1000 × 1200
+→ display large in its natural portrait ratio.
+
+1200 × 1000
+→ display large in its natural landscape ratio.
+
+The artwork should remain completely visible.
+
+Use responsive width/height behavior.
+
+Do NOT make the image tiny just because `object-fit: contain` is being used.
+
+If `object-fit: contain` is required, the image/container must still provide enough space for the artwork to appear large.
+
+==================================================
+4. NO EXTRA IMAGE FRAME
+==================================================
+
+The NFT itself must have:
+
+- NO border
+- NO outline
+- NO inner card
+- NO white frame
+- NO cream frame
+- NO shadow around the NFT
+- NO decorative padding
+
+The artwork should visually touch/occupy the main image area naturally.
+
+Only the OUTER PROFILE CARD has the glass styling.
+
+==================================================
+5. GLASS EFFECT — CARD ONLY
+==================================================
+
+Apply the CHOG-themed glassmorphism ONLY to the overall Discover profile card.
+
+Do NOT apply the glass effect directly around the NFT.
+
+The profile card should have:
+
+- translucent warm cream/white glass
+- subtle transparency
+- backdrop blur
+- soft purple/violet ambient glow
+- subtle Chog pink glow
+- thin translucent outer border
+- soft premium shadow
+
+Suggested direction:
+
+background:
+rgba(255, 249, 239, 0.50–0.68)
+
+backdrop-filter:
+blur(20px–30px)
+
+border:
+1px solid rgba(255,255,255,0.35–0.50)
+
+Use subtle purple/pink ambient lighting around the card.
+
+IMPORTANT:
+
+The card should look like premium CHOG glass.
+
+It should NOT look like:
+
+- a solid white card
+- a solid cream card
+- generic blue Web3 glass
+- a crypto dashboard
+
+The background behind the card should remain subtly visible through the glass.
+
+==================================================
+6. CARD PROPORTIONS
+==================================================
+
+The Discover card must be a compact vertical/portrait profile card.
+
+Desktop:
+
+Use a controlled width approximately 380–440px depending on viewport.
+
+DO NOT make it full screen.
+
+DO NOT make it a horizontal banner.
+
+DO NOT create a giant card.
+
+Mobile:
+
+Card width should adapt naturally to the viewport with small side margins.
+
+No horizontal overflow.
+
+The card should scale down proportionally.
+
+==================================================
+7. NAME + AGE
+==================================================
+
+Immediately below the NFT:
+
+Show only:
+
+Name, Age
+
+Example:
+
+Goku, 22
+
+Make the name visually prominent.
+
+Age should be naturally connected to the name.
+
+Use CHOG-themed typography.
+
+Do NOT add a separate profile information panel.
+
+Do NOT add unnecessary rows.
+
+==================================================
+8. NAME CLICK → FULL PROFILE
+==================================================
+
+The Name + Age area must be clickable.
+
+When the user clicks/taps:
+
+"Goku, 22"
+
+open the user's full profile.
+
+The full profile can be a modal, drawer or dedicated profile view depending on the existing architecture.
+
+The compact Discover card must NOT expand itself into a huge card.
+
+==================================================
+9. FULL PROFILE CONTENT
+==================================================
+
+When the user opens the full profile, show:
+
+- Large Chog NFT
+- Name
+- Age
+- Username
+- Gender
+- About / Introduction
+- Interests
+- Hobbies
+- Languages
+- Looking For
+- Chog Token ID
+- Chog Tier
+- Chog Traits
+
+Use only real profile/database data.
+
+Do NOT invent data.
+
+Use the same Chog NFT as the user's identity image.
+
+The full profile should also use the CHOG glass/futuristic visual language.
+
+==================================================
+10. ACTION BUTTONS
+==================================================
+
+IMPORTANT:
+
+Do NOT apply the glass card effect to the action buttons.
+
+The buttons/icons must remain visually independent from the glass card.
+
+Use clean standalone glowing icons.
+
+NO:
+
+- white circles
+- gray circles
+- glass circles
+- filled backgrounds
+- solid button backgrounds
+- rectangular button backgrounds
+
+Actions:
+
+Previous / Undo
+X / Pass
+Sparkle / Super Like
+Heart / Like
+
+The icons should float below the card.
+
+X:
+white/lavender core + purple glow
+
+Super Like:
+bright violet glow + subtle sparkle
+
+Heart:
+Chog pink/purple glow
+
+Previous:
+soft lavender glow
+
+The visible icons should have transparent backgrounds.
+
+The clickable/touch target may be larger invisibly for accessibility.
+
+==================================================
+11. SWIPE ANIMATIONS
+==================================================
+
+Keep existing Tinder-style swipe:
+
+LEFT → Pass
+RIGHT → Like
+UP → Super Like if already supported
+
+Keep the card movement smooth.
+
+Slow down the result animations compared with the current implementation.
+
+LIKE:
+- large glowing purple/pink heart
+- transparent background
+- no modal
+- no rectangle
+- smooth scale/fade
+
+PASS:
+- large glowing X
+- transparent background
+- no modal
+- no rectangle
+- smooth scale/fade
+
+==================================================
+12. PREVIOUS / UNDO
+==================================================
+
+Keep the existing session-only Previous feature.
+
+If:
+
+Profile A
+→ swipe LEFT
+→ Profile B
+
+then pressing Previous returns:
+
+Profile A
+
+Do NOT delete or modify the stored Pass database record.
+
+Do NOT create duplicate cards.
+
+Keep it session-only.
+
+==================================================
+13. RESPONSIVE VIEWPORT
+==================================================
+
+Test:
+
+Desktop:
+1920x1080
+1366x768
+1280x720
+
+Mobile:
+390x844
+375x812
+360x800
+
+Verify:
+
+- NFT is large and clearly visible
+- NFT is NOT a tiny centered image
+- NFT has no inner frame
+- NFT has no unnecessary border
+- NFT has no unnecessary padding
+- NFT is not cropped
+- NFT is not distorted
+- card remains centered
+- card is not full-width
+- card does not become horizontal
+- Name + Age are visible
+- action icons remain visible
+- no horizontal overflow
+- no unnecessary scrolling
+
+The user should be able to see:
+
+NFT
++
+Name/Age
++
+Action buttons
+
+without unnecessary page scrolling.
+
+==================================================
+14. DO NOT CHANGE OTHER FEATURES
+==================================================
+
+Do NOT change:
+
+- authentication
+- profile creation
+- My Profile
+- My Chog
+- Matches
+- Messages
+- Notifications
+- Settings
+- Super Like transaction
+- $CHOG contract
+- Like backend
+- Match backend
+- NFT ownership
+- database schema
+
+Do NOT create fake users.
+Do NOT create fake NFTs.
+Do NOT create fake transactions.
+
+==================================================
+FINAL ACCEPTANCE TEST
+==================================================
+
+The final Discover card must visually communicate:
+
+"THIS CHOG NFT IS THIS PERSON'S PROFILE PICTURE."
+
+The card must look like:
+
+LARGE NFT
+↓
+NAME, AGE
+
+and nothing else.
+
+The entire card gets the CHOG glass effect.
+
+The NFT itself gets NO decorative frame.
+
+The action icons are separate floating glowing icons below the card, NOT glass buttons.
+
+Clicking Name/Age opens the complete profile.
+
+If the NFT still appears as a tiny centered image with large empty space around it, the implementation is NOT complete.
+
+Run:
+1. Typecheck
+2. Production build
+
+Report exactly what was changed and any remaining issue.

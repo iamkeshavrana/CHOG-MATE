@@ -84,14 +84,6 @@ function DiscoverCard({
   canInteract: boolean;
 }) {
   const touchStart = useRef<number | null>(null);
-  const sections = [
-    { title: 'Looking For', values: profile.lookingFor },
-    { title: 'Interests', values: profile.interests },
-    { title: 'Hobbies', values: profile.hobbies },
-    { title: 'Languages', values: profile.languages },
-  ].filter(section => section.values.length > 0);
-  const lookingForOther = profile.lookingForOther?.trim();
-  const hasOtherLookingFor = profile.lookingFor.some(value => value.trim().toLowerCase() === 'other');
   function finishTouch(event: React.TouchEvent<HTMLDivElement>) {
     if (touchStart.current === null) return;
     const endX = event.changedTouches[0]?.clientX;
@@ -100,60 +92,28 @@ function DiscoverCard({
     if (distance > 70) onAction('like');
     else if (distance < -70) onAction('pass');
   }
-  return <article className="surface discover-profile-card mx-auto w-full min-w-0 max-w-[920px] overflow-hidden rounded-[28px] border border-[#e8dff0] bg-[#fffaf6] shadow-[0_22px_70px_-36px_#40275e55]" data-testid={`card-profile-${profile.userId}`}>
+  return <article className="surface discover-profile-card mx-auto w-full min-w-0 overflow-hidden rounded-[28px]" data-testid={`card-profile-${profile.userId}`}>
     <div
       onTouchStart={event => { touchStart.current = event.touches[0]?.clientX ?? null; }}
       onTouchEnd={finishTouch}
       onTouchCancel={() => { touchStart.current = null; }}
-        className="discover-profile-art relative isolate w-full touch-pan-y bg-[radial-gradient(ellipse_at_50%_30%,#f6efff_0%,#e6ddf8_60%,#d9cbed_100%)]"
+      className="discover-profile-art relative isolate w-full touch-pan-y"
       data-testid={`swipe-surface-${profile.userId}`}
       aria-label={`Verified Chog artwork and profile for ${profile.displayName}. Swipe right to like or left to pass.`}
     >
       <ChogArtwork chog={profile.chog} fit="contained-natural" />
     </div>
-    <div className="discover-profile-details min-w-0 px-4 pb-3 pt-3 sm:px-5">
-      <div className="discover-profile-info">
-        <div className="mb-3 flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="discover-profile-meta mb-1 flex items-center justify-between gap-2">
-              <div className="inline-flex items-center gap-1.5 rounded-full border border-[#e9deef] bg-white/75 px-2.5 py-1 text-[9px] font-extrabold uppercase tracking-[.12em] text-[#73569a]">
-                <BadgeCheck size={12} aria-hidden="true" /> Verified holder
-              </div>
-              <div onClick={event => event.stopPropagation()}>
-                <ReportControl profile={profile} canInteract={canInteract} onAuthRequired={onAuthRequired} />
-              </div>
-            </div>
-            <h2 className="display break-words text-[28px] font-extrabold leading-none tracking-[-.045em]" data-testid={`text-display-name-${profile.userId}`}>{profile.displayName}</h2>
-            <p className="mt-1.5 flex flex-wrap items-center gap-x-2 text-[12px] font-medium text-[#75677c]">
-              <span>@{profile.username}</span>
-              {profile.age !== null && <><span aria-hidden="true" className="text-[#b8a9ba]">·</span><span>{profile.age}</span></>}
-            </p>
-            <p className="mt-1 text-[9px] font-medium text-[#97899c] sm:hidden">Swipe to pass or like</p>
-          </div>
-          <div className="shrink-0 rounded-xl border border-[#e9deef] bg-white/75 px-3 py-2 text-right">
-            <span className="display block text-sm font-extrabold leading-none">Chog #{profile.chog.tokenId}</span>
-            <span className="mt-1 block text-[9px] font-semibold uppercase tracking-[.1em] text-[#81758a]">{profile.chog.tier || 'Tier unlisted'}</span>
-          </div>
-        </div>
-        {profile.bio?.trim() && <section aria-label="About" className="mb-3 rounded-2xl bg-[#f7f1fa] px-3.5 py-2.5">
-          <h3 className="text-[9px] font-extrabold uppercase tracking-[.14em] text-[#9476a0]">About</h3>
-          <p className="mt-1 whitespace-pre-line break-words text-[12px] leading-[1.45] text-[#594b62]" data-testid={`text-bio-${profile.userId}`}>{profile.bio}</p>
-        </section>}
-        <div className="space-y-2.5">
-        {sections.map(section => <section key={section.title} aria-label={section.title} data-testid={`section-${section.title.toLowerCase().replace(/\s+/g, '-')}-${profile.userId}`}>
-          <h3 className="mb-1 text-[9px] font-extrabold uppercase tracking-[.14em] text-[#9476a0]">{section.title}</h3>
-          <div className="flex flex-wrap gap-1">
-            {section.values.map(item => <span key={item} className={`max-w-full break-words rounded-full px-2.5 py-1 text-[10px] font-semibold leading-4 ${section.title === 'Looking For' ? 'bg-[#eee5fb] text-[#6246a0]' : 'border border-[#eadfee] bg-[#fffdfb] text-[#6d6075]'}`}>{item}</span>)}
-          </div>
-          {section.title === 'Looking For' && hasOtherLookingFor && lookingForOther && <p className="mt-2 break-words rounded-xl border-l-2 border-[#d8b8d4] bg-[#fbf5fa] px-3 py-2 text-[11px] leading-5 text-[#655469]" data-testid={`text-looking-for-other-${profile.userId}`}>{lookingForOther}</p>}
-        </section>)}
-      </div>
-      </div>
-      <div className="discover-profile-actions mt-2 flex items-center justify-between gap-2 border-t border-[#eee5ec] pt-2.5">
-        <button type="button" onClick={event => { event.stopPropagation(); onOpenProfile(); }} className="inline-flex min-h-9 min-w-0 items-center gap-1 rounded-lg text-left text-[11px] font-bold text-[#7047b5] underline-offset-4 transition hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a77ad5]" data-testid={`button-open-profile-${profile.userId}`}>
-          View full profile <ArrowRight size={13} aria-hidden="true"/>
-        </button>
-      </div>
+    <div className="discover-profile-details min-w-0">
+      <button
+        type="button"
+        onClick={event => { event.stopPropagation(); onOpenProfile(); }}
+        className="discover-profile-name"
+        aria-label={`View ${profile.displayName}${profile.age !== null ? `, ${profile.age}` : ''}'s full profile`}
+        data-testid={`button-open-profile-${profile.userId}`}
+      >
+        <span className="display" data-testid={`text-display-name-${profile.userId}`}>{profile.displayName}</span>
+        {profile.age !== null && <span className="discover-profile-age">, {profile.age}</span>}
+      </button>
     </div>
   </article>;
 }
@@ -162,10 +122,14 @@ function ProfileDetailsDialog({
   profile,
   open,
   onOpenChange,
+  canInteract,
+  onAuthRequired,
 }: {
   profile: Profile | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  canInteract: boolean;
+  onAuthRequired: () => void;
 }) {
   if (!profile) return null;
   const sections = [
@@ -173,19 +137,47 @@ function ProfileDetailsDialog({
     { title: 'Hobbies', values: profile.hobbies },
     { title: 'Languages', values: profile.languages },
   ].filter(section => section.values.length > 0);
+  const lookingForOther = profile.lookingForOther?.trim();
+  const hasOtherLookingFor = profile.lookingFor.some(value => value.trim().toLowerCase() === 'other');
 
   return <Dialog open={open} onOpenChange={onOpenChange}>
-    <DialogContent className="surface max-h-[85dvh] max-w-2xl overflow-y-auto rounded-[28px] border-[#e8dfd5] bg-[#fffaf6] p-0">
-      <div className="relative bg-[#e8ddff]"><ChogArtwork chog={profile.chog} fit="natural"/><div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#211332e8] to-transparent px-6 pb-5 pt-20 text-white sm:px-8"><div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-white/30 bg-white/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[.12em] backdrop-blur"><BadgeCheck size={12}/>Holder verified</div><h2 className="display text-3xl font-extrabold tracking-[-.04em]">{profile.displayName}{profile.age !== null ? `, ${profile.age}` : ''}</h2><p className="mt-1 text-sm text-white/80">@{profile.username}</p></div></div>
-      <div className="max-h-[45vh] overflow-y-auto px-6 pb-7 pt-5 sm:px-8">
+    <DialogContent className="discover-profile-dialog max-h-[85dvh] max-w-2xl overflow-y-auto rounded-[28px] p-0">
+      <div className="discover-dialog-art"><ChogArtwork chog={profile.chog} fit="natural"/></div>
+      <div className="discover-dialog-details">
         <DialogHeader className="text-left">
-          <DialogTitle className="sr-only">{profile.displayName}’s profile</DialogTitle>
-          <DialogDescription className="text-sm leading-6 text-[#6d6178]">{profile.bio || 'A verified holder, ready to make a new connection.'}</DialogDescription>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
+              <DialogTitle className="display break-words text-3xl font-extrabold tracking-[-.04em] text-[#35205c]" data-testid={`dialog-profile-name-${profile.userId}`}>
+                {profile.displayName}{profile.age !== null ? `, ${profile.age}` : ''}
+              </DialogTitle>
+              <p className="mt-1 text-sm text-[#75677c]" data-testid={`dialog-profile-username-${profile.userId}`}>@{profile.username}</p>
+            </div>
+            <div onClick={event => event.stopPropagation()}>
+              <ReportControl profile={profile} canInteract={canInteract} onAuthRequired={onAuthRequired} />
+            </div>
+          </div>
+          {profile.bio?.trim() && <section className="mt-4" aria-label="About">
+            <h3 className="text-[10px] font-bold uppercase tracking-[.13em] text-[#9476a0]">About</h3>
+            <DialogDescription className="mt-1 whitespace-pre-line break-words text-sm leading-6 text-[#594b62]" data-testid={`text-bio-${profile.userId}`}>{profile.bio}</DialogDescription>
+          </section>}
         </DialogHeader>
-        {profile.gender && <p className="mt-4 text-xs text-[#81758a]"><strong className="font-bold text-[#594d64]">Gender:</strong> {profile.gender}</p>}
-        {profile.lookingFor.length > 0 && <section className="mt-5" aria-label="Looking for"><h3 className="text-[10px] font-bold uppercase tracking-[.13em] text-[#9b6b3c]">Looking for</h3><div className="mt-2 flex flex-wrap gap-2">{profile.lookingFor.map(item=><span key={item} className="rounded-full bg-[#f2ecff] px-3 py-1.5 text-[11px] font-bold text-[#6246b0]">{item}</span>)}</div>{profile.lookingFor.includes('Other') && profile.lookingForOther?.trim() && <p className="mt-2 rounded-xl bg-[#f8f3fc] px-3 py-2 text-xs leading-5 text-[#6d6178]">{profile.lookingForOther}</p>}</section>}
-        {sections.map(section=><section key={section.title} className="mt-5"><h3 className="text-[10px] font-bold uppercase tracking-[.13em] text-[#9b6b3c]">{section.title}</h3><div className="mt-2 flex flex-wrap gap-2">{section.values.map(item=><span key={item} className="rounded-full border border-[#e9e1d7] px-3 py-1.5 text-[11px] font-medium text-[#7c7185]">{item}</span>)}</div></section>)}
-        <p className="mt-6 flex items-center gap-2 border-t border-[#24133f12] pt-4 text-xs text-[#81758a]"><BadgeCheck size={15} className="text-[#447a43]"/>Chog #{profile.chog.tokenId} · ownership checked on Monad</p>
+        {profile.gender && <p className="mt-4 text-xs text-[#81758a]" data-testid={`dialog-profile-gender-${profile.userId}`}><strong className="font-bold text-[#594d64]">Gender:</strong> {profile.gender}</p>}
+        {profile.lookingFor.length > 0 && <section className="discover-dialog-section" aria-label="Looking for"><h3>Looking for</h3><div className="mt-2 flex flex-wrap gap-2">{profile.lookingFor.map(item=><span key={item} className="discover-dialog-tag">{item}</span>)}</div>{hasOtherLookingFor && lookingForOther && <p className="mt-2 rounded-xl bg-white/40 px-3 py-2 text-xs leading-5 text-[#6d6178]">{lookingForOther}</p>}</section>}
+        {sections.map(section=><section key={section.title} className="discover-dialog-section"><h3>{section.title}</h3><div className="mt-2 flex flex-wrap gap-2">{section.values.map(item=><span key={item} className="discover-dialog-tag">{item}</span>)}</div></section>)}
+        <section className="discover-dialog-section" aria-label="Chog identity">
+          <h3>Chog identity</h3>
+          <p className="mt-2 text-sm font-semibold text-[#594d64]" data-testid={`dialog-chog-token-${profile.userId}`}>Chog #{profile.chog.tokenId}</p>
+          {profile.chog.tier && <p className="mt-1 text-sm text-[#75677c]" data-testid={`dialog-chog-tier-${profile.userId}`}>Tier: {profile.chog.tier}</p>}
+          <h4 className="mt-4 text-[10px] font-bold uppercase tracking-[.13em] text-[#9476a0]">Chog traits</h4>
+          {profile.chog.traits?.length
+            ? <dl className="mt-2 grid gap-2 sm:grid-cols-2">
+                {profile.chog.traits.map((trait, index) => <div key={`${trait.traitType}-${index}`} className="rounded-xl border border-white/35 bg-white/35 px-3 py-2" data-testid={`dialog-chog-trait-${profile.chog.tokenId}-${index}`}>
+                  <dt className="text-[10px] text-[#81758a]">{trait.traitType}</dt>
+                  <dd className="mt-0.5 break-words text-xs font-semibold text-[#594d64]">{trait.traitValue}{typeof trait.rarity === 'number' && <span className="ml-1 font-normal text-[#81758a]">({trait.rarity}%)</span>}</dd>
+                </div>)}
+              </dl>
+            : <p className="mt-2 text-xs text-[#81758a]">No Chog trait metadata is available for this profile.</p>}
+        </section>
       </div>
     </DialogContent>
   </Dialog>;
@@ -446,7 +438,7 @@ function formatTokenAmount(value: bigint, decimals: number): string {
 
 export function DiscoverPage() {
   const maxPreviousCards = 8;
-  const swipeFeedbackDuration = 920;
+  const swipeFeedbackDuration = 1180;
   const [cursor, setCursor] = useState<string | undefined>();
   const [mode, setMode] = useState<DiscoverProfilesMode>('discover');
   const [searchInput, setSearchInput] = useState('');
@@ -685,7 +677,7 @@ export function DiscoverPage() {
              exit={swipeDirection
                ? { x: swipeDirection === 'right' ? '110%' : '-110%', opacity: 0, rotate: swipeDirection === 'right' ? 8 : -8 }
                : { opacity: 0, y: -8, scale: 0.98 }}
-             transition={{ duration: swipeDirection ? 0.82 : 0.3, ease: 'easeInOut' }}
+              transition={{ duration: swipeDirection ? 1.02 : 0.3, ease: 'easeInOut' }}
              data-testid={`discover-card-transition-${currentCard.userId}`}
            >
              <DiscoverCard profile={currentCard} onAction={action} onOpenProfile={()=>setViewingProfile(currentCard)} onAuthRequired={()=>setWalletDialogOpen(true)} canInteract={canInteract} />
@@ -706,7 +698,6 @@ export function DiscoverPage() {
           data-testid="button-discover-previous"
         >
           <Undo2 size={19} aria-hidden="true" />
-          <span>Previous</span>
         </button>
         <button
           type="button"
@@ -756,7 +747,7 @@ export function DiscoverPage() {
            : <X className="discover-result-pass" size={96} strokeWidth={1.55} />}
        </motion.div>}
      </AnimatePresence>
-    <ProfileDetailsDialog profile={viewingProfile} open={Boolean(viewingProfile)} onOpenChange={open=>{if(!open)setViewingProfile(null);}}/>
+    <ProfileDetailsDialog profile={viewingProfile} open={Boolean(viewingProfile)} onOpenChange={open=>{if(!open)setViewingProfile(null);}} canInteract={canInteract} onAuthRequired={()=>setWalletDialogOpen(true)}/>
     <SuperLikeDialog
       profile={superLikeTarget}
       walletAddress={me.data?.walletAddress ?? null}
