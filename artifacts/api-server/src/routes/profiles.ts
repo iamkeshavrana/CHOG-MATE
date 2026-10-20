@@ -34,6 +34,8 @@ import { getSupabaseAdmin } from "../lib/supabase";
 import { getSafeBackendErrorFields, toApiFailure } from "../lib/backend-errors";
 import { readWalletSession, requireWalletSession } from "../lib/wallet-auth";
 
+type DiscoverQuery = ReturnType<typeof DiscoverProfilesQueryParams.parse>;
+
 const router: IRouter = Router();
 
 router.get("/me", async (req, res): Promise<void> => {
@@ -294,6 +296,14 @@ router.get("/discover", async (req, res): Promise<void> => {
     res.status(400).json({ error: "Those discovery settings are not valid." });
     return;
   }
+  if (
+    parsed.data.minAge !== undefined &&
+    parsed.data.maxAge !== undefined &&
+    parsed.data.minAge > parsed.data.maxAge
+  ) {
+    res.status(400).json({ error: "Minimum age must not be greater than maximum age." });
+    return;
+  }
 
   try {
     const admin = getSupabaseAdmin();
@@ -410,7 +420,14 @@ router.get("/discover", async (req, res): Promise<void> => {
       ) {
         continue;
       }
-      if (!matchesMode(bundle.profile.looking_for, parsed.data.mode ?? "discover")) continue;
+      if (
+        !matchesExploreFilters(
+          bundle.profile,
+          bundle.chog.tier,
+          bundle.user.last_seen,
+          parsed.data,
+        )
+      ) continue;
       const ownsSelected = await isCurrentChogOwner(
         getAddress(bundle.user.wallet_address),
         bundle.chog.tokenId,
@@ -537,16 +554,99 @@ function parseCursor(cursor?: string): number {
   return Math.min(parsed, 10_000_000);
 }
 
-function matchesMode(lookingFor: string[], mode: string): boolean {
-  const values = lookingFor.map((value) => value.trim().toLowerCase());
-  const filters: Record<string, string[]> = {
-    date: ["dating", "date"],
-    friends: ["friends", "friendship"],
-    network: ["networking", "business", "startup"],
-    collab: ["collab", "creative", "gaming", "hackathon", "startup"],
+function matchesExploreFilters(
+  profile: NonNullable<Awaited<ReturnType<typeof loadProfileBundle>>>["profile"],
+  chogTier: string | null,
+  lastSeen: string | undefined,
+  filters: DiscoverQuery,
+): boolean {
+  const lookingFor = profile.looking_for ?? [];
+  const textValues = [
+    ...lookingFor,
+    ...(profile.interests ?? []),
+    ...(profile.hobbies ?? []),
+    ...(profile.skills ?? []),
+  ].map(normalizeDiscoveryValue);
+  const mode = filters.mode ?? "discover";
+  const categoryTerms: Record<string, string[]> = {
+    date: ["dating"],
+    friends: ["friendship", "friends"],
+    network: ["networking"],
+    collab: ["collaboration", "collab"],
+    gaming: ["gaming"],
+    startup: ["startup", "business", "networking"],
+    creative: ["creative", "collaboration", "collab"],
+    hackathon: ["hackathon", "teammate", "teammates"],
+    other: ["other"],
   };
-  const accepted = filters[mode];
-  return !accepted || values.some((value) => accepted.some((item) => value.includes(item)));
+  const categoryMatches = categoryTerms[mode];
+  if (
+    categoryMatches &&
+    !textValues.some((value) =>
+      categoryMatches.some((term) => value.includes(term)),
+    ) &&
+    !(mode === "other" && Boolean(profile.looking_for_other?.trim()))
+  ) {
+    return false;
+  }
+
+  if (filters.gender && profile.gender !== filters.gender) return false;
+  if (filters.minAge !== undefined && (profile.age === null || profile.age < filters.minAge)) {
+    return false;
+  }
+  if (filters.maxAge !== undefined && (profile.age === null || profile.age > filters.maxAge)) {
+    return false;
+  }
+  if (
+    filters.location &&
+    ![profile.location, profile.timezone]
+      .filter((value): value is string => Boolean(value))
+      .some((value) => normalizeDiscoveryValue(value).includes(normalizeDiscoveryValue(filters.location!)))
+  ) {
+    return false;
+  }
+  if (
+    filters.interests &&
+    !(profile.interests ?? []).some((value) =>
+      normalizeDiscoveryValue(value).includes(normalizeDiscoveryValue(filters.interests!)),
+    )
+  ) {
+    return false;
+  }
+  if (
+    filters.hobbies &&
+    !(profile.hobbies ?? []).some((value) =>
+      normalizeDiscoveryValue(value).includes(normalizeDiscoveryValue(filters.hobbies!)),
+    )
+  ) {
+    return false;
+  }
+  if (
+    filters.languages &&
+    !(profile.languages ?? []).some((value) =>
+      normalizeDiscoveryValue(value).includes(normalizeDiscoveryValue(filters.languages!)),
+    )
+  ) {
+    return false;
+  }
+  if (
+    filters.chogTier &&
+    (!chogTier ||
+      !normalizeDiscoveryValue(chogTier).includes(normalizeDiscoveryValue(filters.chogTier)))
+  ) {
+    return false;
+  }
+  if (filters.recentlyActive) {
+    const lastSeenAt = lastSeen ? Date.parse(lastSeen) : Number.NaN;
+    if (!Number.isFinite(lastSeenAt) || Date.now() - lastSeenAt > 7 * 24 * 60 * 60 * 1000) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function normalizeDiscoveryValue(value: string): string {
+  return value.trim().toLowerCase();
 }
 
 function sendProfileError(

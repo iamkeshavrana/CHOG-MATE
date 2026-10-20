@@ -15,4 +15,9 @@ export const DiscoverProfilesMode = {
   friends: 'friends',
   network: 'network',
   collab: 'collab',
+  gaming: 'gaming',
+  startup: 'startup',
+  creative: 'creative',
+  hackathon: 'hackathon',
+  other: 'other',
 } as const;

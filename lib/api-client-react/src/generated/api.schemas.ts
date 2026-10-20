@@ -514,6 +514,44 @@ limit?: number;
  * @maxLength 100
  */
 search?: string;
+gender?: DiscoverProfilesGender;
+/**
+ * @minimum 18
+ * @maximum 120
+ */
+minAge?: number;
+/**
+ * @minimum 18
+ * @maximum 120
+ */
+maxAge?: number;
+/**
+ * Match the profile's location or timezone
+ * @minLength 1
+ * @maxLength 100
+ */
+location?: string;
+/**
+ * @minLength 1
+ * @maxLength 100
+ */
+interests?: string;
+/**
+ * @minLength 1
+ * @maxLength 100
+ */
+hobbies?: string;
+/**
+ * @minLength 1
+ * @maxLength 100
+ */
+languages?: string;
+/**
+ * @minLength 1
+ * @maxLength 100
+ */
+chogTier?: string;
+recentlyActive?: boolean;
 };
 
 export type DiscoverProfilesMode = typeof DiscoverProfilesMode[keyof typeof DiscoverProfilesMode];
@@ -525,5 +563,21 @@ export const DiscoverProfilesMode = {
   friends: 'friends',
   network: 'network',
   collab: 'collab',
+  gaming: 'gaming',
+  startup: 'startup',
+  creative: 'creative',
+  hackathon: 'hackathon',
+  other: 'other',
+} as const;
+
+export type DiscoverProfilesGender = typeof DiscoverProfilesGender[keyof typeof DiscoverProfilesGender];
+
+
+export const DiscoverProfilesGender = {
+  Male: 'Male',
+  Female: 'Female',
+  Gay: 'Gay',
+  Trans: 'Trans',
+  Alien: 'Alien',
 } as const;
 

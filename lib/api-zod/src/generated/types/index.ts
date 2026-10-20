@@ -16,6 +16,7 @@ export * from './chogSelectionInput';
 export * from './collectionStats';
 export * from './currentProfile';
 export * from './currentProfileIdentityMode';
+export * from './discoverProfilesGender';
 export * from './discoverProfilesMode';
 export * from './discoverProfilesParams';
 export * from './discoverVisibility';

@@ -5,6 +5,7 @@
  * CHOG MATE wallet, NFT, profile, discovery, and social API
  * OpenAPI spec version: 0.1.0
  */
+import type { DiscoverProfilesGender } from './discoverProfilesGender';
 import type { DiscoverProfilesMode } from './discoverProfilesMode';
 
 export type DiscoverProfilesParams = {
@@ -21,4 +22,42 @@ limit?: number;
  * @maxLength 100
  */
 search?: string;
+gender?: DiscoverProfilesGender;
+/**
+ * @minimum 18
+ * @maximum 120
+ */
+minAge?: number;
+/**
+ * @minimum 18
+ * @maximum 120
+ */
+maxAge?: number;
+/**
+ * Match the profile's location or timezone
+ * @minLength 1
+ * @maxLength 100
+ */
+location?: string;
+/**
+ * @minLength 1
+ * @maxLength 100
+ */
+interests?: string;
+/**
+ * @minLength 1
+ * @maxLength 100
+ */
+hobbies?: string;
+/**
+ * @minLength 1
+ * @maxLength 100
+ */
+languages?: string;
+/**
+ * @minLength 1
+ * @maxLength 100
+ */
+chogTier?: string;
+recentlyActive?: boolean;
 };

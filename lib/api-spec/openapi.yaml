@@ -322,7 +322,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: [discover, date, friends, network, collab]
+            enum: [discover, date, friends, network, collab, gaming, startup, creative, hackathon, other]
         - name: cursor
           in: query
           schema:
@@ -341,6 +341,58 @@ paths:
             type: string
             minLength: 1
             maxLength: 100
+        - name: gender
+          in: query
+          schema:
+            type: string
+            enum: [Male, Female, Gay, Trans, Alien]
+        - name: minAge
+          in: query
+          schema:
+            type: integer
+            minimum: 18
+            maximum: 120
+        - name: maxAge
+          in: query
+          schema:
+            type: integer
+            minimum: 18
+            maximum: 120
+        - name: location
+          in: query
+          description: Match the profile's location or timezone
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 100
+        - name: interests
+          in: query
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 100
+        - name: hobbies
+          in: query
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 100
+        - name: languages
+          in: query
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 100
+        - name: chogTier
+          in: query
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 100
+        - name: recentlyActive
+          in: query
+          schema:
+            type: boolean
       responses:
         "200":
           description: Discoverable profiles

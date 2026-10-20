@@ -437,13 +437,38 @@ export const discoverProfilesQueryLimitMax = 30;
 
 export const discoverProfilesQuerySearchMax = 100;
 
+export const discoverProfilesQueryMinAgeMin = 18;
+export const discoverProfilesQueryMinAgeMax = 120;
+
+export const discoverProfilesQueryMaxAgeMin = 18;
+export const discoverProfilesQueryMaxAgeMax = 120;
+
+export const discoverProfilesQueryLocationMax = 100;
+
+export const discoverProfilesQueryInterestsMax = 100;
+
+export const discoverProfilesQueryHobbiesMax = 100;
+
+export const discoverProfilesQueryLanguagesMax = 100;
+
+export const discoverProfilesQueryChogTierMax = 100;
+
 
 
 export const DiscoverProfilesQueryParams = zod.object({
-  "mode": zod.enum(['discover', 'date', 'friends', 'network', 'collab']).optional(),
+  "mode": zod.enum(['discover', 'date', 'friends', 'network', 'collab', 'gaming', 'startup', 'creative', 'hackathon', 'other']).optional(),
   "cursor": zod.coerce.string().optional(),
   "limit": zod.coerce.number().int().min(1).max(discoverProfilesQueryLimitMax).default(discoverProfilesQueryLimitDefault),
-  "search": zod.coerce.string().min(1).max(discoverProfilesQuerySearchMax).optional().describe('Search visible profiles by name, username, or active Chog token ID')
+  "search": zod.coerce.string().min(1).max(discoverProfilesQuerySearchMax).optional().describe('Search visible profiles by name, username, or active Chog token ID'),
+  "gender": zod.enum(['Male', 'Female', 'Gay', 'Trans', 'Alien']).optional(),
+  "minAge": zod.coerce.number().int().min(discoverProfilesQueryMinAgeMin).max(discoverProfilesQueryMinAgeMax).optional(),
+  "maxAge": zod.coerce.number().int().min(discoverProfilesQueryMaxAgeMin).max(discoverProfilesQueryMaxAgeMax).optional(),
+  "location": zod.coerce.string().min(1).max(discoverProfilesQueryLocationMax).optional().describe('Match the profile\'s location or timezone'),
+  "interests": zod.coerce.string().min(1).max(discoverProfilesQueryInterestsMax).optional(),
+  "hobbies": zod.coerce.string().min(1).max(discoverProfilesQueryHobbiesMax).optional(),
+  "languages": zod.coerce.string().min(1).max(discoverProfilesQueryLanguagesMax).optional(),
+  "chogTier": zod.coerce.string().min(1).max(discoverProfilesQueryChogTierMax).optional(),
+  "recentlyActive": zod.coerce.boolean().optional()
 })
 
 export const discoverProfilesResponseProfilesItemAgeMin = 18;
