@@ -1,7 +1,7 @@
 import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowRight, BadgeCheck, FileText, Heart, Image as ImageIcon, MessageCircle, Mic, MoreHorizontal, Paperclip, Send, Sparkles, Undo2, Video, X } from 'lucide-react';
+import { ArrowRight, BadgeCheck, FileText, Heart, Image as ImageIcon, MessageCircle, Mic, MoreHorizontal, Paperclip, Phone, Send, Sparkles, Undo2, Video, X } from 'lucide-react';
 import { Link } from 'wouter';
 import {
   getGetAuthSessionQueryKey,
@@ -22,6 +22,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { appConfig } from '@/lib/config';
 import { monadNetwork } from '@/lib/appkit';
 import { supabase } from '@/lib/supabase';
+import { useCallControls } from '@/components/call-provider';
 
 function ReportControl({
   profile,
@@ -962,6 +963,7 @@ function RematchAction({ matchId, onRematched }: { matchId: string; onRematched:
 }
 
 export function MessagesPage() {
+  const callControls = useCallControls();
   const [selectedMatch, setSelectedMatch] = useState(()=>typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('match') || '' : '');
   const currentProfile = useGetMe({ query: { queryKey: getGetMeQueryKey(), retry: false } });
   const { data: conversations, isLoading: conversationsLoading, isError: conversationsError, refetch: retryConversations } = useGetConversations({
@@ -1185,7 +1187,10 @@ export function MessagesPage() {
     <div className="surface grid min-h-[570px] overflow-hidden rounded-[28px] md:grid-cols-[300px_1fr]">
        <aside className="border-b border-[#24133f12] bg-[#eee7fb] md:border-b-0 md:border-r"><div className="px-5 py-4"><Eyebrow>Conversation history</Eyebrow><h2 className="display text-xl font-extrabold text-[#24133f]">Your people</h2></div><div className="flex gap-2 overflow-x-auto px-3 pb-4 md:block md:space-y-1 md:px-2">{conversations.map(item=><button onClick={()=>choose(item.id)} key={item.id} className={`flex min-w-[200px] items-center gap-3 rounded-2xl p-3 text-left transition md:w-full ${matchId===item.id?'bg-[#eee8ff]':'hover:bg-[#f6f1e9]'}`} data-testid={`button-conversation-${item.id}`}><ProfileAvatar profile={item.profile} size="sm"/><span className="min-w-0 flex-1"><span className="block truncate text-sm font-bold text-[#35264b]">{item.profile.displayName}</span><span className="block truncate text-xs text-[#8b8091]">@{item.profile.username}{item.status === 'unmatched' ? ' · Unmatched' : ''}</span></span>{(item.unreadCount||0)>0 && <span className="grid h-5 min-w-5 place-items-center rounded-full bg-[#7047ff] px-1 text-[10px] font-bold text-white">{item.unreadCount}</span>}</button>)}</div></aside>
       <section className="flex min-h-[460px] flex-col">
-         {match && <header className="flex items-center gap-3 border-b border-[#24133f12] px-5 py-4"><ProfileAvatar profile={match.profile} size="sm"/><div className="min-w-0 flex-1"><p className="font-bold text-[#35264b]">{match.profile.displayName}</p><p className="text-xs text-[#887c90]">@{match.profile.username} · Chog holder</p></div><button disabled title="Voice and video calling are not available yet" className="flex items-center gap-2 rounded-full border border-[#e9e0d3] px-3 py-2 text-xs font-semibold text-[#988d9f] disabled:cursor-not-allowed" data-testid="button-call-unavailable"><Video size={15}/>Calls unavailable</button></header>}
+         {match && <header className="flex flex-wrap items-center gap-3 border-b border-[#24133f12] px-5 py-4"><ProfileAvatar profile={match.profile} size="sm"/><div className="min-w-0 flex-1"><p className="font-bold text-[#35264b]">{match.profile.displayName}</p><p className="text-xs text-[#887c90]">@{match.profile.username} · Chog holder</p></div><div className="flex items-center gap-2">
+           <button type="button" onClick={()=>void callControls.startCall(match.id,'audio',match.profile)} disabled={match.status!=='active'||callControls.busy||Boolean(callControls.activeCall)} title={match.status==='active'?'Start an audio call':'Calls require an active match'} className="inline-flex items-center gap-2 rounded-full border border-[#e9e0d3] px-3 py-2 text-xs font-semibold text-[#6246b0] transition hover:bg-[#f7f2ff] disabled:cursor-not-allowed disabled:opacity-50" data-testid="button-audio-call"><Phone size={15}/>Audio</button>
+           <button type="button" onClick={()=>void callControls.startCall(match.id,'video',match.profile)} disabled={match.status!=='active'||callControls.busy||Boolean(callControls.activeCall)} title={match.status==='active'?'Start a video call':'Calls require an active match'} className="inline-flex items-center gap-2 rounded-full border border-[#e9e0d3] px-3 py-2 text-xs font-semibold text-[#6246b0] transition hover:bg-[#f7f2ff] disabled:cursor-not-allowed disabled:opacity-50" data-testid="button-video-call"><Video size={15}/>Video</button>
+         </div></header>}
          {match?.status === 'unmatched' && <p className="border-b border-[#24133f12] bg-[#fffaf0] px-5 py-3 text-xs leading-5 text-[#806b47]" role="status">You are no longer matched, but this conversation remains available until either person blocks the other.</p>}
         <div className="flex flex-1 flex-col gap-3 overflow-y-auto bg-[radial-gradient(ellipse_at_top,#f7f2ff_0,transparent_68%)] p-5">
           <QueryState loading={isLoading} error={isError} retry={()=>void refetch()}>{messages?.length ? messages.map(message=>{

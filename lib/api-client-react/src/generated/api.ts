@@ -25,6 +25,11 @@ import type {
   AuthSessionStatus,
   BlockInput,
   BlockedUser,
+  CallActionInput,
+  CallInput,
+  CallSession,
+  CallSignal,
+  CallSignalInput,
   Chog,
   ChogSelectionInput,
   CollectionStats,
@@ -36,6 +41,7 @@ import type {
   DiscoveryPage,
   GetLiveSalesParams,
   HealthStatus,
+  IncomingCall,
   LikeInboxItem,
   LiveSales,
   Match,
@@ -2116,6 +2122,582 @@ export const useRequestMessageAttachmentUploadUrl = <TError = ErrorType<unknown>
         TContext
       > => {
       return useMutation(getRequestMessageAttachmentUploadUrlMutationOptions(options));
+    }
+
+export const getCreateCallUrl = () => {
+
+
+
+
+  return `/api/calls`
+}
+
+/**
+ * @summary Start a peer-to-peer call with an active match
+ */
+export const createCall = async (callInput: CallInput, options?: Parameters<typeof customFetch>[1]): Promise<CallSession> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<CallSession>(getCreateCallUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(callInput)
+  }
+);}
+
+
+
+
+
+export const getCreateCallMutationKey = () => ['createCall'] as const;
+
+export const getCreateCallMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCall>>, TError,CreateCallMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createCall>>, TError,CreateCallMutationVariables, TContext> => {
+
+const mutationKey = getCreateCallMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createCall>>, CreateCallMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createCall(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateCallMutationResult = NonNullable<Awaited<ReturnType<typeof createCall>>>
+    export type CreateCallMutationBody = BodyType<CallInput>
+    export type CreateCallMutationError = ErrorType<unknown>
+    export type CreateCallMutationVariables = {data: BodyType<CallInput>}
+
+    /**
+ * @summary Start a peer-to-peer call with an active match
+ */
+export const useCreateCall = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCall>>, TError,CreateCallMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createCall>>,
+        TError,
+        CreateCallMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateCallMutationOptions(options));
+    }
+
+export const getGetIncomingCallsUrl = () => {
+
+
+
+
+  return `/api/calls/incoming`
+}
+
+/**
+ * @summary List calls ringing the signed-in user
+ */
+export const getIncomingCalls = async ( options?: Parameters<typeof customFetch>[1]): Promise<IncomingCall[]> => {
+
+  return customFetch<IncomingCall[]>(getGetIncomingCallsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetIncomingCallsQueryKey = () => {
+    return [
+    `/api/calls/incoming`
+    ] as const;
+    }
+
+
+export const getGetIncomingCallsQueryOptions = <TData = Awaited<ReturnType<typeof getIncomingCalls>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getIncomingCalls>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetIncomingCallsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getIncomingCalls>>> = ({ signal }) => getIncomingCalls({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getIncomingCalls>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetIncomingCallsQueryResult = NonNullable<Awaited<ReturnType<typeof getIncomingCalls>>>
+export type GetIncomingCallsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List calls ringing the signed-in user
+ */
+
+export function useGetIncomingCalls<TData = Awaited<ReturnType<typeof getIncomingCalls>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getIncomingCalls>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetIncomingCallsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetCallUrl = (callId: string,) => {
+
+
+
+
+  return `/api/calls/${callId}`
+}
+
+/**
+ * @summary Get the state of a call the signed-in user participates in
+ */
+export const getCall = async (callId: string, options?: Parameters<typeof customFetch>[1]): Promise<CallSession> => {
+
+  return customFetch<CallSession>(getGetCallUrl(callId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetCallQueryKey = (callId: string,) => {
+    return [
+    `/api/calls/${callId}`
+    ] as const;
+    }
+
+
+export const getGetCallQueryOptions = <TData = Awaited<ReturnType<typeof getCall>>, TError = ErrorType<unknown>>(callId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCall>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetCallQueryKey(callId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCall>>> = ({ signal }) => getCall(callId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: callId !== null && callId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCall>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetCallQueryResult = NonNullable<Awaited<ReturnType<typeof getCall>>>
+export type GetCallQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get the state of a call the signed-in user participates in
+ */
+
+export function useGetCall<TData = Awaited<ReturnType<typeof getCall>>, TError = ErrorType<unknown>>(
+ callId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCall>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetCallQueryOptions(callId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCallActionUrl = (callId: string,) => {
+
+
+
+
+  return `/api/calls/${callId}/action`
+}
+
+/**
+ * @summary Accept, decline, connect, end, or fail a call
+ */
+export const callAction = async (callId: string,
+    callActionInput: CallActionInput, options?: Parameters<typeof customFetch>[1]): Promise<CallSession> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<CallSession>(getCallActionUrl(callId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(callActionInput)
+  }
+);}
+
+
+
+
+
+export const getCallActionMutationKey = () => ['callAction'] as const;
+
+export const getCallActionMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof callAction>>, TError,CallActionMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof callAction>>, TError,CallActionMutationVariables, TContext> => {
+
+const mutationKey = getCallActionMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof callAction>>, CallActionMutationVariables> = (props) => {
+          const {callId,data} = props ?? {};
+
+          return  callAction(callId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CallActionMutationResult = NonNullable<Awaited<ReturnType<typeof callAction>>>
+    export type CallActionMutationBody = BodyType<CallActionInput>
+    export type CallActionMutationError = ErrorType<unknown>
+    export type CallActionMutationVariables = {callId: string;data: BodyType<CallActionInput>}
+
+    /**
+ * @summary Accept, decline, connect, end, or fail a call
+ */
+export const useCallAction = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof callAction>>, TError,CallActionMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof callAction>>,
+        TError,
+        CallActionMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCallActionMutationOptions(options));
+    }
+
+export const getCallHeartbeatUrl = (callId: string,) => {
+
+
+
+
+  return `/api/calls/${callId}/heartbeat`
+}
+
+/**
+ * @summary Keep an active call session alive
+ */
+export const callHeartbeat = async (callId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getCallHeartbeatUrl(callId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getCallHeartbeatMutationKey = () => ['callHeartbeat'] as const;
+
+export const getCallHeartbeatMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof callHeartbeat>>, TError,CallHeartbeatMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof callHeartbeat>>, TError,CallHeartbeatMutationVariables, TContext> => {
+
+const mutationKey = getCallHeartbeatMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof callHeartbeat>>, CallHeartbeatMutationVariables> = (props) => {
+          const {callId} = props ?? {};
+
+          return  callHeartbeat(callId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CallHeartbeatMutationResult = NonNullable<Awaited<ReturnType<typeof callHeartbeat>>>
+
+    export type CallHeartbeatMutationError = ErrorType<unknown>
+    export type CallHeartbeatMutationVariables = {callId: string}
+
+    /**
+ * @summary Keep an active call session alive
+ */
+export const useCallHeartbeat = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof callHeartbeat>>, TError,CallHeartbeatMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof callHeartbeat>>,
+        TError,
+        CallHeartbeatMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCallHeartbeatMutationOptions(options));
+    }
+
+export const getGetCallSignalsUrl = (callId: string,
+    afterId: number,) => {
+
+
+
+
+  return `/api/calls/${callId}/signals/${afterId}`
+}
+
+/**
+ * @summary Poll for private WebRTC signaling messages from the other caller
+ */
+export const getCallSignals = async (callId: string,
+    afterId: number, options?: Parameters<typeof customFetch>[1]): Promise<CallSignal[]> => {
+
+  return customFetch<CallSignal[]>(getGetCallSignalsUrl(callId,afterId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetCallSignalsQueryKey = (callId: string,
+    afterId: number,) => {
+    return [
+    `/api/calls/${callId}/signals/${afterId}`
+    ] as const;
+    }
+
+
+export const getGetCallSignalsQueryOptions = <TData = Awaited<ReturnType<typeof getCallSignals>>, TError = ErrorType<unknown>>(callId: string,
+    afterId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCallSignals>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetCallSignalsQueryKey(callId,afterId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCallSignals>>> = ({ signal }) => getCallSignals(callId,afterId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: callId !== null && callId !== undefined && afterId !== null && afterId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCallSignals>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetCallSignalsQueryResult = NonNullable<Awaited<ReturnType<typeof getCallSignals>>>
+export type GetCallSignalsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Poll for private WebRTC signaling messages from the other caller
+ */
+
+export function useGetCallSignals<TData = Awaited<ReturnType<typeof getCallSignals>>, TError = ErrorType<unknown>>(
+ callId: string,
+    afterId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCallSignals>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetCallSignalsQueryOptions(callId,afterId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSendCallSignalUrl = (callId: string,) => {
+
+
+
+
+  return `/api/calls/${callId}/signals`
+}
+
+/**
+ * @summary Send a private WebRTC offer, answer, or ICE candidate
+ */
+export const sendCallSignal = async (callId: string,
+    callSignalInput: CallSignalInput, options?: Parameters<typeof customFetch>[1]): Promise<CallSignal> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<CallSignal>(getSendCallSignalUrl(callId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(callSignalInput)
+  }
+);}
+
+
+
+
+
+export const getSendCallSignalMutationKey = () => ['sendCallSignal'] as const;
+
+export const getSendCallSignalMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendCallSignal>>, TError,SendCallSignalMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof sendCallSignal>>, TError,SendCallSignalMutationVariables, TContext> => {
+
+const mutationKey = getSendCallSignalMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof sendCallSignal>>, SendCallSignalMutationVariables> = (props) => {
+          const {callId,data} = props ?? {};
+
+          return  sendCallSignal(callId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SendCallSignalMutationResult = NonNullable<Awaited<ReturnType<typeof sendCallSignal>>>
+    export type SendCallSignalMutationBody = BodyType<CallSignalInput>
+    export type SendCallSignalMutationError = ErrorType<unknown>
+    export type SendCallSignalMutationVariables = {callId: string;data: BodyType<CallSignalInput>}
+
+    /**
+ * @summary Send a private WebRTC offer, answer, or ICE candidate
+ */
+export const useSendCallSignal = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendCallSignal>>, TError,SendCallSignalMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof sendCallSignal>>,
+        TError,
+        SendCallSignalMutationVariables,
+        TContext
+      > => {
+      return useMutation(getSendCallSignalMutationOptions(options));
     }
 
 export const getGetBlockedUsersUrl = () => {

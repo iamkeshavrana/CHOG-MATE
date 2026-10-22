@@ -575,6 +575,149 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MessageAttachmentUpload"
+  /calls:
+    post:
+      operationId: createCall
+      tags: [matching]
+      summary: Start a peer-to-peer call with an active match
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CallInput"
+      responses:
+        "201":
+          description: Call started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CallSession"
+  /calls/incoming:
+    get:
+      operationId: getIncomingCalls
+      tags: [matching]
+      summary: List calls ringing the signed-in user
+      responses:
+        "200":
+          description: Incoming calls
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/IncomingCall"
+  /calls/{callId}:
+    get:
+      operationId: getCall
+      tags: [matching]
+      summary: Get the state of a call the signed-in user participates in
+      parameters:
+        - name: callId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Call state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CallSession"
+  /calls/{callId}/action:
+    post:
+      operationId: callAction
+      tags: [matching]
+      summary: Accept, decline, connect, end, or fail a call
+      parameters:
+        - name: callId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CallActionInput"
+      responses:
+        "200":
+          description: Updated call state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CallSession"
+  /calls/{callId}/heartbeat:
+    post:
+      operationId: callHeartbeat
+      tags: [matching]
+      summary: Keep an active call session alive
+      parameters:
+        - name: callId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Call heartbeat recorded
+  /calls/{callId}/signals/{afterId}:
+    get:
+      operationId: getCallSignals
+      tags: [matching]
+      summary: Poll for private WebRTC signaling messages from the other caller
+      parameters:
+        - name: callId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: afterId
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 0
+      responses:
+        "200":
+          description: New signaling messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CallSignal"
+  /calls/{callId}/signals:
+    post:
+      operationId: sendCallSignal
+      tags: [matching]
+      summary: Send a private WebRTC offer, answer, or ICE candidate
+      parameters:
+        - name: callId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CallSignalInput"
+      responses:
+        "201":
+          description: Signaling message recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CallSignal"
   /blocks:
     get:
       operationId: getBlockedUsers
@@ -968,4 +1111,68 @@ components:
         targetUserId: { type: string, format: uuid }
         reason: { type: string, enum: [spam, harassment, fake_profile, inappropriate_content, scam, other] }
         details: { type: ["string", "null"], maxLength: 1000 }
+    CallInput:
+      type: object
+      required: [matchId, type]
+      properties:
+        matchId: { type: string, format: uuid }
+        type: { type: string, enum: [audio, video] }
+    CallSession:
+      type: object
+      required: [id, matchId, callerId, receiverId, type, status, startedAt, lastActivityAt]
+      properties:
+        id: { type: string, format: uuid }
+        matchId: { type: string, format: uuid }
+        callerId: { type: string, format: uuid }
+        receiverId: { type: string, format: uuid }
+        type: { type: string, enum: [audio, video] }
+        status: { type: string, enum: [calling, connecting, connected, ended, rejected, missed, failed] }
+        startedAt: { type: string, format: date-time }
+        lastActivityAt: { type: string, format: date-time }
+    IncomingCall:
+      allOf:
+        - $ref: "#/components/schemas/CallSession"
+        - type: object
+          required: [profile]
+          properties:
+            profile: { $ref: "#/components/schemas/Profile" }
+    CallActionInput:
+      type: object
+      required: [action]
+      properties:
+        action: { type: string, enum: [accept, decline, connected, end, failed] }
+    CallSignalInput:
+      type: object
+      required: [signalType, payload]
+      properties:
+        signalType: { type: string, enum: [offer, answer, ice_candidate] }
+        payload:
+          type: object
+          properties:
+            type: { type: string, enum: [offer, answer] }
+            sdp: { type: string, maxLength: 20000 }
+            candidate: { type: string, maxLength: 3000 }
+            sdpMid: { type: ["string", "null"], maxLength: 256 }
+            sdpMLineIndex: { type: ["integer", "null"], minimum: 0 }
+            usernameFragment: { type: ["string", "null"], maxLength: 256 }
+          additionalProperties: false
+    CallSignal:
+      type: object
+      required: [id, callId, senderId, signalType, payload, createdAt]
+      properties:
+        id: { type: integer, minimum: 1 }
+        callId: { type: string, format: uuid }
+        senderId: { type: string, format: uuid }
+        signalType: { type: string, enum: [offer, answer, ice_candidate] }
+        payload:
+          type: object
+          properties:
+            type: { type: string, enum: [offer, answer] }
+            sdp: { type: string, maxLength: 20000 }
+            candidate: { type: string, maxLength: 3000 }
+            sdpMid: { type: ["string", "null"], maxLength: 256 }
+            sdpMLineIndex: { type: ["integer", "null"], minimum: 0 }
+            usernameFragment: { type: ["string", "null"], maxLength: 256 }
+          additionalProperties: false
+        createdAt: { type: string, format: date-time }
 

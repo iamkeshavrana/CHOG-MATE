@@ -1026,6 +1026,246 @@ export const RequestMessageAttachmentUploadUrlResponse = zod.object({
 
 
 /**
+ * @summary Start a peer-to-peer call with an active match
+ */
+export const CreateCallBody = zod.object({
+  "matchId": zod.string().uuid(),
+  "type": zod.enum(['audio', 'video'])
+})
+
+export const CreateCallResponse = zod.object({
+  "id": zod.string().uuid(),
+  "matchId": zod.string().uuid(),
+  "callerId": zod.string().uuid(),
+  "receiverId": zod.string().uuid(),
+  "type": zod.enum(['audio', 'video']),
+  "status": zod.enum(['calling', 'connecting', 'connected', 'ended', 'rejected', 'missed', 'failed']),
+  "startedAt": zod.coerce.date(),
+  "lastActivityAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary List calls ringing the signed-in user
+ */
+export const getIncomingCallsResponseTwoProfileAgeMin = 18;
+export const getIncomingCallsResponseTwoProfileAgeMax = 120;
+
+export const getIncomingCallsResponseTwoProfileLookingForOtherMax = 200;
+
+export const getIncomingCallsResponseTwoProfileChogTraitsItemRarityMin = 0;
+export const getIncomingCallsResponseTwoProfileChogTraitsItemRarityMax = 100;
+
+export const getIncomingCallsResponseTwoProfileCompatibilityMin = 0;
+export const getIncomingCallsResponseTwoProfileCompatibilityMax = 100;
+
+
+
+export const GetIncomingCallsResponseItem = zod.object({
+  "id": zod.string().uuid(),
+  "matchId": zod.string().uuid(),
+  "callerId": zod.string().uuid(),
+  "receiverId": zod.string().uuid(),
+  "type": zod.enum(['audio', 'video']),
+  "status": zod.enum(['calling', 'connecting', 'connected', 'ended', 'rejected', 'missed', 'failed']),
+  "startedAt": zod.coerce.date(),
+  "lastActivityAt": zod.coerce.date()
+}).and(zod.object({
+  "profile": zod.object({
+  "userId": zod.string().uuid(),
+  "username": zod.string(),
+  "displayName": zod.string(),
+  "gender": zod.union([zod.literal('Male'),zod.literal('Female'),zod.literal('Gay'),zod.literal('Trans'),zod.literal('Alien'),zod.literal(null)]).nullable(),
+  "age": zod.number().int().min(getIncomingCallsResponseTwoProfileAgeMin).max(getIncomingCallsResponseTwoProfileAgeMax).nullable(),
+  "walletAddress": zod.string(),
+  "walletVerified": zod.boolean(),
+  "bio": zod.string().nullable(),
+  "interests": zod.array(zod.string()),
+  "hobbies": zod.array(zod.string()),
+  "languages": zod.array(zod.string()),
+  "lookingFor": zod.array(zod.enum(['Dating', 'Friendship', 'Networking', 'Collaboration', 'Other'])),
+  "lookingForOther": zod.string().max(getIncomingCallsResponseTwoProfileLookingForOtherMax).nullable(),
+  "chog": zod.object({
+  "tokenId": zod.string(),
+  "contractAddress": zod.string(),
+  "ownerWallet": zod.string(),
+  "verified": zod.boolean(),
+  "name": zod.string().nullish(),
+  "description": zod.string().nullable(),
+  "tier": zod.string().nullable(),
+  "imageUrl": zod.string().url().nullish(),
+  "imageUrls": zod.array(zod.string().url()).optional(),
+  "metadataUrl": zod.string().url().nullish(),
+  "traits": zod.array(zod.object({
+  "traitType": zod.string(),
+  "traitValue": zod.string(),
+  "rarity": zod.number().min(getIncomingCallsResponseTwoProfileChogTraitsItemRarityMin).max(getIncomingCallsResponseTwoProfileChogTraitsItemRarityMax).nullish()
+})).optional()
+}),
+  "compatibility": zod.number().int().min(getIncomingCallsResponseTwoProfileCompatibilityMin).max(getIncomingCallsResponseTwoProfileCompatibilityMax).nullish(),
+  "whyYouMatch": zod.array(zod.string()).optional()
+})
+}))
+export const GetIncomingCallsResponse = zod.array(GetIncomingCallsResponseItem)
+
+
+/**
+ * @summary Get the state of a call the signed-in user participates in
+ */
+export const GetCallParams = zod.object({
+  "callId": zod.coerce.string().uuid()
+})
+
+export const GetCallResponse = zod.object({
+  "id": zod.string().uuid(),
+  "matchId": zod.string().uuid(),
+  "callerId": zod.string().uuid(),
+  "receiverId": zod.string().uuid(),
+  "type": zod.enum(['audio', 'video']),
+  "status": zod.enum(['calling', 'connecting', 'connected', 'ended', 'rejected', 'missed', 'failed']),
+  "startedAt": zod.coerce.date(),
+  "lastActivityAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Accept, decline, connect, end, or fail a call
+ */
+export const CallActionParams = zod.object({
+  "callId": zod.coerce.string().uuid()
+})
+
+export const CallActionBody = zod.object({
+  "action": zod.enum(['accept', 'decline', 'connected', 'end', 'failed'])
+})
+
+export const CallActionResponse = zod.object({
+  "id": zod.string().uuid(),
+  "matchId": zod.string().uuid(),
+  "callerId": zod.string().uuid(),
+  "receiverId": zod.string().uuid(),
+  "type": zod.enum(['audio', 'video']),
+  "status": zod.enum(['calling', 'connecting', 'connected', 'ended', 'rejected', 'missed', 'failed']),
+  "startedAt": zod.coerce.date(),
+  "lastActivityAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Keep an active call session alive
+ */
+export const CallHeartbeatParams = zod.object({
+  "callId": zod.coerce.string().uuid()
+})
+
+export const CallHeartbeatResponse = zod.void()
+
+
+/**
+ * @summary Poll for private WebRTC signaling messages from the other caller
+ */
+export const getCallSignalsPathAfterIdMin = 0;
+
+
+
+export const GetCallSignalsParams = zod.object({
+  "callId": zod.coerce.string().uuid(),
+  "afterId": zod.coerce.number().int().min(getCallSignalsPathAfterIdMin)
+})
+
+
+export const getCallSignalsResponsePayloadSdpMax = 20000;
+
+export const getCallSignalsResponsePayloadCandidateMax = 3000;
+
+export const getCallSignalsResponsePayloadSdpMidMax = 256;
+
+export const getCallSignalsResponsePayloadSdpMLineIndexMin = 0;
+
+export const getCallSignalsResponsePayloadUsernameFragmentMax = 256;
+
+
+
+export const GetCallSignalsResponseItem = zod.object({
+  "id": zod.number().int().min(1),
+  "callId": zod.string().uuid(),
+  "senderId": zod.string().uuid(),
+  "signalType": zod.enum(['offer', 'answer', 'ice_candidate']),
+  "payload": zod.object({
+  "type": zod.enum(['offer', 'answer']).optional(),
+  "sdp": zod.string().max(getCallSignalsResponsePayloadSdpMax).optional(),
+  "candidate": zod.string().max(getCallSignalsResponsePayloadCandidateMax).optional(),
+  "sdpMid": zod.string().max(getCallSignalsResponsePayloadSdpMidMax).nullish(),
+  "sdpMLineIndex": zod.number().int().min(getCallSignalsResponsePayloadSdpMLineIndexMin).nullish(),
+  "usernameFragment": zod.string().max(getCallSignalsResponsePayloadUsernameFragmentMax).nullish()
+}),
+  "createdAt": zod.coerce.date()
+})
+export const GetCallSignalsResponse = zod.array(GetCallSignalsResponseItem)
+
+
+/**
+ * @summary Send a private WebRTC offer, answer, or ICE candidate
+ */
+export const SendCallSignalParams = zod.object({
+  "callId": zod.coerce.string().uuid()
+})
+
+export const sendCallSignalBodyPayloadSdpMax = 20000;
+
+export const sendCallSignalBodyPayloadCandidateMax = 3000;
+
+export const sendCallSignalBodyPayloadSdpMidMax = 256;
+
+export const sendCallSignalBodyPayloadSdpMLineIndexMin = 0;
+
+export const sendCallSignalBodyPayloadUsernameFragmentMax = 256;
+
+
+
+export const SendCallSignalBody = zod.object({
+  "signalType": zod.enum(['offer', 'answer', 'ice_candidate']),
+  "payload": zod.object({
+  "type": zod.enum(['offer', 'answer']).optional(),
+  "sdp": zod.string().max(sendCallSignalBodyPayloadSdpMax).optional(),
+  "candidate": zod.string().max(sendCallSignalBodyPayloadCandidateMax).optional(),
+  "sdpMid": zod.string().max(sendCallSignalBodyPayloadSdpMidMax).nullish(),
+  "sdpMLineIndex": zod.number().int().min(sendCallSignalBodyPayloadSdpMLineIndexMin).nullish(),
+  "usernameFragment": zod.string().max(sendCallSignalBodyPayloadUsernameFragmentMax).nullish()
+})
+})
+
+
+export const sendCallSignalResponsePayloadSdpMax = 20000;
+
+export const sendCallSignalResponsePayloadCandidateMax = 3000;
+
+export const sendCallSignalResponsePayloadSdpMidMax = 256;
+
+export const sendCallSignalResponsePayloadSdpMLineIndexMin = 0;
+
+export const sendCallSignalResponsePayloadUsernameFragmentMax = 256;
+
+
+
+export const SendCallSignalResponse = zod.object({
+  "id": zod.number().int().min(1),
+  "callId": zod.string().uuid(),
+  "senderId": zod.string().uuid(),
+  "signalType": zod.enum(['offer', 'answer', 'ice_candidate']),
+  "payload": zod.object({
+  "type": zod.enum(['offer', 'answer']).optional(),
+  "sdp": zod.string().max(sendCallSignalResponsePayloadSdpMax).optional(),
+  "candidate": zod.string().max(sendCallSignalResponsePayloadCandidateMax).optional(),
+  "sdpMid": zod.string().max(sendCallSignalResponsePayloadSdpMidMax).nullish(),
+  "sdpMLineIndex": zod.number().int().min(sendCallSignalResponsePayloadSdpMLineIndexMin).nullish(),
+  "usernameFragment": zod.string().max(sendCallSignalResponsePayloadUsernameFragmentMax).nullish()
+}),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
  * @summary List users blocked by the signed-in account
  */
 export const GetBlockedUsersResponseItem = zod.object({

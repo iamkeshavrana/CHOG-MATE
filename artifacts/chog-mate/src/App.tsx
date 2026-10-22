@@ -15,6 +15,7 @@ import {
 } from '@workspace/api-client-react';
 import { AppShell, EmptyState, PageTitle } from '@/components/shared';
 import { WalletConnectionDialog } from '@/components/wallet-connection-dialog';
+import { CallProvider } from '@/components/call-provider';
 import { supabase } from '@/lib/supabase';
 import {
   Route,
@@ -147,9 +148,11 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <SessionLifecycle />
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
-          <Router />
-        </WouterRouter>
+        <CallProvider>
+          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
+            <Router />
+          </WouterRouter>
+        </CallProvider>
         <Toaster />
       </TooltipProvider>
     </QueryClientProvider>

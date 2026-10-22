@@ -517,6 +517,165 @@ export interface ReportInput {
   details?: string | null;
 }
 
+export type CallInputType = typeof CallInputType[keyof typeof CallInputType];
+
+
+export const CallInputType = {
+  audio: 'audio',
+  video: 'video',
+} as const;
+
+export interface CallInput {
+  matchId: string;
+  type: CallInputType;
+}
+
+export type CallSessionType = typeof CallSessionType[keyof typeof CallSessionType];
+
+
+export const CallSessionType = {
+  audio: 'audio',
+  video: 'video',
+} as const;
+
+export type CallSessionStatus = typeof CallSessionStatus[keyof typeof CallSessionStatus];
+
+
+export const CallSessionStatus = {
+  calling: 'calling',
+  connecting: 'connecting',
+  connected: 'connected',
+  ended: 'ended',
+  rejected: 'rejected',
+  missed: 'missed',
+  failed: 'failed',
+} as const;
+
+export interface CallSession {
+  id: string;
+  matchId: string;
+  callerId: string;
+  receiverId: string;
+  type: CallSessionType;
+  status: CallSessionStatus;
+  startedAt: string;
+  lastActivityAt: string;
+}
+
+export type IncomingCall = CallSession & {
+  profile: Profile;
+};
+
+export type CallActionInputAction = typeof CallActionInputAction[keyof typeof CallActionInputAction];
+
+
+export const CallActionInputAction = {
+  accept: 'accept',
+  decline: 'decline',
+  connected: 'connected',
+  end: 'end',
+  failed: 'failed',
+} as const;
+
+export interface CallActionInput {
+  action: CallActionInputAction;
+}
+
+export type CallSignalInputSignalType = typeof CallSignalInputSignalType[keyof typeof CallSignalInputSignalType];
+
+
+export const CallSignalInputSignalType = {
+  offer: 'offer',
+  answer: 'answer',
+  ice_candidate: 'ice_candidate',
+} as const;
+
+export type CallSignalInputPayloadType = typeof CallSignalInputPayloadType[keyof typeof CallSignalInputPayloadType];
+
+
+export const CallSignalInputPayloadType = {
+  offer: 'offer',
+  answer: 'answer',
+} as const;
+
+export type CallSignalInputPayload = {
+  type?: CallSignalInputPayloadType;
+  /** @maxLength 20000 */
+  sdp?: string;
+  /** @maxLength 3000 */
+  candidate?: string;
+  /**
+     * @maxLength 256
+     * @nullable
+     */
+  sdpMid?: string | null;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  sdpMLineIndex?: number | null;
+  /**
+     * @maxLength 256
+     * @nullable
+     */
+  usernameFragment?: string | null;
+};
+
+export interface CallSignalInput {
+  signalType: CallSignalInputSignalType;
+  payload: CallSignalInputPayload;
+}
+
+export type CallSignalSignalType = typeof CallSignalSignalType[keyof typeof CallSignalSignalType];
+
+
+export const CallSignalSignalType = {
+  offer: 'offer',
+  answer: 'answer',
+  ice_candidate: 'ice_candidate',
+} as const;
+
+export type CallSignalPayloadType = typeof CallSignalPayloadType[keyof typeof CallSignalPayloadType];
+
+
+export const CallSignalPayloadType = {
+  offer: 'offer',
+  answer: 'answer',
+} as const;
+
+export type CallSignalPayload = {
+  type?: CallSignalPayloadType;
+  /** @maxLength 20000 */
+  sdp?: string;
+  /** @maxLength 3000 */
+  candidate?: string;
+  /**
+     * @maxLength 256
+     * @nullable
+     */
+  sdpMid?: string | null;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  sdpMLineIndex?: number | null;
+  /**
+     * @maxLength 256
+     * @nullable
+     */
+  usernameFragment?: string | null;
+};
+
+export interface CallSignal {
+  /** @minimum 1 */
+  id: number;
+  callId: string;
+  senderId: string;
+  signalType: CallSignalSignalType;
+  payload: CallSignalPayload;
+  createdAt: string;
+}
+
 export type GetLiveSalesParams = {
 /**
  * @maxLength 2000
