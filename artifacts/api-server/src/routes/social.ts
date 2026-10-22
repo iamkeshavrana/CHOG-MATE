@@ -3,6 +3,8 @@ import { randomUUID } from "node:crypto";
 import {
   BlockProfileBody,
   GetBlockedUsersResponse,
+  GetConversationsResponse,
+  GetExMatchesResponse,
   GetLikeInboxResponse,
   GetMatchesResponse,
   GetMessagesParams,
@@ -11,6 +13,7 @@ import {
   RequestMessageAttachmentUploadUrlParams,
   RequestMessageAttachmentUploadUrlResponse,
   ReportProfileBody,
+  RematchProfileParams,
   SendMessageBody,
   SendMessageParams,
   SendMessageResponse,
@@ -67,6 +70,7 @@ interface MatchRow {
   user_b: string;
   compatibility_score: number;
   status: "active" | "unmatched";
+  unmatched_by: string | null;
   created_at: string;
   last_activity: string | null;
 }
@@ -458,39 +462,115 @@ router.get("/matches", async (req, res): Promise<void> => {
     const rows = [...((asA.data ?? []) as MatchRow[]), ...((asB.data ?? []) as MatchRow[])]
       .filter((row) => !excluded.has(row.user_a === session.userId ? row.user_b : row.user_a));
     rows.sort((a, b) => (b.last_activity ?? b.created_at).localeCompare(a.last_activity ?? a.created_at));
-    const otherIds = rows.map((row) => (row.user_a === session.userId ? row.user_b : row.user_a));
-    const bundles = await loadProfileBundles(otherIds);
+    res.json(GetMatchesResponse.parse(await buildMatchItems(rows, session.userId)));
+  } catch (error) {
+    sendSocialError(req, res, error);
+  }
+});
 
-    const matches = [];
-    for (const row of rows) {
-      const otherId = row.user_a === session.userId ? row.user_b : row.user_a;
-      const bundle = bundles.get(otherId);
-      if (!bundle) continue;
-      const owns = await isCurrentChogOwner(getAddress(bundle.user.wallet_address), bundle.chog.tokenId);
-      if (owns === null) {
-        res.status(503).json({ error: "Ownership checks are temporarily unavailable." });
-        return;
-      }
-      if (!owns) continue;
+router.get("/matches/ex", async (req, res): Promise<void> => {
+  const session = requireWalletSession(req, res);
+  if (!session) return;
 
-      const { count, error: unreadError } = await admin
-        .from("messages")
-        .select("id", { count: "exact", head: true })
-        .eq("match_id", row.id)
-        .neq("sender_id", session.userId)
-        .is("read_at", null);
-      if (unreadError) throw new SocialDataError("CHOG MATE messages are not ready yet.");
-      matches.push({
-        id: row.id,
-        profile: profileToApi(bundle),
-        compatibility: row.compatibility_score,
-        createdAt: row.created_at,
-        lastActivity: row.last_activity,
-        unreadCount: count ?? 0,
-      });
+  try {
+    await requireEligibleProfile(session);
+    const admin = getSupabaseAdmin();
+    const [asA, asB, blockedByMe, blockedMe] = await Promise.all([
+      admin
+        .from("matches")
+        .select("*")
+        .eq("user_a", session.userId)
+        .eq("status", "unmatched")
+        .eq("unmatched_by", session.userId),
+      admin
+        .from("matches")
+        .select("*")
+        .eq("user_b", session.userId)
+        .eq("status", "unmatched")
+        .eq("unmatched_by", session.userId),
+      admin.from("blocks").select("blocked_user_id").eq("blocker_id", session.userId),
+      admin.from("blocks").select("blocker_id").eq("blocked_user_id", session.userId),
+    ]);
+    if ([asA, asB, blockedByMe, blockedMe].some((result) => result.error)) {
+      throw new SocialDataError("CHOG MATE matching is not ready yet.");
     }
 
-    res.json(GetMatchesResponse.parse(matches));
+    const excluded = new Set([
+      ...(blockedByMe.data ?? []).map((row) => row.blocked_user_id),
+      ...(blockedMe.data ?? []).map((row) => row.blocker_id),
+    ]);
+    const rows = [...((asA.data ?? []) as MatchRow[]), ...((asB.data ?? []) as MatchRow[])]
+      .filter((row) => !excluded.has(row.user_a === session.userId ? row.user_b : row.user_a));
+    rows.sort((a, b) => (b.last_activity ?? b.created_at).localeCompare(a.last_activity ?? a.created_at));
+    res.json(GetExMatchesResponse.parse(await buildMatchItems(rows, session.userId)));
+  } catch (error) {
+    sendSocialError(req, res, error);
+  }
+});
+
+router.get("/conversations", async (req, res): Promise<void> => {
+  const session = requireWalletSession(req, res);
+  if (!session) return;
+
+  try {
+    await requireEligibleProfile(session);
+    const admin = getSupabaseAdmin();
+    const [asA, asB, blockedByMe, blockedMe] = await Promise.all([
+      admin
+        .from("matches")
+        .select("*")
+        .eq("user_a", session.userId)
+        .in("status", ["active", "unmatched"]),
+      admin
+        .from("matches")
+        .select("*")
+        .eq("user_b", session.userId)
+        .in("status", ["active", "unmatched"]),
+      admin.from("blocks").select("blocked_user_id").eq("blocker_id", session.userId),
+      admin.from("blocks").select("blocker_id").eq("blocked_user_id", session.userId),
+    ]);
+    if ([asA, asB, blockedByMe, blockedMe].some((result) => result.error)) {
+      throw new SocialDataError("CHOG MATE conversations are not ready yet.");
+    }
+
+    const excluded = new Set([
+      ...(blockedByMe.data ?? []).map((row) => row.blocked_user_id),
+      ...(blockedMe.data ?? []).map((row) => row.blocker_id),
+    ]);
+    const rows = [...((asA.data ?? []) as MatchRow[]), ...((asB.data ?? []) as MatchRow[])]
+      .filter((row) => !excluded.has(row.user_a === session.userId ? row.user_b : row.user_a));
+    rows.sort((a, b) => (b.last_activity ?? b.created_at).localeCompare(a.last_activity ?? a.created_at));
+    res.json(GetConversationsResponse.parse(
+      await buildMatchItems(rows, session.userId, true),
+    ));
+  } catch (error) {
+    sendSocialError(req, res, error);
+  }
+});
+
+router.post("/matches/:matchId/rematch", async (req, res): Promise<void> => {
+  const session = requireWalletSession(req, res);
+  if (!session) return;
+  const parsed = RematchProfileParams.safeParse(req.params);
+  if (!parsed.success) {
+    res.status(400).json({ error: "That match could not be restored." });
+    return;
+  }
+
+  try {
+    await requireEligibleProfile(session);
+    const { data, error } = await getSupabaseAdmin().rpc("rematch_match", {
+      p_match_id: parsed.data.matchId,
+      p_user_id: session.userId,
+    });
+    if (error) throw new SocialDataError("The match could not be restored.");
+    if (data !== true) {
+      res.status(409).json({
+        error: "Rematch is unavailable. Only the person who ended the match can restore it, and blocked users cannot rematch.",
+      });
+      return;
+    }
+    res.sendStatus(204);
   } catch (error) {
     sendSocialError(req, res, error);
   }
@@ -507,9 +587,9 @@ router.get("/matches/:matchId/messages", async (req, res): Promise<void> => {
 
   try {
     await requireEligibleProfile(session);
-    const match = await getActiveMatch(parsed.data.matchId, session.userId);
+    const match = await getConversationMatch(parsed.data.matchId, session.userId);
     if (!match) {
-      res.status(404).json({ error: "That conversation is no longer active." });
+      res.status(404).json({ error: "That conversation is no longer available." });
       return;
     }
     const admin = getSupabaseAdmin();
@@ -550,9 +630,9 @@ router.post("/matches/:matchId/attachments/upload-url", async (req, res): Promis
 
   try {
     await requireEligibleProfile(session);
-    const match = await getActiveMatch(params.data.matchId, session.userId);
+    const match = await getConversationMatch(params.data.matchId, session.userId);
     if (!match) {
-      res.status(404).json({ error: "That conversation is no longer active." });
+      res.status(404).json({ error: "That conversation is no longer available." });
       return;
     }
 
@@ -598,9 +678,9 @@ router.post("/matches/:matchId/messages", async (req, res): Promise<void> => {
 
   try {
     await requireEligibleProfile(session);
-    const match = await getActiveMatch(params.data.matchId, session.userId);
+    const match = await getConversationMatch(params.data.matchId, session.userId);
     if (!match) {
-      res.status(404).json({ error: "That conversation is no longer active." });
+      res.status(404).json({ error: "That conversation is no longer available." });
       return;
     }
     const admin = getSupabaseAdmin();
@@ -740,13 +820,13 @@ router.post("/blocks", async (req, res): Promise<void> => {
     const [a, b] = await Promise.all([
       admin
         .from("matches")
-        .update({ status: "unmatched", unmatched_by: session.userId })
+        .update({ status: "unmatched", unmatched_by: null })
         .eq("user_a", session.userId)
         .eq("user_b", targetId)
         .eq("status", "active"),
       admin
         .from("matches")
-        .update({ status: "unmatched", unmatched_by: session.userId })
+        .update({ status: "unmatched", unmatched_by: null })
         .eq("user_a", targetId)
         .eq("user_b", session.userId)
         .eq("status", "active"),
@@ -930,6 +1010,90 @@ async function getActiveMatch(matchId: string, userId: string): Promise<MatchRow
     throw new SocialDataError("CHOG MATE matching is not ready yet.");
   }
   return blockedByMe.data || blockedMe.data ? null : match;
+}
+
+async function getConversationMatch(matchId: string, userId: string): Promise<MatchRow | null> {
+  const { data, error } = await getSupabaseAdmin()
+    .from("matches")
+    .select("*")
+    .eq("id", matchId)
+    .maybeSingle();
+  if (error) throw new SocialDataError("CHOG MATE matching is not ready yet.");
+  if (!data) return null;
+  const match = data as MatchRow;
+  if (
+    (match.status !== "active" && match.status !== "unmatched") ||
+    (match.user_a !== userId && match.user_b !== userId)
+  ) {
+    return null;
+  }
+
+  const otherUserId = match.user_a === userId ? match.user_b : match.user_a;
+  const admin = getSupabaseAdmin();
+  const [blockedByMe, blockedMe] = await Promise.all([
+    admin
+      .from("blocks")
+      .select("id")
+      .eq("blocker_id", userId)
+      .eq("blocked_user_id", otherUserId)
+      .maybeSingle(),
+    admin
+      .from("blocks")
+      .select("id")
+      .eq("blocker_id", otherUserId)
+      .eq("blocked_user_id", userId)
+      .maybeSingle(),
+  ]);
+  if (blockedByMe.error || blockedMe.error) {
+    throw new SocialDataError("CHOG MATE matching is not ready yet.");
+  }
+  return blockedByMe.data || blockedMe.data ? null : match;
+}
+
+async function buildMatchItems(
+  rows: MatchRow[],
+  userId: string,
+  includeStatus = false,
+): Promise<Record<string, unknown>[]> {
+  if (rows.length === 0) return [];
+  const otherIds = rows.map((row) => (row.user_a === userId ? row.user_b : row.user_a));
+  const bundles = await loadProfileBundles(otherIds);
+  const admin = getSupabaseAdmin();
+  const items: Record<string, unknown>[] = [];
+
+  for (const row of rows) {
+    const otherId = row.user_a === userId ? row.user_b : row.user_a;
+    const bundle = bundles.get(otherId);
+    if (!bundle) continue;
+    const owns = await isCurrentChogOwner(
+      getAddress(bundle.user.wallet_address),
+      bundle.chog.tokenId,
+    );
+    if (owns === null) {
+      throw new EligibilityError("Ownership checks are temporarily unavailable.", 503);
+    }
+    if (!owns) continue;
+
+    const { count, error: unreadError } = await admin
+      .from("messages")
+      .select("id", { count: "exact", head: true })
+      .eq("match_id", row.id)
+      .neq("sender_id", userId)
+      .is("read_at", null);
+    if (unreadError) throw new SocialDataError("CHOG MATE messages are not ready yet.");
+
+    items.push({
+      id: row.id,
+      profile: profileToApi(bundle),
+      compatibility: row.compatibility_score,
+      createdAt: row.created_at,
+      lastActivity: row.last_activity,
+      unreadCount: count ?? 0,
+      ...(includeStatus ? { status: row.status } : {}),
+    });
+  }
+
+  return items;
 }
 
 function sendSocialError(req: Request, res: Response, error: unknown): void {

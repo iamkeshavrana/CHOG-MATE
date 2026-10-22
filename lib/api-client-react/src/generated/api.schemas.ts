@@ -374,6 +374,30 @@ export interface LikeInboxItem {
   profile: Profile;
 }
 
+export type ConversationStatus = typeof ConversationStatus[keyof typeof ConversationStatus];
+
+
+export const ConversationStatus = {
+  active: 'active',
+  unmatched: 'unmatched',
+} as const;
+
+export interface Conversation {
+  id: string;
+  profile: Profile;
+  /**
+     * @minimum 0
+     * @maximum 100
+     */
+  compatibility: number;
+  createdAt: string;
+  /** @nullable */
+  lastActivity?: string | null;
+  /** @minimum 0 */
+  unreadCount?: number;
+  status: ConversationStatus;
+}
+
 export type MessageMessageType = typeof MessageMessageType[keyof typeof MessageMessageType];
 
 

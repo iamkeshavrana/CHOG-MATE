@@ -28,6 +28,7 @@ import type {
   Chog,
   ChogSelectionInput,
   CollectionStats,
+  Conversation,
   CurrentProfile,
   DiscoverProfilesParams,
   DiscoverVisibility,
@@ -1622,6 +1623,234 @@ export function useGetMatches<TData = Awaited<ReturnType<typeof getMatches>>, TE
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetMatchesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetExMatchesUrl = () => {
+
+
+
+
+  return `/api/matches/ex`
+}
+
+/**
+ * @summary List matches personally unmatched by the signed-in user
+ */
+export const getExMatches = async ( options?: Parameters<typeof customFetch>[1]): Promise<Match[]> => {
+
+  return customFetch<Match[]>(getGetExMatchesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetExMatchesQueryKey = () => {
+    return [
+    `/api/matches/ex`
+    ] as const;
+    }
+
+
+export const getGetExMatchesQueryOptions = <TData = Awaited<ReturnType<typeof getExMatches>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getExMatches>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetExMatchesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getExMatches>>> = ({ signal }) => getExMatches({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getExMatches>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetExMatchesQueryResult = NonNullable<Awaited<ReturnType<typeof getExMatches>>>
+export type GetExMatchesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List matches personally unmatched by the signed-in user
+ */
+
+export function useGetExMatches<TData = Awaited<ReturnType<typeof getExMatches>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getExMatches>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetExMatchesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getRematchProfileUrl = (matchId: string,) => {
+
+
+
+
+  return `/api/matches/${matchId}/rematch`
+}
+
+/**
+ * @summary Restore a match previously ended by the signed-in user
+ */
+export const rematchProfile = async (matchId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getRematchProfileUrl(matchId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getRematchProfileMutationKey = () => ['rematchProfile'] as const;
+
+export const getRematchProfileMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rematchProfile>>, TError,RematchProfileMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof rematchProfile>>, TError,RematchProfileMutationVariables, TContext> => {
+
+const mutationKey = getRematchProfileMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rematchProfile>>, RematchProfileMutationVariables> = (props) => {
+          const {matchId} = props ?? {};
+
+          return  rematchProfile(matchId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RematchProfileMutationResult = NonNullable<Awaited<ReturnType<typeof rematchProfile>>>
+
+    export type RematchProfileMutationError = ErrorType<unknown>
+    export type RematchProfileMutationVariables = {matchId: string}
+
+    /**
+ * @summary Restore a match previously ended by the signed-in user
+ */
+export const useRematchProfile = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rematchProfile>>, TError,RematchProfileMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof rematchProfile>>,
+        TError,
+        RematchProfileMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRematchProfileMutationOptions(options));
+    }
+
+export const getGetConversationsUrl = () => {
+
+
+
+
+  return `/api/conversations`
+}
+
+/**
+ * @summary List unblocked conversations, including unmatched chat history
+ */
+export const getConversations = async ( options?: Parameters<typeof customFetch>[1]): Promise<Conversation[]> => {
+
+  return customFetch<Conversation[]>(getGetConversationsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetConversationsQueryKey = () => {
+    return [
+    `/api/conversations`
+    ] as const;
+    }
+
+
+export const getGetConversationsQueryOptions = <TData = Awaited<ReturnType<typeof getConversations>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getConversations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetConversationsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getConversations>>> = ({ signal }) => getConversations({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getConversations>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetConversationsQueryResult = NonNullable<Awaited<ReturnType<typeof getConversations>>>
+export type GetConversationsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List unblocked conversations, including unmatched chat history
+ */
+
+export function useGetConversations<TData = Awaited<ReturnType<typeof getConversations>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getConversations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetConversationsQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

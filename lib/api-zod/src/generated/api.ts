@@ -782,6 +782,147 @@ export const GetMatchesResponse = zod.array(GetMatchesResponseItem)
 
 
 /**
+ * @summary List matches personally unmatched by the signed-in user
+ */
+export const getExMatchesResponseProfileAgeMin = 18;
+export const getExMatchesResponseProfileAgeMax = 120;
+
+export const getExMatchesResponseProfileLookingForOtherMax = 200;
+
+export const getExMatchesResponseProfileChogTraitsItemRarityMin = 0;
+export const getExMatchesResponseProfileChogTraitsItemRarityMax = 100;
+
+export const getExMatchesResponseProfileCompatibilityMin = 0;
+export const getExMatchesResponseProfileCompatibilityMax = 100;
+
+export const getExMatchesResponseCompatibilityMin = 0;
+export const getExMatchesResponseCompatibilityMax = 100;
+
+export const getExMatchesResponseUnreadCountMin = 0;
+
+
+
+export const GetExMatchesResponseItem = zod.object({
+  "id": zod.string().uuid(),
+  "profile": zod.object({
+  "userId": zod.string().uuid(),
+  "username": zod.string(),
+  "displayName": zod.string(),
+  "gender": zod.union([zod.literal('Male'),zod.literal('Female'),zod.literal('Gay'),zod.literal('Trans'),zod.literal('Alien'),zod.literal(null)]).nullable(),
+  "age": zod.number().int().min(getExMatchesResponseProfileAgeMin).max(getExMatchesResponseProfileAgeMax).nullable(),
+  "walletAddress": zod.string(),
+  "walletVerified": zod.boolean(),
+  "bio": zod.string().nullable(),
+  "interests": zod.array(zod.string()),
+  "hobbies": zod.array(zod.string()),
+  "languages": zod.array(zod.string()),
+  "lookingFor": zod.array(zod.enum(['Dating', 'Friendship', 'Networking', 'Collaboration', 'Other'])),
+  "lookingForOther": zod.string().max(getExMatchesResponseProfileLookingForOtherMax).nullable(),
+  "chog": zod.object({
+  "tokenId": zod.string(),
+  "contractAddress": zod.string(),
+  "ownerWallet": zod.string(),
+  "verified": zod.boolean(),
+  "name": zod.string().nullish(),
+  "description": zod.string().nullable(),
+  "tier": zod.string().nullable(),
+  "imageUrl": zod.string().url().nullish(),
+  "imageUrls": zod.array(zod.string().url()).optional(),
+  "metadataUrl": zod.string().url().nullish(),
+  "traits": zod.array(zod.object({
+  "traitType": zod.string(),
+  "traitValue": zod.string(),
+  "rarity": zod.number().min(getExMatchesResponseProfileChogTraitsItemRarityMin).max(getExMatchesResponseProfileChogTraitsItemRarityMax).nullish()
+})).optional()
+}),
+  "compatibility": zod.number().int().min(getExMatchesResponseProfileCompatibilityMin).max(getExMatchesResponseProfileCompatibilityMax).nullish(),
+  "whyYouMatch": zod.array(zod.string()).optional()
+}),
+  "compatibility": zod.number().int().min(getExMatchesResponseCompatibilityMin).max(getExMatchesResponseCompatibilityMax),
+  "createdAt": zod.coerce.date(),
+  "lastActivity": zod.coerce.date().nullish(),
+  "unreadCount": zod.number().int().min(getExMatchesResponseUnreadCountMin).optional()
+})
+export const GetExMatchesResponse = zod.array(GetExMatchesResponseItem)
+
+
+/**
+ * @summary Restore a match previously ended by the signed-in user
+ */
+export const RematchProfileParams = zod.object({
+  "matchId": zod.coerce.string().uuid()
+})
+
+export const RematchProfileResponse = zod.void()
+
+
+/**
+ * @summary List unblocked conversations, including unmatched chat history
+ */
+export const getConversationsResponseProfileAgeMin = 18;
+export const getConversationsResponseProfileAgeMax = 120;
+
+export const getConversationsResponseProfileLookingForOtherMax = 200;
+
+export const getConversationsResponseProfileChogTraitsItemRarityMin = 0;
+export const getConversationsResponseProfileChogTraitsItemRarityMax = 100;
+
+export const getConversationsResponseProfileCompatibilityMin = 0;
+export const getConversationsResponseProfileCompatibilityMax = 100;
+
+export const getConversationsResponseCompatibilityMin = 0;
+export const getConversationsResponseCompatibilityMax = 100;
+
+export const getConversationsResponseUnreadCountMin = 0;
+
+
+
+export const GetConversationsResponseItem = zod.object({
+  "id": zod.string().uuid(),
+  "profile": zod.object({
+  "userId": zod.string().uuid(),
+  "username": zod.string(),
+  "displayName": zod.string(),
+  "gender": zod.union([zod.literal('Male'),zod.literal('Female'),zod.literal('Gay'),zod.literal('Trans'),zod.literal('Alien'),zod.literal(null)]).nullable(),
+  "age": zod.number().int().min(getConversationsResponseProfileAgeMin).max(getConversationsResponseProfileAgeMax).nullable(),
+  "walletAddress": zod.string(),
+  "walletVerified": zod.boolean(),
+  "bio": zod.string().nullable(),
+  "interests": zod.array(zod.string()),
+  "hobbies": zod.array(zod.string()),
+  "languages": zod.array(zod.string()),
+  "lookingFor": zod.array(zod.enum(['Dating', 'Friendship', 'Networking', 'Collaboration', 'Other'])),
+  "lookingForOther": zod.string().max(getConversationsResponseProfileLookingForOtherMax).nullable(),
+  "chog": zod.object({
+  "tokenId": zod.string(),
+  "contractAddress": zod.string(),
+  "ownerWallet": zod.string(),
+  "verified": zod.boolean(),
+  "name": zod.string().nullish(),
+  "description": zod.string().nullable(),
+  "tier": zod.string().nullable(),
+  "imageUrl": zod.string().url().nullish(),
+  "imageUrls": zod.array(zod.string().url()).optional(),
+  "metadataUrl": zod.string().url().nullish(),
+  "traits": zod.array(zod.object({
+  "traitType": zod.string(),
+  "traitValue": zod.string(),
+  "rarity": zod.number().min(getConversationsResponseProfileChogTraitsItemRarityMin).max(getConversationsResponseProfileChogTraitsItemRarityMax).nullish()
+})).optional()
+}),
+  "compatibility": zod.number().int().min(getConversationsResponseProfileCompatibilityMin).max(getConversationsResponseProfileCompatibilityMax).nullish(),
+  "whyYouMatch": zod.array(zod.string()).optional()
+}),
+  "compatibility": zod.number().int().min(getConversationsResponseCompatibilityMin).max(getConversationsResponseCompatibilityMax),
+  "createdAt": zod.coerce.date(),
+  "lastActivity": zod.coerce.date().nullish(),
+  "unreadCount": zod.number().int().min(getConversationsResponseUnreadCountMin).optional(),
+  "status": zod.enum(['active', 'unmatched'])
+})
+export const GetConversationsResponse = zod.array(GetConversationsResponseItem)
+
+
+/**
  * @summary List messages for a match
  */
 export const GetMessagesParams = zod.object({

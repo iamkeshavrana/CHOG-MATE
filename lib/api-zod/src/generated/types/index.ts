@@ -14,6 +14,8 @@ export * from './blockInput';
 export * from './chog';
 export * from './chogSelectionInput';
 export * from './collectionStats';
+export * from './conversation';
+export * from './conversationStatus';
 export * from './currentProfile';
 export * from './currentProfileIdentityMode';
 export * from './discoverProfilesGender';

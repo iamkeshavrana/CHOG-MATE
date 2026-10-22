@@ -462,6 +462,49 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Match"
+  /matches/ex:
+    get:
+      operationId: getExMatches
+      tags: [matching]
+      summary: List matches personally unmatched by the signed-in user
+      responses:
+        "200":
+          description: Ex Matches
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Match"
+  /matches/{matchId}/rematch:
+    post:
+      operationId: rematchProfile
+      tags: [matching]
+      summary: Restore a match previously ended by the signed-in user
+      parameters:
+        - name: matchId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Match restored
+  /conversations:
+    get:
+      operationId: getConversations
+      tags: [matching]
+      summary: List unblocked conversations, including unmatched chat history
+      responses:
+        "200":
+          description: Conversations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Conversation"
   /matches/{matchId}/messages:
     get:
       operationId: getMessages
@@ -863,6 +906,17 @@ components:
         createdAt: { type: string, format: date-time }
         lastActivity: { type: ["string", "null"], format: date-time }
         unreadCount: { type: integer, minimum: 0 }
+    Conversation:
+      type: object
+      required: [id, profile, compatibility, createdAt, status]
+      properties:
+        id: { type: string, format: uuid }
+        profile: { $ref: "#/components/schemas/Profile" }
+        compatibility: { type: integer, minimum: 0, maximum: 100 }
+        createdAt: { type: string, format: date-time }
+        lastActivity: { type: ["string", "null"], format: date-time }
+        unreadCount: { type: integer, minimum: 0 }
+        status: { type: string, enum: [active, unmatched] }
     Message:
       type: object
       required: [id, matchId, senderId, content, createdAt, messageType, attachmentUrl, attachmentName, attachmentContentType, attachmentSize]

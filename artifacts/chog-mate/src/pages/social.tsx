@@ -5,12 +5,15 @@ import { ArrowRight, BadgeCheck, FileText, Heart, Image as ImageIcon, MessageCir
 import { Link } from 'wouter';
 import {
   getGetAuthSessionQueryKey,
-  getDiscoverProfilesQueryKey, getGetMatchesQueryKey, getGetMessagesQueryKey,
+  getDiscoverProfilesQueryKey, getGetConversationsQueryKey, getGetExMatchesQueryKey,
+  getGetMatchesQueryKey, getGetMessagesQueryKey,
   getGetMeQueryKey, getGetLikeInboxQueryKey, getGetSentLikesQueryKey,
-  useBlockProfile, useDiscoverProfiles, useGetMatches, useGetMessages,
-  useGetAuthSession, useGetLikeInbox, useGetMe, useGetSentLikes, useReportProfile, useRequestMessageAttachmentUploadUrl, useSendMessage, useSwipeProfile, useUnmatchProfile,
+  useBlockProfile, useDiscoverProfiles, useGetConversations, useGetExMatches,
+  useGetMatches, useGetMessages, useGetAuthSession, useGetLikeInbox, useGetMe,
+  useGetSentLikes, useRematchProfile, useReportProfile,
+  useRequestMessageAttachmentUploadUrl, useSendMessage, useSwipeProfile, useUnmatchProfile,
 } from '@workspace/api-client-react';
-import { type DiscoverProfilesParams, type LikeInboxItem, type Profile, ReportInputReason } from '@workspace/api-client-react';
+import { type DiscoverProfilesParams, type LikeInboxItem, type Match, type Profile, ReportInputReason } from '@workspace/api-client-react';
 import { formatUnits, type Hex } from 'viem';
 import { useConnection, usePublicClient, useReadContract, useWriteContract } from 'wagmi';
 import { AppShell, ChogArtwork, EmptyState, Eyebrow, PageTitle, ProfileAvatar, QueryState } from '@/components/shared';
@@ -51,6 +54,8 @@ function ReportControl({
         qc.invalidateQueries({ queryKey: getDiscoverProfilesQueryKey() }),
         qc.invalidateQueries({ queryKey: getGetLikeInboxQueryKey() }),
         qc.invalidateQueries({ queryKey: getGetMatchesQueryKey() }),
+        qc.invalidateQueries({ queryKey: getGetExMatchesQueryKey() }),
+        qc.invalidateQueries({ queryKey: getGetConversationsQueryKey() }),
       ]);
       setNotice('Profile blocked.');
     } catch { setNotice('We could not block this profile. Please try again.'); }
@@ -735,6 +740,9 @@ export function MatchesPage() {
   const { data, isLoading, isError, refetch } = useGetMatches({
     query: { enabled: Boolean(me.data), queryKey: getGetMatchesQueryKey() },
   });
+  const exMatchesQuery = useGetExMatches({
+    query: { enabled: Boolean(me.data), queryKey: getGetExMatchesQueryKey() },
+  });
   const inbox = useGetLikeInbox({
     query: { enabled: Boolean(me.data), queryKey: getGetLikeInboxQueryKey() },
   });
@@ -742,8 +750,12 @@ export function MatchesPage() {
     query: { enabled: Boolean(me.data), queryKey: getGetSentLikesQueryKey() },
   });
   const [walletDialogOpen, setWalletDialogOpen] = useState(true);
-  const [section, setSection] = useState<'matches' | 'liked-you' | 'liked-by-you'>(() =>
-    typeof window !== 'undefined' && window.location.hash === '#likes' ? 'liked-you' : 'matches',
+  const [section, setSection] = useState<'matches' | 'ex-match' | 'liked-you' | 'liked-by-you'>(() =>
+    typeof window !== 'undefined' && window.location.hash === '#likes'
+      ? 'liked-you'
+      : typeof window !== 'undefined' && window.location.hash === '#ex-match'
+        ? 'ex-match'
+        : 'matches',
   );
   const qc = useQueryClient();
   const matches = data || [];
@@ -751,19 +763,28 @@ export function MatchesPage() {
     const syncSectionFromHash = () => {
       if (window.location.hash === '#likes') setSection('liked-you');
       else if (window.location.hash === '#liked-by-you') setSection('liked-by-you');
+      else if (window.location.hash === '#ex-match') setSection('ex-match');
     };
     window.addEventListener('hashchange', syncSectionFromHash);
     return () => window.removeEventListener('hashchange', syncSectionFromHash);
   }, []);
-  function chooseSection(next: 'matches' | 'liked-you' | 'liked-by-you') {
+  function chooseSection(next: 'matches' | 'ex-match' | 'liked-you' | 'liked-by-you') {
     setSection(next);
-    const hash = next === 'liked-you' ? '#likes' : next === 'liked-by-you' ? '#liked-by-you' : '';
+    const hash = next === 'liked-you'
+      ? '#likes'
+      : next === 'liked-by-you'
+        ? '#liked-by-you'
+        : next === 'ex-match'
+          ? '#ex-match'
+          : '';
     window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}${hash}`);
   }
   function refreshSocialLists() {
     void qc.invalidateQueries({ queryKey: getGetLikeInboxQueryKey() });
     void qc.invalidateQueries({ queryKey: getGetSentLikesQueryKey() });
     void qc.invalidateQueries({ queryKey: getGetMatchesQueryKey() });
+    void qc.invalidateQueries({ queryKey: getGetExMatchesQueryKey() });
+    void qc.invalidateQueries({ queryKey: getGetConversationsQueryKey() });
   }
   if (me.isLoading) return <AppShell><div className="skeleton h-96 rounded-[28px]"/></AppShell>;
   if (me.isError && !isUnauthorized(me.error)) return <AppShell><QueryState loading={false} error retry={()=>void me.refetch()}><div/></QueryState></AppShell>;
@@ -773,6 +794,7 @@ export function MatchesPage() {
     <div className="mb-6 flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Your likes and matches">
       {([
         { id: 'matches', label: 'Matches', count: matches.length },
+        { id: 'ex-match', label: 'Ex Match', count: exMatchesQuery.data?.length ?? 0 },
         { id: 'liked-you', label: 'Liked You', count: inbox.data?.length ?? 0 },
         { id: 'liked-by-you', label: 'Liked By You', count: sent.data?.length ?? 0 },
       ] as const).map(item => <button
@@ -826,6 +848,19 @@ export function MatchesPage() {
         </article>)}</div> : <EmptyState mark="cm" title="Your first match is out there." detail="When someone you like likes you back, you’ll find your mutual connection here." action={<Link href="/discover" className="button-primary inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-bold" data-testid="link-discover-from-matches">Meet people <ArrowRight size={15}/></Link>} />}
       </QueryState>
     </section>}
+    {section === 'ex-match' && <section id="panel-ex-match" role="tabpanel" aria-label="People you unmatched">
+      <QueryState
+        loading={exMatchesQuery.isLoading}
+        error={exMatchesQuery.isError}
+        retry={() => void exMatchesQuery.refetch()}
+      >
+        {exMatchesQuery.data?.length
+          ? <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{exMatchesQuery.data.map(item =>
+              <ExMatchCard key={item.id} item={item} onRematched={refreshSocialLists} />,
+            )}</div>
+          : <EmptyState title="No Ex Matches." detail="People you personally unmatch will appear here. You can rematch with them whenever you choose." />}
+      </QueryState>
+    </section>}
   </div></AppShell>;
 }
 
@@ -874,17 +909,67 @@ function IncomingLikeCard({ item, onHandled }: { item: LikeInboxItem; onHandled:
 
 function MatchActions({ matchId, username, onDone }: { matchId: string; username: string; onDone: () => void }) {
   const unmatch = useUnmatchProfile();
-  return <button onClick={()=>{if(window.confirm(`Unmatch with @${username}? This removes the mutual connection.`)) unmatch.mutate({matchId},{onSuccess:onDone});}} disabled={unmatch.isPending} className="mt-4 text-xs font-semibold text-[#998e9e] underline-offset-4 hover:text-[#9a4a4a] hover:underline disabled:opacity-50" data-testid={`button-unmatch-${matchId}`}>{unmatch.isPending ? 'Removing…' : 'Unmatch'}</button>;
+  return <button onClick={()=>{if(window.confirm(`Unmatch with @${username}? The active match will end, but your conversation history will remain in Messages.`)) unmatch.mutate({matchId},{onSuccess:onDone});}} disabled={unmatch.isPending} className="mt-4 text-xs font-semibold text-[#998e9e] underline-offset-4 hover:text-[#9a4a4a] hover:underline disabled:opacity-50" data-testid={`button-unmatch-${matchId}`}>{unmatch.isPending ? 'Removing…' : 'Unmatch'}</button>;
+}
+
+function ExMatchCard({ item, onRematched }: { item: Match; onRematched: () => void }) {
+  return <article
+    className="surface flex gap-4 rounded-[26px] p-4 sm:p-5"
+    data-testid={`card-ex-match-${item.id}`}
+  >
+    <div className="w-28 shrink-0 rounded-2xl bg-[#eee5fb]">
+      <ChogArtwork chog={item.profile.chog} fit="natural"/>
+    </div>
+    <div className="min-w-0 flex-1">
+      <h2 className="display break-words text-lg font-extrabold text-[#24133f]">
+        {item.profile.displayName}{item.profile.age !== null ? `, ${item.profile.age}` : ''}
+      </h2>
+      <p className="mt-1 text-xs text-[#82778c]">@{item.profile.username}</p>
+      <p className="mt-2 text-[11px] font-semibold text-[#705b83]">
+        Chog #{item.profile.chog.tokenId} · {item.profile.chog.tier || 'Tier unlisted'}
+      </p>
+      <RematchAction matchId={item.id} onRematched={onRematched}/>
+    </div>
+  </article>;
+}
+
+function RematchAction({ matchId, onRematched }: { matchId: string; onRematched: () => void }) {
+  const rematch = useRematchProfile();
+  const [notice, setNotice] = useState('');
+
+  async function restoreMatch() {
+    setNotice('');
+    try {
+      await rematch.mutateAsync({ matchId });
+      onRematched();
+    } catch {
+      setNotice("Rematch isn't available. The other person may have blocked you.");
+    }
+  }
+
+  return <>
+    <button
+      type="button"
+      onClick={() => void restoreMatch()}
+      disabled={rematch.isPending}
+      className="button-primary mt-4 inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-xs font-bold disabled:opacity-50"
+      data-testid={`button-rematch-${matchId}`}
+    >
+      {rematch.isPending ? 'Restoring…' : 'Rematch'}
+    </button>
+    {notice && <p className="mt-2 text-xs leading-5 text-[#a34646]" role="alert">{notice}</p>}
+  </>;
 }
 
 export function MessagesPage() {
   const [selectedMatch, setSelectedMatch] = useState(()=>typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('match') || '' : '');
   const currentProfile = useGetMe({ query: { queryKey: getGetMeQueryKey(), retry: false } });
-  const { data: matches, isLoading: matchesLoading, isError: matchesError, refetch: retryMatches } = useGetMatches({
-    query: { enabled: Boolean(currentProfile.data), queryKey: getGetMatchesQueryKey() },
+  const { data: conversations, isLoading: conversationsLoading, isError: conversationsError, refetch: retryConversations } = useGetConversations({
+    query: { enabled: Boolean(currentProfile.data), queryKey: getGetConversationsQueryKey() },
   });
-  const match = matches?.find(item=>item.id === selectedMatch) || matches?.[0];
+  const match = conversations?.find(item=>item.id === selectedMatch) || conversations?.[0];
   const matchId = match?.id || '';
+  const conversationCanSend = Boolean(match);
   const messageKey = getGetMessagesQueryKey(matchId);
   const { data: messages, isLoading, isError, refetch } = useGetMessages(matchId, { query: { enabled:!!matchId && Boolean(currentProfile.data), queryKey:messageKey } });
   const [content, setContent] = useState('');
@@ -954,7 +1039,7 @@ export function MessagesPage() {
   }, [matchId, qc]);
 
   async function sendMedia(file: File, messageType: 'voice' | 'image' | 'file') {
-    if (!matchId) return;
+    if (!matchId || !conversationCanSend) return;
     setMediaError('');
     if (!supabase) {
       setMediaError('Private file storage is not configured.');
@@ -1080,7 +1165,7 @@ export function MessagesPage() {
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    if (!content.trim() || !matchId) return;
+    if (!content.trim() || !matchId || !conversationCanSend) return;
     try {
       await send.mutateAsync({ matchId, data:{content:content.trim()} });
       setContent('');
@@ -1092,15 +1177,16 @@ export function MessagesPage() {
   if (currentProfile.isLoading) return <AppShell><div className="skeleton h-96 rounded-[28px]"/></AppShell>;
   if (currentProfile.isError && !isUnauthorized(currentProfile.error)) return <AppShell><QueryState loading={false} error retry={()=>void currentProfile.refetch()}><div/></QueryState></AppShell>;
   if (!currentProfile.data) return <AppShell><div className="page-enter"><PageTitle eyebrow="Your conversations" title="Messages." description="Sign in to view or send messages."/><EmptyState title="Connect your wallet to continue." detail="Messages are available after you verify your wallet and make a mutual match."/></div><WalletConnectionDialog open={walletDialogOpen} onOpenChange={setWalletDialogOpen} returnTo="/messages"/></AppShell>;
-  if (matchesLoading) return <AppShell><div className="skeleton h-96 rounded-[28px]"/></AppShell>;
-  if (matchesError) return <AppShell><QueryState loading={false} error retry={()=>void retryMatches()}><div/></QueryState></AppShell>;
-  if (!matches?.length) return <AppShell><PageTitle eyebrow="A good conversation starts here" title="Messages."/><EmptyState title="No chats just yet." detail="A conversation opens after a mutual match. Your messages will be waiting here." action={<Link href="/discover" className="button-primary rounded-full px-5 py-3 text-sm font-bold" data-testid="link-discover-from-messages">Discover holders</Link>}/></AppShell>;
+  if (conversationsLoading) return <AppShell><div className="skeleton h-96 rounded-[28px]"/></AppShell>;
+  if (conversationsError) return <AppShell><QueryState loading={false} error retry={()=>void retryConversations()}><div/></QueryState></AppShell>;
+  if (!conversations?.length) return <AppShell><PageTitle eyebrow="A good conversation starts here" title="Messages."/><EmptyState title="No chats just yet." detail="A conversation opens after a mutual match. Your messages will be waiting here." action={<Link href="/discover" className="button-primary rounded-full px-5 py-3 text-sm font-bold" data-testid="link-discover-from-messages">Discover holders</Link>}/></AppShell>;
   return <AppShell><div className="page-enter">
     <PageTitle eyebrow="Your conversations" title="Messages." description="A little hello can go a long way." />
     <div className="surface grid min-h-[570px] overflow-hidden rounded-[28px] md:grid-cols-[300px_1fr]">
-      <aside className="border-b border-[#24133f12] bg-[#eee7fb] md:border-b-0 md:border-r"><div className="px-5 py-4"><Eyebrow>Mutual connections</Eyebrow><h2 className="display text-xl font-extrabold text-[#24133f]">Your people</h2></div><div className="flex gap-2 overflow-x-auto px-3 pb-4 md:block md:space-y-1 md:px-2">{matches.map(item=><button onClick={()=>choose(item.id)} key={item.id} className={`flex min-w-[200px] items-center gap-3 rounded-2xl p-3 text-left transition md:w-full ${matchId===item.id?'bg-[#eee8ff]':'hover:bg-[#f6f1e9]'}`} data-testid={`button-conversation-${item.id}`}><ProfileAvatar profile={item.profile} size="sm"/><span className="min-w-0 flex-1"><span className="block truncate text-sm font-bold text-[#35264b]">{item.profile.displayName}</span><span className="block truncate text-xs text-[#8b8091]">@{item.profile.username}</span></span>{(item.unreadCount||0)>0 && <span className="grid h-5 min-w-5 place-items-center rounded-full bg-[#7047ff] px-1 text-[10px] font-bold text-white">{item.unreadCount}</span>}</button>)}</div></aside>
+       <aside className="border-b border-[#24133f12] bg-[#eee7fb] md:border-b-0 md:border-r"><div className="px-5 py-4"><Eyebrow>Conversation history</Eyebrow><h2 className="display text-xl font-extrabold text-[#24133f]">Your people</h2></div><div className="flex gap-2 overflow-x-auto px-3 pb-4 md:block md:space-y-1 md:px-2">{conversations.map(item=><button onClick={()=>choose(item.id)} key={item.id} className={`flex min-w-[200px] items-center gap-3 rounded-2xl p-3 text-left transition md:w-full ${matchId===item.id?'bg-[#eee8ff]':'hover:bg-[#f6f1e9]'}`} data-testid={`button-conversation-${item.id}`}><ProfileAvatar profile={item.profile} size="sm"/><span className="min-w-0 flex-1"><span className="block truncate text-sm font-bold text-[#35264b]">{item.profile.displayName}</span><span className="block truncate text-xs text-[#8b8091]">@{item.profile.username}{item.status === 'unmatched' ? ' · Unmatched' : ''}</span></span>{(item.unreadCount||0)>0 && <span className="grid h-5 min-w-5 place-items-center rounded-full bg-[#7047ff] px-1 text-[10px] font-bold text-white">{item.unreadCount}</span>}</button>)}</div></aside>
       <section className="flex min-h-[460px] flex-col">
-        {match && <header className="flex items-center gap-3 border-b border-[#24133f12] px-5 py-4"><ProfileAvatar profile={match.profile} size="sm"/><div className="min-w-0 flex-1"><p className="font-bold text-[#35264b]">{match.profile.displayName}</p><p className="text-xs text-[#887c90]">@{match.profile.username} · Chog holder</p></div><button disabled title="Voice and video calling are not available yet" className="flex items-center gap-2 rounded-full border border-[#e9e0d3] px-3 py-2 text-xs font-semibold text-[#988d9f] disabled:cursor-not-allowed" data-testid="button-call-unavailable"><Video size={15}/>Calls unavailable</button></header>}
+         {match && <header className="flex items-center gap-3 border-b border-[#24133f12] px-5 py-4"><ProfileAvatar profile={match.profile} size="sm"/><div className="min-w-0 flex-1"><p className="font-bold text-[#35264b]">{match.profile.displayName}</p><p className="text-xs text-[#887c90]">@{match.profile.username} · Chog holder</p></div><button disabled title="Voice and video calling are not available yet" className="flex items-center gap-2 rounded-full border border-[#e9e0d3] px-3 py-2 text-xs font-semibold text-[#988d9f] disabled:cursor-not-allowed" data-testid="button-call-unavailable"><Video size={15}/>Calls unavailable</button></header>}
+         {match?.status === 'unmatched' && <p className="border-b border-[#24133f12] bg-[#fffaf0] px-5 py-3 text-xs leading-5 text-[#806b47]" role="status">You are no longer matched, but this conversation remains available until either person blocks the other.</p>}
         <div className="flex flex-1 flex-col gap-3 overflow-y-auto bg-[radial-gradient(ellipse_at_top,#f7f2ff_0,transparent_68%)] p-5">
           <QueryState loading={isLoading} error={isError} retry={()=>void refetch()}>{messages?.length ? messages.map(message=>{
             const mine=message.senderId===currentUserId;
@@ -1120,19 +1206,19 @@ export function MessagesPage() {
           {mediaError && <p className="text-right text-xs text-[#a34646]" role="alert" data-testid="status-media-error">{mediaError}</p>}
         </div>
         <form onSubmit={submit} className="border-t border-[#24133f12] p-4">
-          {imageDraft && imageDraftUrl && <div className="mb-3 flex items-center gap-3 rounded-2xl bg-[#f5f0ff] p-3"><img src={imageDraftUrl} alt="Image preview before sending" className="h-16 w-16 shrink-0 rounded-xl object-cover"/><span className="min-w-0 flex-1 truncate text-xs font-semibold text-[#594d64]">{imageDraft.name}</span><button type="button" onClick={()=>setImageDraft(null)} className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-[#7357a7]" aria-label="Discard image"><X size={17}/></button><button type="button" onClick={()=>void sendMedia(imageDraft,'image')} disabled={mediaBusy} className="button-primary rounded-xl px-4 py-2 text-xs font-bold disabled:opacity-50">{mediaBusy?'Sending…':'Send image'}</button></div>}
-          {voiceDraft && voiceDraftUrl && <div className="mb-3 flex items-center gap-2 rounded-2xl bg-[#f5f0ff] p-3"><audio src={voiceDraftUrl} controls className="min-w-0 flex-1" aria-label="Voice message preview"/><button type="button" onClick={()=>setVoiceDraft(null)} className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-[#7357a7]" aria-label="Discard voice message"><X size={17}/></button><button type="button" onClick={()=>void sendMedia(voiceDraft,'voice')} disabled={mediaBusy} className="button-primary rounded-xl px-4 py-2 text-xs font-bold disabled:opacity-50">{mediaBusy?'Sending…':'Send voice'}</button></div>}
+           {imageDraft && imageDraftUrl && <div className="mb-3 flex items-center gap-3 rounded-2xl bg-[#f5f0ff] p-3"><img src={imageDraftUrl} alt="Image preview before sending" className="h-16 w-16 shrink-0 rounded-xl object-cover"/><span className="min-w-0 flex-1 truncate text-xs font-semibold text-[#594d64]">{imageDraft.name}</span><button type="button" onClick={()=>setImageDraft(null)} className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-[#7357a7]" aria-label="Discard image"><X size={17}/></button><button type="button" onClick={()=>void sendMedia(imageDraft,'image')} disabled={mediaBusy||!conversationCanSend} className="button-primary rounded-xl px-4 py-2 text-xs font-bold disabled:opacity-50">{mediaBusy?'Sending…':'Send image'}</button></div>}
+           {voiceDraft && voiceDraftUrl && <div className="mb-3 flex items-center gap-2 rounded-2xl bg-[#f5f0ff] p-3"><audio src={voiceDraftUrl} controls className="min-w-0 flex-1" aria-label="Voice message preview"/><button type="button" onClick={()=>setVoiceDraft(null)} className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-[#7357a7]" aria-label="Discard voice message"><X size={17}/></button><button type="button" onClick={()=>void sendMedia(voiceDraft,'voice')} disabled={mediaBusy||!conversationCanSend} className="button-primary rounded-xl px-4 py-2 text-xs font-bold disabled:opacity-50">{mediaBusy?'Sending…':'Send voice'}</button></div>}
           <div className="flex gap-2">
-            <input value={content} onChange={e=>setContent(e.target.value)} maxLength={4000} placeholder="Write a message…" className="field min-w-0 flex-1" aria-label="Message" data-testid="input-message"/>
-            <button type="submit" disabled={!content.trim()||send.isPending} className="button-primary grid h-12 w-12 shrink-0 place-items-center rounded-2xl disabled:opacity-50" aria-label="Send message" data-testid="button-send-message"><Send size={17}/></button>
+             <input value={content} onChange={e=>setContent(e.target.value)} maxLength={4000} disabled={!conversationCanSend} placeholder="Write a message…" className="field min-w-0 flex-1 disabled:cursor-not-allowed disabled:bg-[#f4f1f4]" aria-label="Message" data-testid="input-message"/>
+             <button type="submit" disabled={!conversationCanSend||!content.trim()||send.isPending} className="button-primary grid h-12 w-12 shrink-0 place-items-center rounded-2xl disabled:opacity-50" aria-label="Send message" data-testid="button-send-message"><Send size={17}/></button>
           </div>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <input ref={imageInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="sr-only" onChange={event=>selectAttachment(event,'image')} aria-label="Choose an image"/>
             <input ref={fileInputRef} type="file" accept=".pdf,.txt,.zip,.json,.doc,.docx,.xls,.xlsx" className="sr-only" onChange={event=>selectAttachment(event,'file')} aria-label="Choose a file"/>
-            <button type="button" onClick={()=>imageInputRef.current?.click()} disabled={mediaBusy||recording} className="inline-flex items-center gap-1.5 rounded-full border border-[#e5dcef] px-3 py-2 text-xs font-semibold text-[#635178] hover:bg-[#f8f4ff] disabled:opacity-50"><ImageIcon size={15}/>Image</button>
-            <button type="button" onClick={()=>fileInputRef.current?.click()} disabled={mediaBusy||recording} className="inline-flex items-center gap-1.5 rounded-full border border-[#e5dcef] px-3 py-2 text-xs font-semibold text-[#635178] hover:bg-[#f8f4ff] disabled:opacity-50"><Paperclip size={15}/>File</button>
+             <button type="button" onClick={()=>imageInputRef.current?.click()} disabled={!conversationCanSend||mediaBusy||recording} className="inline-flex items-center gap-1.5 rounded-full border border-[#e5dcef] px-3 py-2 text-xs font-semibold text-[#635178] hover:bg-[#f8f4ff] disabled:opacity-50"><ImageIcon size={15}/>Image</button>
+             <button type="button" onClick={()=>fileInputRef.current?.click()} disabled={!conversationCanSend||mediaBusy||recording} className="inline-flex items-center gap-1.5 rounded-full border border-[#e5dcef] px-3 py-2 text-xs font-semibold text-[#635178] hover:bg-[#f8f4ff] disabled:opacity-50"><Paperclip size={15}/>File</button>
             {!recording
-              ? <button type="button" onClick={()=>void startVoiceRecording()} disabled={mediaBusy||Boolean(voiceDraft)} className="inline-flex items-center gap-1.5 rounded-full border border-[#e5dcef] px-3 py-2 text-xs font-semibold text-[#635178] hover:bg-[#f8f4ff] disabled:opacity-50"><Mic size={15}/>Record voice</button>
+               ? <button type="button" onClick={()=>void startVoiceRecording()} disabled={!conversationCanSend||mediaBusy||Boolean(voiceDraft)} className="inline-flex items-center gap-1.5 rounded-full border border-[#e5dcef] px-3 py-2 text-xs font-semibold text-[#635178] hover:bg-[#f8f4ff] disabled:opacity-50"><Mic size={15}/>Record voice</button>
               : <><span className="text-xs font-semibold text-[#a34646]" aria-live="polite">Recording · {recordingSeconds}s</span><button type="button" onClick={cancelVoiceRecording} className="rounded-full border border-[#e5dcef] px-3 py-2 text-xs font-semibold text-[#635178]">Cancel</button><button type="button" onClick={stopVoiceRecording} className="rounded-full bg-[#7047ff] px-3 py-2 text-xs font-bold text-white"><span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-white"/>Stop</span></button></>}
             {mediaBusy && <span className="text-xs text-[#8b8091]" role="status">Uploading attachment…</span>}
           </div>
