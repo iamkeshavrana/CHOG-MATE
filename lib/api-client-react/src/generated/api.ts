@@ -2529,7 +2529,7 @@ export const useCallHeartbeat = <TError = ErrorType<unknown>,
       return useMutation(getCallHeartbeatMutationOptions(options));
     }
 
-export const getGetCallSignalsUrl = (callId: string,
+export const getPollCallSignalsUrl = (callId: string,
     afterId: number,) => {
 
 
@@ -2541,10 +2541,10 @@ export const getGetCallSignalsUrl = (callId: string,
 /**
  * @summary Poll for private WebRTC signaling messages from the other caller
  */
-export const getCallSignals = async (callId: string,
+export const pollCallSignals = async (callId: string,
     afterId: number, options?: Parameters<typeof customFetch>[1]): Promise<CallSignal[]> => {
 
-  return customFetch<CallSignal[]>(getGetCallSignalsUrl(callId,afterId),
+  return customFetch<CallSignal[]>(getPollCallSignalsUrl(callId,afterId),
   {
     ...options,
     method: 'GET'
@@ -2557,7 +2557,7 @@ export const getCallSignals = async (callId: string,
 
 
 
-export const getGetCallSignalsQueryKey = (callId: string,
+export const getPollCallSignalsQueryKey = (callId: string,
     afterId: number,) => {
     return [
     `/api/calls/${callId}/signals/${afterId}`
@@ -2565,40 +2565,40 @@ export const getGetCallSignalsQueryKey = (callId: string,
     }
 
 
-export const getGetCallSignalsQueryOptions = <TData = Awaited<ReturnType<typeof getCallSignals>>, TError = ErrorType<unknown>>(callId: string,
-    afterId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCallSignals>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getPollCallSignalsQueryOptions = <TData = Awaited<ReturnType<typeof pollCallSignals>>, TError = ErrorType<unknown>>(callId: string,
+    afterId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof pollCallSignals>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetCallSignalsQueryKey(callId,afterId);
+  const queryKey =  queryOptions?.queryKey ?? getPollCallSignalsQueryKey(callId,afterId);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCallSignals>>> = ({ signal }) => getCallSignals(callId,afterId, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof pollCallSignals>>> = ({ signal }) => pollCallSignals(callId,afterId, { signal, ...requestOptions });
 
 
 
 
 
-   return  { queryKey, queryFn, enabled: callId !== null && callId !== undefined && afterId !== null && afterId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCallSignals>>, TError, TData> & { queryKey: QueryKey }
+   return  { queryKey, queryFn, enabled: callId !== null && callId !== undefined && afterId !== null && afterId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof pollCallSignals>>, TError, TData> & { queryKey: QueryKey }
 }
 
-export type GetCallSignalsQueryResult = NonNullable<Awaited<ReturnType<typeof getCallSignals>>>
-export type GetCallSignalsQueryError = ErrorType<unknown>
+export type PollCallSignalsQueryResult = NonNullable<Awaited<ReturnType<typeof pollCallSignals>>>
+export type PollCallSignalsQueryError = ErrorType<unknown>
 
 
 /**
  * @summary Poll for private WebRTC signaling messages from the other caller
  */
 
-export function useGetCallSignals<TData = Awaited<ReturnType<typeof getCallSignals>>, TError = ErrorType<unknown>>(
+export function usePollCallSignals<TData = Awaited<ReturnType<typeof pollCallSignals>>, TError = ErrorType<unknown>>(
  callId: string,
-    afterId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCallSignals>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+    afterId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof pollCallSignals>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getGetCallSignalsQueryOptions(callId,afterId,options)
+  const queryOptions = getPollCallSignalsQueryOptions(callId,afterId,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

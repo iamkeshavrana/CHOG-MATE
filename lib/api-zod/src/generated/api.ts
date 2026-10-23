@@ -1164,44 +1164,44 @@ export const CallHeartbeatResponse = zod.void()
 /**
  * @summary Poll for private WebRTC signaling messages from the other caller
  */
-export const getCallSignalsPathAfterIdMin = 0;
+export const pollCallSignalsPathAfterIdMin = 0;
 
 
 
-export const GetCallSignalsParams = zod.object({
+export const PollCallSignalsParams = zod.object({
   "callId": zod.coerce.string().uuid(),
-  "afterId": zod.coerce.number().int().min(getCallSignalsPathAfterIdMin)
+  "afterId": zod.coerce.number().int().min(pollCallSignalsPathAfterIdMin)
 })
 
 
-export const getCallSignalsResponsePayloadSdpMax = 20000;
+export const pollCallSignalsResponsePayloadSdpMax = 20000;
 
-export const getCallSignalsResponsePayloadCandidateMax = 3000;
+export const pollCallSignalsResponsePayloadCandidateMax = 3000;
 
-export const getCallSignalsResponsePayloadSdpMidMax = 256;
+export const pollCallSignalsResponsePayloadSdpMidMax = 256;
 
-export const getCallSignalsResponsePayloadSdpMLineIndexMin = 0;
+export const pollCallSignalsResponsePayloadSdpMLineIndexMin = 0;
 
-export const getCallSignalsResponsePayloadUsernameFragmentMax = 256;
+export const pollCallSignalsResponsePayloadUsernameFragmentMax = 256;
 
 
 
-export const GetCallSignalsResponseItem = zod.object({
+export const PollCallSignalsResponseItem = zod.object({
   "id": zod.number().int().min(1),
   "callId": zod.string().uuid(),
   "senderId": zod.string().uuid(),
   "signalType": zod.enum(['offer', 'answer', 'ice_candidate']),
   "payload": zod.object({
   "type": zod.enum(['offer', 'answer']).optional(),
-  "sdp": zod.string().max(getCallSignalsResponsePayloadSdpMax).optional(),
-  "candidate": zod.string().max(getCallSignalsResponsePayloadCandidateMax).optional(),
-  "sdpMid": zod.string().max(getCallSignalsResponsePayloadSdpMidMax).nullish(),
-  "sdpMLineIndex": zod.number().int().min(getCallSignalsResponsePayloadSdpMLineIndexMin).nullish(),
-  "usernameFragment": zod.string().max(getCallSignalsResponsePayloadUsernameFragmentMax).nullish()
+  "sdp": zod.string().max(pollCallSignalsResponsePayloadSdpMax).optional(),
+  "candidate": zod.string().max(pollCallSignalsResponsePayloadCandidateMax).optional(),
+  "sdpMid": zod.string().max(pollCallSignalsResponsePayloadSdpMidMax).nullish(),
+  "sdpMLineIndex": zod.number().int().min(pollCallSignalsResponsePayloadSdpMLineIndexMin).nullish(),
+  "usernameFragment": zod.string().max(pollCallSignalsResponsePayloadUsernameFragmentMax).nullish()
 }),
   "createdAt": zod.coerce.date()
 })
-export const GetCallSignalsResponse = zod.array(GetCallSignalsResponseItem)
+export const PollCallSignalsResponse = zod.array(PollCallSignalsResponseItem)
 
 
 /**

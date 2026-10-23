@@ -668,7 +668,7 @@ paths:
           description: Call heartbeat recorded
   /calls/{callId}/signals/{afterId}:
     get:
-      operationId: getCallSignals
+      operationId: pollCallSignals
       tags: [matching]
       summary: Poll for private WebRTC signaling messages from the other caller
       parameters:

@@ -9,9 +9,9 @@ import {
   CreateCallResponse,
   GetCallParams,
   GetCallResponse,
-  GetCallSignalsParams,
-  GetCallSignalsResponse,
   GetIncomingCallsResponse,
+  PollCallSignalsParams,
+  PollCallSignalsResponse,
   SendCallSignalBody,
   SendCallSignalParams,
   SendCallSignalResponse,
@@ -432,7 +432,7 @@ router.post("/calls/:callId/heartbeat", async (req, res): Promise<void> => {
 router.get("/calls/:callId/signals/:afterId", async (req, res): Promise<void> => {
   const session = requireWalletSession(req, res);
   if (!session) return;
-  const params = GetCallSignalsParams.safeParse(req.params);
+  const params = PollCallSignalsParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: "Call signaling cursor is invalid." });
     return;
@@ -444,7 +444,7 @@ router.get("/calls/:callId/signals/:afterId", async (req, res): Promise<void> =>
       return;
     }
     if (!ACTIVE_CALL_STATUSES.includes(call.status as (typeof ACTIVE_CALL_STATUSES)[number])) {
-      res.json(GetCallSignalsResponse.parse([]));
+      res.json(PollCallSignalsResponse.parse([]));
       return;
     }
     const { data, error } = await getSupabaseAdmin()
@@ -456,7 +456,7 @@ router.get("/calls/:callId/signals/:afterId", async (req, res): Promise<void> =>
       .order("id", { ascending: true })
       .limit(130);
     if (error) throw new CallError("Call setup messages could not be read.", 503);
-    res.json(GetCallSignalsResponse.parse((data ?? []).map((item) => signalToApi(item as CallSignalRow))));
+    res.json(PollCallSignalsResponse.parse((data ?? []).map((item) => signalToApi(item as CallSignalRow))));
   } catch (error) {
     sendCallError(req, res, error);
   }
@@ -479,6 +479,13 @@ router.post("/calls/:callId/signals", async (req, res): Promise<void> => {
     }
     if (!ACTIVE_CALL_STATUSES.includes(call.status as (typeof ACTIVE_CALL_STATUSES)[number])) {
       res.status(409).json({ error: "This call is no longer active." });
+      return;
+    }
+    if (
+      (body.data.signalType === "offer" && call.caller_id !== session.userId) ||
+      (body.data.signalType === "answer" && call.receiver_id !== session.userId)
+    ) {
+      res.status(403).json({ error: "Only the designated caller can send an offer, and only the recipient can answer." });
       return;
     }
     const admin = getSupabaseAdmin();

@@ -14,10 +14,10 @@ import {
   callHeartbeat,
   createCall,
   getCall,
-  getCallSignals,
   getGetAuthSessionQueryKey,
   getGetIncomingCallsQueryKey,
   getIncomingCalls,
+  pollCallSignals,
   sendCallSignal,
   useGetAuthSession,
   type CallSession,
@@ -35,6 +35,8 @@ interface ActiveCall {
   profile: Profile;
   role: CallRole;
 }
+
+type CallSignalMessage = Awaited<ReturnType<typeof pollCallSignals>>[number];
 
 interface CallContextValue {
   activeCall: ActiveCall | null;
@@ -77,6 +79,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
     refetchOnWindowFocus: true,
     retry: 1,
   });
+  const hasIncomingCall = (incomingQuery.data?.length ?? 0) > 0;
 
   const [activeCall, setActiveCall] = useState<ActiveCall | null>(null);
   const activeCallRef = useRef<ActiveCall | null>(null);
@@ -88,8 +91,6 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const remoteStreamRef = useRef<MediaStream | null>(null);
   const peerRef = useRef<RTCPeerConnection | null>(null);
   const signalCursorRef = useRef(0);
-  const pollBusyRef = useRef(false);
-  const pendingCandidatesRef = useRef<RTCIceCandidateInit[]>([]);
   const [muted, setMuted] = useState(false);
   const [cameraEnabled, setCameraEnabled] = useState(true);
   const [notice, setNotice] = useState("");
@@ -118,7 +119,6 @@ export function CallProvider({ children }: { children: ReactNode }) {
     remoteStreamRef.current?.getTracks().forEach((track) => track.stop());
     localStreamRef.current = null;
     remoteStreamRef.current = null;
-    pendingCandidatesRef.current = [];
     signalCursorRef.current = 0;
     setLocalStream(null);
     setRemoteStream(null);
@@ -159,8 +159,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
     type: CallMode,
     profile: Profile,
   ) => {
-    if (busyRef.current || activeCallRef.current) {
-      showNotice("You already have an active call.");
+    if (busyRef.current || activeCallRef.current || hasIncomingCall) {
+      showNotice("You already have an active or incoming call.");
       return;
     }
     if (!navigator.mediaDevices?.getUserMedia || typeof RTCPeerConnection === "undefined") {
@@ -182,7 +182,9 @@ export function CallProvider({ children }: { children: ReactNode }) {
       activeCallRef.current = next;
       setActiveCall(next);
       signalCursorRef.current = 0;
-      await queryClient.invalidateQueries({ queryKey: getGetIncomingCallsQueryKey() });
+      await queryClient
+        .invalidateQueries({ queryKey: getGetIncomingCallsQueryKey() })
+        .catch(() => undefined);
     } catch (error) {
       stream?.getTracks().forEach((track) => track.stop());
       if (localStreamRef.current === stream) {
@@ -193,7 +195,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
     } finally {
       setBusyState(false);
     }
-  }, [queryClient, setBusyState, showNotice]);
+  }, [hasIncomingCall, queryClient, setBusyState, showNotice]);
 
   const acceptCall = useCallback(async (incoming: IncomingCall) => {
     if (busyRef.current || activeCallRef.current) return;
@@ -216,7 +218,9 @@ export function CallProvider({ children }: { children: ReactNode }) {
       activeCallRef.current = next;
       setActiveCall(next);
       signalCursorRef.current = 0;
-      await queryClient.invalidateQueries({ queryKey: getGetIncomingCallsQueryKey() });
+      await queryClient
+        .invalidateQueries({ queryKey: getGetIncomingCallsQueryKey() })
+        .catch(() => undefined);
     } catch (error) {
       stream?.getTracks().forEach((track) => track.stop());
       if (localStreamRef.current === stream) {
@@ -239,7 +243,9 @@ export function CallProvider({ children }: { children: ReactNode }) {
     setBusyState(true);
     try {
       await callAction(incoming.id, { action: "decline" });
-      await queryClient.invalidateQueries({ queryKey: getGetIncomingCallsQueryKey() });
+      await queryClient
+        .invalidateQueries({ queryKey: getGetIncomingCallsQueryKey() })
+        .catch(() => undefined);
     } catch (error) {
       showNotice(callErrorMessage(error, "The call could not be declined."));
     } finally {
@@ -266,11 +272,12 @@ export function CallProvider({ children }: { children: ReactNode }) {
     if (!current) return;
 
     let cancelled = false;
+    let pollInFlight = false;
     let disconnectedTimeout: number | null = null;
     let intervalId: number | null = null;
     let lastHeartbeat = 0;
     let failureCount = 0;
-    const queuedCandidates = pendingCandidatesRef.current;
+    const queuedCandidates: RTCIceCandidateInit[] = [];
     const peer = new RTCPeerConnection(rtcConfiguration);
     peerRef.current = peer;
     const stream = localStreamRef.current;
@@ -300,7 +307,12 @@ export function CallProvider({ children }: { children: ReactNode }) {
     };
 
     peer.ontrack = (event) => {
-      const incoming = event.streams[0] ?? new MediaStream([event.track]);
+      if (cancelled) return;
+      let incoming = event.streams[0] ?? remoteStreamRef.current;
+      if (!incoming) incoming = new MediaStream();
+      if (!event.streams[0] && !incoming.getTracks().some((track) => track.id === event.track.id)) {
+        incoming.addTrack(event.track);
+      }
       remoteStreamRef.current = incoming;
       setRemoteStream(incoming);
     };
@@ -317,6 +329,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       });
     };
     peer.onconnectionstatechange = () => {
+      if (cancelled) return;
       if (peer.connectionState === "connected") {
         if (disconnectedTimeout !== null) {
           window.clearTimeout(disconnectedTimeout);
@@ -336,7 +349,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    const handleSignal = async (signal: Awaited<ReturnType<typeof getCallSignals>>[number]) => {
+    const handleSignal = async (signal: CallSignalMessage) => {
       if (signal.signalType === "offer") {
         if (
           current.role !== "receiver" ||
@@ -383,8 +396,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
     };
 
     const poll = async () => {
-      if (cancelled || pollBusyRef.current) return;
-      pollBusyRef.current = true;
+      if (cancelled || pollInFlight) return;
+      pollInFlight = true;
       try {
         const latestCall = await getCall(current.call.id);
         if (cancelled) return;
@@ -402,7 +415,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
         }
         updateActiveCall(latestCall);
 
-        const signals = await getCallSignals(current.call.id, signalCursorRef.current);
+        const signals = await pollCallSignals(current.call.id, signalCursorRef.current);
         for (const signal of signals) {
           if (cancelled) return;
           signalCursorRef.current = Math.max(signalCursorRef.current, signal.id);
@@ -419,7 +432,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
           void markCallFailed(current.call.id, "The call connection was lost.");
         }
       } finally {
-        pollBusyRef.current = false;
+        pollInFlight = false;
       }
     };
 
@@ -440,7 +453,6 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
     return () => {
       cancelled = true;
-      pollBusyRef.current = false;
       if (intervalId !== null) window.clearInterval(intervalId);
       if (disconnectedTimeout !== null) window.clearTimeout(disconnectedTimeout);
       if (peerRef.current === peer) {
@@ -458,6 +470,12 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => () => {
     if (noticeTimeoutRef.current !== null) window.clearTimeout(noticeTimeoutRef.current);
+    peerRef.current?.close();
+    peerRef.current = null;
+    localStreamRef.current?.getTracks().forEach((track) => track.stop());
+    remoteStreamRef.current?.getTracks().forEach((track) => track.stop());
+    localStreamRef.current = null;
+    remoteStreamRef.current = null;
   }, []);
 
   const toggleMicrophone = useCallback(() => {
@@ -536,14 +554,49 @@ function CallOverlay({
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
+  const [audioPlaybackBlocked, setAudioPlaybackBlocked] = useState(false);
 
   useEffect(() => {
-    if (localVideoRef.current) localVideoRef.current.srcObject = localStream;
+    const video = localVideoRef.current;
+    if (!video) return;
+    video.srcObject = localStream;
+    if (localStream) void video.play().catch(() => undefined);
   }, [localStream]);
   useEffect(() => {
-    if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStream;
-    if (remoteAudioRef.current) remoteAudioRef.current.srcObject = remoteStream;
+    const video = remoteVideoRef.current;
+    if (!video) return;
+    video.srcObject = remoteStream;
+    if (remoteStream) void video.play().catch(() => undefined);
   }, [remoteStream]);
+  useEffect(() => {
+    const audio = remoteAudioRef.current;
+    if (!audio) return;
+    audio.srcObject = remoteStream;
+    if (!remoteStream) {
+      setAudioPlaybackBlocked(false);
+      return;
+    }
+    let cancelled = false;
+    void audio.play().then(() => {
+      if (!cancelled) setAudioPlaybackBlocked(false);
+    }).catch(() => {
+      if (!cancelled) setAudioPlaybackBlocked(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [remoteStream, activeCall?.call.id]);
+
+  const enableRemoteAudio = async () => {
+    const audio = remoteAudioRef.current;
+    if (!audio) return;
+    try {
+      await audio.play();
+      setAudioPlaybackBlocked(false);
+    } catch {
+      setAudioPlaybackBlocked(true);
+    }
+  };
 
   return <>
     {incoming && !activeCall && (
@@ -626,6 +679,7 @@ function CallOverlay({
                 ref={remoteVideoRef}
                 autoPlay
                 playsInline
+                muted
                 className="h-full w-full object-cover"
                 aria-label="Video from the other caller"
               />
@@ -648,8 +702,18 @@ function CallOverlay({
               </p>
             </div>
           )}
-          <audio ref={remoteAudioRef} autoPlay aria-label="Audio from the other caller"/>
+          <audio ref={remoteAudioRef} autoPlay className="sr-only" aria-label="Audio from the other caller"/>
           <footer className="flex flex-wrap items-center justify-center gap-3 px-5 py-5">
+            {audioPlaybackBlocked && (
+              <button
+                type="button"
+                onClick={() => void enableRemoteAudio()}
+                className="rounded-full bg-[#f2ecff] px-4 py-2 text-sm font-bold text-[#6246b0]"
+                data-testid="button-enable-call-audio"
+              >
+                Tap to enable call audio
+              </button>
+            )}
             <button
               type="button"
               onClick={onToggleMicrophone}
