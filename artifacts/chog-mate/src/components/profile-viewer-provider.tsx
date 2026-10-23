@@ -39,9 +39,14 @@ interface Selection {
   options: ProfileViewerOptions;
 }
 
+function isHttpNotFound(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && 'status' in error && error.status === 404;
+}
+
 export function ProfileViewerProvider({ children }: { children: ReactNode }) {
   const [selection, setSelection] = useState<Selection | null>(null);
   const [notice, setNotice] = useState('');
+  const [profileUnavailable, setProfileUnavailable] = useState(false);
   const [walletDialogOpen, setWalletDialogOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState<keyof typeof ReportInputReason>('other');
@@ -150,16 +155,19 @@ export function ProfileViewerProvider({ children }: { children: ReactNode }) {
   const closeProfile = useCallback(() => {
     setSelection(null);
     setNotice('');
+    setProfileUnavailable(false);
     setReportOpen(false);
   }, []);
 
   const openProfile = useCallback((nextProfile: Profile, options: ProfileViewerOptions = {}) => {
     setNotice('');
+    setProfileUnavailable(false);
     setSelection({ profile: nextProfile, userId: nextProfile.userId, options });
   }, []);
 
   const openProfileById = useCallback((userId: string, options: ProfileViewerOptions = {}) => {
     setNotice('');
+    setProfileUnavailable(false);
     setSelection({ profile: null, userId, options });
   }, []);
 
@@ -203,6 +211,11 @@ export function ProfileViewerProvider({ children }: { children: ReactNode }) {
           ? 'Like sent. If they like you back, you’ll match.'
           : 'Profile passed.');
     } catch (error) {
+      if (isHttpNotFound(error)) {
+        setProfileUnavailable(true);
+        void invalidateSocial();
+        return;
+      }
       setNotice(error instanceof Error ? error.message : 'Your response could not be saved.');
     }
   }
@@ -308,7 +321,24 @@ export function ProfileViewerProvider({ children }: { children: ReactNode }) {
   return (
     <ProfileViewerContext.Provider value={value}>
       {children}
-      {profile ? (
+      {selection && profileUnavailable ? (
+        <Dialog open onOpenChange={open => { if (!open) closeProfile(); }}>
+          <DialogContent className="max-w-md rounded-[28px] border-[#eadff0] bg-[#fffaf5] p-7 text-[#35234a]">
+            <DialogTitle className="display text-xl font-extrabold">Profile no longer available</DialogTitle>
+            <DialogDescription className="text-sm leading-6 text-[#806e88]" role="status">
+              This profile may have changed its visibility or no longer meet Chog ownership requirements. Your profile lists are being refreshed.
+            </DialogDescription>
+            <button
+              type="button"
+              onClick={closeProfile}
+              className="button-soft justify-self-end rounded-full px-4 py-2 text-sm font-bold"
+              data-testid="button-close-unavailable-profile"
+            >
+              Close
+            </button>
+          </DialogContent>
+        </Dialog>
+      ) : profile ? (
         <ProfileViewerDialog
           open={Boolean(selection)}
           onOpenChange={open => { if (!open) closeProfile(); }}

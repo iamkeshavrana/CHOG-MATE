@@ -36,6 +36,10 @@ const emptyFilters: Filters = {
   gender: '', minAge: '', maxAge: '', location: '', interests: '', hobbies: '', languages: '', chogTier: '', recentlyActive: false,
 };
 
+function isHttpNotFound(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && 'status' in error && error.status === 404;
+}
+
 function countActiveFilters(filters: Filters): number {
   return [
     Boolean(filters.gender),
@@ -151,6 +155,12 @@ export function ExplorePage() {
       await queryClient.invalidateQueries({ queryKey: getDiscoverProfilesQueryKey() });
       await discovery.refetch();
     } catch (error) {
+      if (isHttpNotFound(error)) {
+        setLoadedProfiles(current => current.filter(item => item.userId !== profile.userId));
+        setNotice('That profile is no longer available. The discovery list is being refreshed.');
+        void queryClient.invalidateQueries({ queryKey: getDiscoverProfilesQueryKey() });
+        return;
+      }
       setNotice(error instanceof Error ? error.message : 'Your like could not be saved. Please try again.');
     }
   }
