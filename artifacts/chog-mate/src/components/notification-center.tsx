@@ -3,6 +3,7 @@ import { Bell, CheckCheck, Gift, Heart, MessageCircle, Sparkles, Video, X } from
 import { Link } from "wouter";
 import { supabase } from "@/lib/supabase";
 import { createNotificationChannelLifecycle } from "@/lib/notification-channel-lifecycle";
+import { useProfileViewer } from "@/components/profile-viewer-context";
 
 type NotificationRow = {
   id: string;
@@ -15,6 +16,7 @@ type NotificationRow = {
 };
 
 export function NotificationCenter() {
+  const { openProfileById } = useProfileViewer();
   const [userId, setUserId] = useState<string | null>(null);
   const [items, setItems] = useState<NotificationRow[]>([]);
   const [actorUsernames, setActorUsernames] = useState<Record<string, string>>({});
@@ -234,29 +236,48 @@ export function NotificationCenter() {
                       ? Gift
                       : Heart;
                 return (
-                  <Link
+                  <div
                     key={item.id}
-                    href={destination}
-                    onClick={() => {
-                      void markRead(item);
-                      setOpen(false);
-                    }}
-                    className={`flex items-start gap-3 rounded-xl px-3 py-3 text-left transition hover:bg-[#f5f0ff] ${item.read_at ? "" : "bg-[#f7f2ff]"}`}
+                    className={`flex items-start gap-2 rounded-xl px-3 py-3 transition hover:bg-[#f5f0ff] ${item.read_at ? "" : "bg-[#f7f2ff]"}`}
                     data-testid={`notification-${item.id}`}
                   >
-                    <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-[#eee8ff] text-[#7047ff]">
-                      <Icon size={15} />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-xs font-semibold leading-5 text-[#4e405e]">
-                        {notificationText(item.type, item.actor_id ? actorUsernames[item.actor_id] : undefined, item.amount)}
+                    <Link
+                      href={destination}
+                      onClick={() => {
+                        void markRead(item);
+                        setOpen(false);
+                      }}
+                      className="flex min-w-0 flex-1 items-start gap-3 text-left"
+                    >
+                      <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-[#eee8ff] text-[#7047ff]">
+                        <Icon size={15} />
                       </span>
-                      <time className="mt-1 block text-[10px] text-[#95899d]">
-                        {new Date(item.created_at).toLocaleString()}
-                      </time>
-                    </span>
-                    {!item.read_at && <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-[#a64b70]" />}
-                  </Link>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-xs font-semibold leading-5 text-[#4e405e]">
+                          {notificationSummary(item.type, item.amount)}
+                        </span>
+                        <time className="mt-1 block text-[10px] text-[#95899d]">
+                          {new Date(item.created_at).toLocaleString()}
+                        </time>
+                      </span>
+                      {!item.read_at && <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-[#a64b70]" />}
+                    </Link>
+                    {item.actor_id && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          void markRead(item);
+                          setOpen(false);
+                          openProfileById(item.actor_id!);
+                        }}
+                        className="max-w-[110px] shrink-0 self-center break-all rounded-full bg-white px-2.5 py-1.5 text-[10px] font-bold text-[#7053a4] shadow-sm transition hover:bg-[#eee8ff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9b7ad8]"
+                        aria-label={`Open ${actorUsernames[item.actor_id] ? `@${actorUsernames[item.actor_id]}` : "this person's"} full profile`}
+                        data-testid={`button-notification-profile-${item.id}`}
+                      >
+                        {actorUsernames[item.actor_id] ? `@${actorUsernames[item.actor_id]}` : "Profile"}
+                      </button>
+                    )}
+                  </div>
                 );
               })
             )}
@@ -267,25 +288,23 @@ export function NotificationCenter() {
   );
 }
 
-function notificationText(
+function notificationSummary(
   type: NotificationRow["type"],
-  username?: string,
   amount?: string | number | null,
 ): string {
-  const actor = username ? `@${username}` : "A Chog holder";
-  if (type === "like") return `You have a new Like from ${actor}`;
-  if (type === "super_like") return `${actor} Super Liked you`;
-  if (type === "match") return `It's a Match! You and ${actor} liked each other.`;
-  if (type === "message") return `New message from ${actor}`;
-  if (type === "missed_call") return `Missed call from ${actor}`;
+  if (type === "like") return "You have a new Like";
+  if (type === "super_like") return "You have a new Super Like";
+  if (type === "match") return "It's a Match!";
+  if (type === "message") return "You have a new message";
+  if (type === "missed_call") return "You have a missed call";
   if (type === "gift") {
     const numericAmount = Number(amount);
     const formattedAmount = Number.isFinite(numericAmount)
       ? new Intl.NumberFormat(undefined, { maximumFractionDigits: 6 }).format(numericAmount)
       : "some";
-    return `${actor} sent you ${formattedAmount} $CHOG`;
+    return `You received ${formattedAmount} $CHOG`;
   }
-  return `Incoming call from ${actor}`;
+  return "You have an incoming call";
 }
 
 function notificationDestination(item: NotificationRow): string {

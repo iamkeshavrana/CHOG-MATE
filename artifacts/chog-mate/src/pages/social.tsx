@@ -760,7 +760,7 @@ export function MatchesPage() {
       {([
         { id: 'matches', label: 'Matches', count: matches.length },
         { id: 'liked-you', label: 'Liked You', count: inbox.data?.length ?? 0 },
-        { id: 'liked-by-you', label: 'Liked By You', count: sent.data?.length ?? 0 },
+        { id: 'liked-by-you', label: 'Liked By Me', count: sent.data?.length ?? 0 },
         { id: 'ex-match', label: 'Ex Matches', count: exMatchesQuery.data?.length ?? 0 },
       ] as const).map(item => <button
         key={item.id}
@@ -788,7 +788,16 @@ export function MatchesPage() {
         : sent.isLoading
           ? <div className="skeleton h-48 rounded-2xl" />
           : sent.data?.length
-            ? <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{sent.data.map(item=><article className="surface flex gap-4 rounded-[24px] p-4" key={item.id} data-testid={`card-liked-by-you-${item.id}`}>
+            ? <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3"><AnimatePresence initial={false}>{sent.data.map(item=><motion.article
+                layout
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.18 }}
+                className="surface flex gap-4 rounded-[24px] p-4"
+                key={item.id}
+                data-testid={`card-liked-by-you-${item.id}`}
+              >
                 <ProfileOpenButton profile={item.profile} options={{ source: 'liked-by-me' }} className="block w-24 shrink-0 overflow-hidden rounded-2xl bg-[#eee5fb]" label={`Open ${item.profile.displayName}'s full profile`}><ChogArtwork chog={item.profile.chog} fit="natural"/></ProfileOpenButton>
                 <div className="min-w-0 py-1">
                   <ProfileOpenButton profile={item.profile} options={{ source: 'liked-by-me' }} className="block text-left" label={`Open ${item.profile.displayName}'s full profile`}><h2 className="display break-words text-lg font-extrabold text-[#35264b]">{item.profile.displayName}{item.profile.age !== null ? `, ${item.profile.age}` : ''}</h2><p className="mt-1 break-all text-xs text-[#887c90]">@{item.profile.username}</p></ProfileOpenButton>
@@ -796,12 +805,21 @@ export function MatchesPage() {
                   <p className="mt-2 text-[10px] font-semibold text-[#8a6cad]">{item.type === 'super_like' ? 'Super Liked By You · 100 $CHOG sent' : 'Liked By You'}</p>
                   <UnlikeAction profile={item.profile} type={item.type} onDone={() => unlikeDone(item.type)} />
                 </div>
-              </article>)}</div>
+              </motion.article>)}</AnimatePresence></div>
             : <EmptyState title="You have not liked anyone yet." detail="Like a Chog holder in Discover and they will appear here until you match." action={<Link href="/discover" className="button-primary inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-bold" data-testid="link-discover-from-liked-by-you">Discover holders <ArrowRight size={15}/></Link>}/>}
     </section>}
     {section === 'matches' && <section id="panel-matches" role="tabpanel" aria-label="Your matches">
       <QueryState loading={isLoading} error={isError} retry={()=>void refetch()}>
-        {matches.length ? <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{matches.map(match=><article className="surface flex gap-4 rounded-[26px] p-4 sm:p-5" key={match.id} data-testid={`card-match-${match.id}`}>
+        {matches.length ? <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3"><AnimatePresence initial={false}>{matches.map(match=><motion.article
+          layout
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -6 }}
+          transition={{ duration: 0.18 }}
+          className="surface flex gap-4 rounded-[26px] p-4 sm:p-5"
+          key={match.id}
+          data-testid={`card-match-${match.id}`}
+        >
           <ProfileOpenButton profile={match.profile} options={{ source: 'matched', matchId: match.id }} className="block w-28 shrink-0 overflow-hidden rounded-2xl bg-[#eee5fb]" label={`Open ${match.profile.displayName}'s full profile`}><ChogArtwork chog={match.profile.chog} fit="natural"/></ProfileOpenButton>
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-2"><div className="min-w-0"><ProfileOpenButton profile={match.profile} options={{ source: 'matched', matchId: match.id }} className="block text-left" label={`Open ${match.profile.displayName}'s full profile`}><h2 className="display break-words text-lg font-extrabold text-[#24133f]">{match.profile.displayName}{match.profile.age !== null ? `, ${match.profile.age}` : ''}</h2><p className="mt-1 break-all text-xs text-[#82778c]">@{match.profile.username}</p></ProfileOpenButton></div><span className="shrink-0 rounded-full bg-[#f2ecff] px-2.5 py-1 text-[10px] font-bold text-[#6246b0]">{match.compatibility}%</span></div>
@@ -810,7 +828,7 @@ export function MatchesPage() {
             <Link href={`/messages?match=${encodeURIComponent(match.id)}`} className="button-primary mt-3 inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-xs font-bold" data-testid={`link-message-${match.id}`}><MessageCircle size={15}/>Message</Link>
             <MatchActions matchId={match.id} username={match.profile.username} onDone={refreshSocialLists}/>
           </div>
-        </article>)}</div> : <EmptyState mark="cm" title="Your first match is out there." detail="When someone you like likes you back, you’ll find your mutual connection here." action={<Link href="/discover" className="button-primary inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-bold" data-testid="link-discover-from-matches">Meet people <ArrowRight size={15}/></Link>} />}
+        </motion.article>)}</AnimatePresence></div> : <EmptyState mark="cm" title="Your first match is out there." detail="When someone you like likes you back, you’ll find your mutual connection here." action={<Link href="/discover" className="button-primary inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-bold" data-testid="link-discover-from-matches">Meet people <ArrowRight size={15}/></Link>} />}
       </QueryState>
     </section>}
     {section === 'ex-match' && <section id="panel-ex-match" role="tabpanel" aria-label="Ex Matches">
@@ -820,9 +838,18 @@ export function MatchesPage() {
         retry={() => void exMatchesQuery.refetch()}
       >
         {exMatchesQuery.data?.length
-          ? <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{exMatchesQuery.data.map(item =>
-              <ExMatchCard key={item.id} item={item} onRematched={refreshSocialLists} />,
-            )}</div>
+          ? <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3"><AnimatePresence initial={false}>{exMatchesQuery.data.map(item =>
+              <motion.div
+                key={item.id}
+                layout
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.18 }}
+              >
+                <ExMatchCard item={item} onRematched={refreshSocialLists} />
+              </motion.div>,
+            )}</AnimatePresence></div>
           : <EmptyState title="No Ex Matches." detail="People from a previous Match will appear here after either person ends the relationship. Only the person who ended it can Rematch." />}
       </QueryState>
     </section>}
@@ -871,28 +898,72 @@ function IncomingLikeCard({ item, onHandled }: { item: LikeInboxItem; onHandled:
   </article>;
 }
 
+function UnlikeAction({
+  profile,
+  type,
+  onDone,
+}: {
+  profile: Profile;
+  type: LikeInboxItem['type'];
+  onDone: () => void;
+}) {
+  const unlike = useUnlikeProfile();
+  const [notice, setNotice] = useState('');
+
+  async function removeLike() {
+    setNotice('');
+    try {
+      await unlike.mutateAsync({ targetUserId: profile.userId });
+      onDone();
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'The Like could not be removed.');
+    }
+  }
+
+  return <>
+    <button
+      type="button"
+      onClick={() => void removeLike()}
+      disabled={unlike.isPending}
+      className="button-soft mt-3 inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-xs font-bold text-[#64586b] disabled:cursor-not-allowed disabled:opacity-50"
+      data-testid={`button-unlike-${profile.userId}`}
+    >
+      {unlike.isPending ? 'Removing…' : type === 'super_like' ? 'Withdraw Super Like' : 'Unlike'}
+    </button>
+    {notice && <p className="mt-2 text-xs leading-5 text-[#a34646]" role="alert" data-testid={`status-unlike-${profile.userId}`}>{notice}</p>}
+  </>;
+}
+
 function MatchActions({ matchId, username, onDone }: { matchId: string; username: string; onDone: () => void }) {
   const unmatch = useUnmatchProfile();
   return <button onClick={()=>{if(window.confirm(`Unmatch with @${username}? The active match will end, but your conversation history will remain in Messages.`)) unmatch.mutate({matchId},{onSuccess:onDone});}} disabled={unmatch.isPending} className="mt-4 text-xs font-semibold text-[#998e9e] underline-offset-4 hover:text-[#9a4a4a] hover:underline disabled:opacity-50" data-testid={`button-unmatch-${matchId}`}>{unmatch.isPending ? 'Removing…' : 'Unmatch'}</button>;
 }
 
 function ExMatchCard({ item, onRematched }: { item: Match; onRematched: () => void }) {
+  const profileOptions = {
+    source: 'ex-match' as const,
+    matchId: item.id,
+    rematchAvailable: item.rematchAvailable,
+  };
   return <article
     className="surface flex gap-4 rounded-[26px] p-4 sm:p-5"
     data-testid={`card-ex-match-${item.id}`}
   >
-    <div className="w-28 shrink-0 rounded-2xl bg-[#eee5fb]">
+    <ProfileOpenButton profile={item.profile} options={profileOptions} className="block w-28 shrink-0 self-start overflow-hidden rounded-2xl bg-[#eee5fb]" label={`Open ${item.profile.displayName}'s full profile`}>
       <ChogArtwork chog={item.profile.chog} fit="natural"/>
-    </div>
+    </ProfileOpenButton>
     <div className="min-w-0 flex-1">
-      <h2 className="display break-words text-lg font-extrabold text-[#24133f]">
+      <ProfileOpenButton profile={item.profile} options={profileOptions} className="block text-left" label={`Open ${item.profile.displayName}'s full profile`}>
+        <h2 className="display break-words text-lg font-extrabold text-[#24133f]">
         {item.profile.displayName}{item.profile.age !== null ? `, ${item.profile.age}` : ''}
-      </h2>
-      <p className="mt-1 text-xs text-[#82778c]">@{item.profile.username}</p>
+        </h2>
+        <p className="mt-1 break-all text-xs text-[#82778c]">@{item.profile.username}</p>
+      </ProfileOpenButton>
       <p className="mt-2 text-[11px] font-semibold text-[#705b83]">
         Chog #{item.profile.chog.tokenId} · {item.profile.chog.tier || 'Tier unlisted'}
       </p>
-      <RematchAction matchId={item.id} onRematched={onRematched}/>
+      <p className="mt-2 text-[10px] text-[#887c90]">Previous Match · {new Date(item.createdAt).toLocaleDateString()}</p>
+      {item.rematchAvailable && <RematchAction matchId={item.id} onRematched={onRematched}/>}
     </div>
   </article>;
 }
@@ -1148,9 +1219,21 @@ export function MessagesPage() {
   return <AppShell><div className="page-enter">
     <PageTitle eyebrow="Your conversations" title="Messages." description="A little hello can go a long way." />
     <div className="surface grid min-h-[570px] overflow-hidden rounded-[28px] md:grid-cols-[300px_1fr]">
-       <aside className="border-b border-[#24133f12] bg-[#eee7fb] md:border-b-0 md:border-r"><div className="px-5 py-4"><Eyebrow>Conversation history</Eyebrow><h2 className="display text-xl font-extrabold text-[#24133f]">Your people</h2></div><div className="flex gap-2 overflow-x-auto px-3 pb-4 md:block md:space-y-1 md:px-2">{conversations.map(item=><button onClick={()=>choose(item.id)} key={item.id} className={`flex min-w-[200px] items-center gap-3 rounded-2xl p-3 text-left transition md:w-full ${matchId===item.id?'bg-[#eee8ff]':'hover:bg-[#f6f1e9]'}`} data-testid={`button-conversation-${item.id}`}><ProfileAvatar profile={item.profile} size="sm"/><span className="min-w-0 flex-1"><span className="block truncate text-sm font-bold text-[#35264b]">{item.profile.displayName}</span><span className="block truncate text-xs text-[#8b8091]">@{item.profile.username}{item.status === 'unmatched' ? ' · Unmatched' : ''}</span></span>{(item.unreadCount||0)>0 && <span className="grid h-5 min-w-5 place-items-center rounded-full bg-[#7047ff] px-1 text-[10px] font-bold text-white">{item.unreadCount}</span>}</button>)}</div></aside>
+        <aside className="border-b border-[#24133f12] bg-[#eee7fb] md:border-b-0 md:border-r"><div className="px-5 py-4"><Eyebrow>Conversation history</Eyebrow><h2 className="display text-xl font-extrabold text-[#24133f]">Your people</h2></div><div className="flex gap-2 overflow-x-auto px-3 pb-4 md:block md:space-y-1 md:px-2">{conversations.map(item=>{
+          const profileOptions = item.status === 'unmatched'
+            ? { source: 'ex-match' as const, matchId: item.id }
+            : { source: 'matched' as const, matchId: item.id };
+          return <div key={item.id} className={`flex min-w-[200px] items-center gap-3 rounded-2xl p-3 transition md:w-full ${matchId===item.id?'bg-[#eee8ff]':'hover:bg-[#f6f1e9]'}`} data-testid={`conversation-${item.id}`}>
+            <ProfileAvatar profile={item.profile} size="sm" options={profileOptions}/>
+            <button type="button" onClick={()=>choose(item.id)} className="min-w-0 flex-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9b7ad8]" data-testid={`button-conversation-${item.id}`}>
+              <span className="block truncate text-sm font-bold text-[#35264b]">{item.profile.displayName}</span>
+              <span className="block truncate text-xs text-[#8b8091]">@{item.profile.username}{item.status === 'unmatched' ? ' · Unmatched' : ''}</span>
+            </button>
+            {(item.unreadCount||0)>0 && <span className="grid h-5 min-w-5 place-items-center rounded-full bg-[#7047ff] px-1 text-[10px] font-bold text-white">{item.unreadCount}</span>}
+          </div>;
+        })}</div></aside>
       <section className="flex min-h-[460px] flex-col">
-         {match && <header className="flex flex-wrap items-center gap-3 border-b border-[#24133f12] px-5 py-4"><ProfileAvatar profile={match.profile} size="sm"/><div className="min-w-0 flex-1"><p className="font-bold text-[#35264b]">{match.profile.displayName}</p><p className="text-xs text-[#887c90]">@{match.profile.username} · Chog holder</p></div><div className="flex items-center gap-2">
+          {match && <header className="flex flex-wrap items-center gap-3 border-b border-[#24133f12] px-5 py-4"><ProfileAvatar profile={match.profile} size="sm" options={match.status === 'unmatched' ? { source: 'ex-match', matchId: match.id } : { source: 'matched', matchId: match.id }}/><ProfileOpenButton profile={match.profile} options={match.status === 'unmatched' ? { source: 'ex-match', matchId: match.id } : { source: 'matched', matchId: match.id }} className="min-w-0 flex-1 text-left" label={`Open ${match.profile.displayName}'s full profile`}><p className="truncate font-bold text-[#35264b]">{match.profile.displayName}</p><p className="truncate text-xs text-[#887c90]">@{match.profile.username} · Chog holder</p></ProfileOpenButton><div className="flex items-center gap-2">
            <button type="button" onClick={()=>void callControls.startCall(match.id,'audio',match.profile)} disabled={match.status!=='active'||callControls.busy||Boolean(callControls.activeCall)} title={match.status==='active'?'Start an audio call':'Calls require an active match'} className="inline-flex items-center gap-2 rounded-full border border-[#e9e0d3] px-3 py-2 text-xs font-semibold text-[#6246b0] transition hover:bg-[#f7f2ff] disabled:cursor-not-allowed disabled:opacity-50" data-testid="button-audio-call"><Phone size={15}/>Audio</button>
            <button type="button" onClick={()=>void callControls.startCall(match.id,'video',match.profile)} disabled={match.status!=='active'||callControls.busy||Boolean(callControls.activeCall)} title={match.status==='active'?'Start a video call':'Calls require an active match'} className="inline-flex items-center gap-2 rounded-full border border-[#e9e0d3] px-3 py-2 text-xs font-semibold text-[#6246b0] transition hover:bg-[#f7f2ff] disabled:cursor-not-allowed disabled:opacity-50" data-testid="button-video-call"><Video size={15}/>Video</button>
          </div></header>}
