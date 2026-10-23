@@ -151,13 +151,13 @@ function App() {
       <TooltipProvider>
         <FluidBackground />
         <SessionLifecycle />
-        <CallProvider>
-          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
-            <ProfileViewerProvider>
+        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
+          <ProfileViewerProvider>
+            <CallProvider>
               <Router />
-            </ProfileViewerProvider>
-          </WouterRouter>
-        </CallProvider>
+            </CallProvider>
+          </ProfileViewerProvider>
+        </WouterRouter>
         <Toaster />
       </TooltipProvider>
     </QueryClientProvider>
