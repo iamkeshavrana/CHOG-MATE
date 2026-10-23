@@ -3,6 +3,8 @@ import {
   DiscoverProfilesQueryParams,
   DiscoverProfilesResponse,
   GetMeResponse,
+  GetUserProfileParams,
+  GetUserProfileResponse,
   SelectActiveChogBody,
   UpdateDiscoverVisibilityBody,
   UpdateDiscoverVisibilityResponse,
@@ -37,6 +39,123 @@ import { readWalletSession, requireWalletSession } from "../lib/wallet-auth";
 type DiscoverQuery = ReturnType<typeof DiscoverProfilesQueryParams.parse>;
 
 const router: IRouter = Router();
+
+router.get("/profiles/:userId", async (req, res): Promise<void> => {
+  const parsed = GetUserProfileParams.safeParse(req.params);
+  if (!parsed.success) {
+    res.status(404).json({ error: "This profile is not available." });
+    return;
+  }
+
+  try {
+    const targetUserId = parsed.data.userId;
+    const session = readWalletSession(req);
+    const bundle = await loadProfileBundle(targetUserId);
+    if (!bundle) {
+      res.status(404).json({ error: "This profile is not available." });
+      return;
+    }
+
+    const admin = getSupabaseAdmin();
+    if (session && session.userId !== targetUserId) {
+      const [blockedByMe, blockedMe] = await Promise.all([
+        admin
+          .from("blocks")
+          .select("id")
+          .eq("blocker_id", session.userId)
+          .eq("blocked_user_id", targetUserId)
+          .maybeSingle(),
+        admin
+          .from("blocks")
+          .select("id")
+          .eq("blocker_id", targetUserId)
+          .eq("blocked_user_id", session.userId)
+          .maybeSingle(),
+      ]);
+      if (blockedByMe.error || blockedMe.error) {
+        throw new SocialDataError("CHOG MATE profiles are not ready yet.");
+      }
+      if (blockedByMe.data || blockedMe.data) {
+        res.status(404).json({ error: "This profile is not available." });
+        return;
+      }
+
+      if (!bundle.profile.profile_visible) {
+        const [likeFromMe, likeToMe, superLikeFromMe, superLikeToMe, match] =
+          await Promise.all([
+            admin
+              .from("likes")
+              .select("id")
+              .eq("from_user_id", session.userId)
+              .eq("to_user_id", targetUserId)
+              .maybeSingle(),
+            admin
+              .from("likes")
+              .select("id")
+              .eq("from_user_id", targetUserId)
+              .eq("to_user_id", session.userId)
+              .maybeSingle(),
+            admin
+              .from("super_likes")
+              .select("id")
+              .eq("from_user_id", session.userId)
+              .eq("to_user_id", targetUserId)
+              .maybeSingle(),
+            admin
+              .from("super_likes")
+              .select("id")
+              .eq("from_user_id", targetUserId)
+              .eq("to_user_id", session.userId)
+              .maybeSingle(),
+            admin
+              .from("matches")
+              .select("id")
+              .or(
+                `and(user_a.eq.${session.userId},user_b.eq.${targetUserId}),and(user_a.eq.${targetUserId},user_b.eq.${session.userId})`,
+              )
+              .maybeSingle(),
+          ]);
+        if ([likeFromMe, likeToMe, superLikeFromMe, superLikeToMe, match].some(result => result.error)) {
+          throw new SocialDataError("CHOG MATE profiles are not ready yet.");
+        }
+        if (
+          !likeFromMe.data &&
+          !likeToMe.data &&
+          !superLikeFromMe.data &&
+          !superLikeToMe.data &&
+          !match.data
+        ) {
+          res.status(404).json({ error: "This profile is not available." });
+          return;
+        }
+      }
+    } else if (!bundle.profile.profile_visible && session?.userId !== targetUserId) {
+      res.status(404).json({ error: "This profile is not available." });
+      return;
+    }
+
+    if (!isAddress(bundle.user.wallet_address)) {
+      res.status(404).json({ error: "This profile is not available." });
+      return;
+    }
+    const ownsSelectedChog = await isCurrentChogOwner(
+      getAddress(bundle.user.wallet_address),
+      bundle.chog.tokenId,
+    );
+    if (ownsSelectedChog === null) {
+      res.status(503).json({ error: "Ownership checks are temporarily unavailable." });
+      return;
+    }
+    if (!ownsSelectedChog) {
+      res.status(404).json({ error: "This profile is not available." });
+      return;
+    }
+
+    res.json(GetUserProfileResponse.parse(profileToApi(bundle)));
+  } catch (error) {
+    sendProfileError(req, res, error);
+  }
+});
 
 router.get("/me", async (req, res): Promise<void> => {
   const session = requireWalletSession(req, res);

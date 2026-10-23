@@ -507,6 +507,83 @@ export const useCreateAddressSession = <TError = ErrorType<void | ApiErrorRespon
       return useMutation(getCreateAddressSessionMutationOptions(options));
     }
 
+export const getGetUserProfileUrl = (userId: string,) => {
+
+
+
+
+  return `/api/profiles/${userId}`
+}
+
+/**
+ * @summary Get a visible or socially related user's verified profile
+ */
+export const getUserProfile = async (userId: string, options?: Parameters<typeof customFetch>[1]): Promise<Profile> => {
+
+  return customFetch<Profile>(getGetUserProfileUrl(userId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetUserProfileQueryKey = (userId: string,) => {
+    return [
+    `/api/profiles/${userId}`
+    ] as const;
+    }
+
+
+export const getGetUserProfileQueryOptions = <TData = Awaited<ReturnType<typeof getUserProfile>>, TError = ErrorType<void>>(userId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getUserProfile>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetUserProfileQueryKey(userId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getUserProfile>>> = ({ signal }) => getUserProfile(userId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: userId !== null && userId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getUserProfile>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetUserProfileQueryResult = NonNullable<Awaited<ReturnType<typeof getUserProfile>>>
+export type GetUserProfileQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get a visible or socially related user's verified profile
+ */
+
+export function useGetUserProfile<TData = Awaited<ReturnType<typeof getUserProfile>>, TError = ErrorType<void>>(
+ userId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getUserProfile>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetUserProfileQueryOptions(userId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
 export const getLogoutWalletUrl = () => {
 
 
@@ -1563,6 +1640,80 @@ export function useGetSentLikes<TData = Awaited<ReturnType<typeof getSentLikes>>
 
 
 
+
+export const getUnlikeProfileUrl = (targetUserId: string,) => {
+
+
+
+
+  return `/api/likes/sent/${targetUserId}`
+}
+
+/**
+ * @summary Revoke the signed-in user's pending Like for one profile
+ */
+export const unlikeProfile = async (targetUserId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getUnlikeProfileUrl(targetUserId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getUnlikeProfileMutationKey = () => ['unlikeProfile'] as const;
+
+export const getUnlikeProfileMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unlikeProfile>>, TError,UnlikeProfileMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof unlikeProfile>>, TError,UnlikeProfileMutationVariables, TContext> => {
+
+const mutationKey = getUnlikeProfileMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof unlikeProfile>>, UnlikeProfileMutationVariables> = (props) => {
+          const {targetUserId} = props ?? {};
+
+          return  unlikeProfile(targetUserId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UnlikeProfileMutationResult = NonNullable<Awaited<ReturnType<typeof unlikeProfile>>>
+
+    export type UnlikeProfileMutationError = ErrorType<void>
+    export type UnlikeProfileMutationVariables = {targetUserId: string}
+
+    /**
+ * @summary Revoke the signed-in user's pending Like for one profile
+ */
+export const useUnlikeProfile = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unlikeProfile>>, TError,UnlikeProfileMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof unlikeProfile>>,
+        TError,
+        UnlikeProfileMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUnlikeProfileMutationOptions(options));
+    }
 
 export const getGetMatchesUrl = () => {
 

@@ -5,6 +5,7 @@ import type { Chog, Profile } from '@workspace/api-client-react';
 import { getGetAuthSessionQueryKey, useGetAuthSession } from '@workspace/api-client-react';
 import { ChogBalance } from '@/components/chog-balance';
 import { NotificationCenter } from '@/components/notification-center';
+import { useProfileViewer, type ProfileViewerOptions } from '@/components/profile-viewer-context';
 import { WalletConnectionDialog } from '@/components/wallet-connection-dialog';
 
 export function Brand({ inverse = false }: { inverse?: boolean }) {
@@ -141,11 +142,46 @@ export function ChogArtwork({
 }
 
 export function ProfileAvatar({ profile, size = 'md' }: { profile: Profile; size?: 'sm' | 'md' | 'lg' }) {
+  const { openProfile } = useProfileViewer();
   const dimensions = size === 'lg' ? 'h-16 w-16' : size === 'sm' ? 'h-10 w-10' : 'h-12 w-12';
   const maxDimensions = size === 'lg' ? 'max-h-16 max-w-16' : size === 'sm' ? 'max-h-10 max-w-10' : 'max-h-12 max-w-12';
   const sources = [...new Set([...(profile.chog.imageUrls ?? []), profile.chog.imageUrl].filter((url): url is string => Boolean(url)))];
   const [sourceIndex, setSourceIndex] = useState(0);
   useEffect(() => setSourceIndex(0), [profile.userId, profile.chog.tokenId, sources.join('|')]);
-  if (sources[sourceIndex]) return <img src={sources[sourceIndex]} onError={() => setSourceIndex((index) => Math.min(index + 1, sources.length))} alt="" className={`h-auto w-auto shrink-0 ${maxDimensions} object-contain ring-2 ring-white`} />;
-  return <div className={`${dimensions} grid shrink-0 place-items-center rounded-full bg-[#e7dcff] text-[#5435a2] ring-2 ring-white`}><span className="display text-lg font-extrabold">{profile.displayName?.slice(0, 1) || 'C'}</span></div>;
+  return <button
+    type="button"
+    onClick={event => { event.stopPropagation(); openProfile(profile); }}
+    className={`${dimensions} grid shrink-0 place-items-center overflow-hidden rounded-full bg-[#e7dcff] text-[#5435a2] ring-2 ring-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#a982ff]`}
+    aria-label={`Open ${profile.displayName}'s full profile`}
+    data-testid={`button-open-avatar-profile-${profile.userId}`}
+  >
+    {sources[sourceIndex]
+      ? <img src={sources[sourceIndex]} onError={() => setSourceIndex((index) => Math.min(index + 1, sources.length))} alt="" className={`h-auto w-auto shrink-0 ${maxDimensions} object-contain`} />
+      : <span className="display text-lg font-extrabold">{profile.displayName?.slice(0, 1) || 'C'}</span>}
+  </button>;
+}
+
+export function ProfileOpenButton({
+  profile,
+  children,
+  className = '',
+  label,
+  options,
+}: {
+  profile: Profile;
+  children: ReactNode;
+  className?: string;
+  label?: string;
+  options?: ProfileViewerOptions;
+}) {
+  const { openProfile } = useProfileViewer();
+  return <button
+    type="button"
+    onClick={() => openProfile(profile, options)}
+    className={className}
+    aria-label={label ?? `Open ${profile.displayName}'s full profile`}
+    data-testid={`button-open-profile-${profile.userId}`}
+  >
+    {children}
+  </button>;
 }

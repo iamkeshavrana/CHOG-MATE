@@ -14,6 +14,7 @@ import {
   useGetAuthSession,
 } from '@workspace/api-client-react';
 import { AppShell, EmptyState, PageTitle } from '@/components/shared';
+import { ProfileViewerProvider } from '@/components/profile-viewer-provider';
 import { WalletConnectionDialog } from '@/components/wallet-connection-dialog';
 import { CallProvider } from '@/components/call-provider';
 import { FluidBackground } from '@/components/fluid-background';
@@ -152,7 +153,9 @@ function App() {
         <SessionLifecycle />
         <CallProvider>
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
-            <Router />
+            <ProfileViewerProvider>
+              <Router />
+            </ProfileViewerProvider>
           </WouterRouter>
         </CallProvider>
         <Toaster />

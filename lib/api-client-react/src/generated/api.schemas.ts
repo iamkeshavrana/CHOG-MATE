@@ -338,6 +338,14 @@ export interface SwipeInput {
   transactionHash?: string;
 }
 
+export type MatchStatus = typeof MatchStatus[keyof typeof MatchStatus];
+
+
+export const MatchStatus = {
+  active: 'active',
+  unmatched: 'unmatched',
+} as const;
+
 export interface Match {
   id: string;
   profile: Profile;
@@ -351,6 +359,8 @@ export interface Match {
   lastActivity?: string | null;
   /** @minimum 0 */
   unreadCount?: number;
+  status: MatchStatus;
+  rematchAvailable: boolean;
 }
 
 export interface SwipeResult {

@@ -119,6 +119,25 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiErrorResponse"
+  /profiles/{userId}:
+    get:
+      operationId: getUserProfile
+      tags: [profiles]
+      summary: Get a visible or socially related user's verified profile
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: User profile with verified Chog metadata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+        "404":
+          description: Profile is not available
   /auth/logout:
     post:
       operationId: logoutWallet
@@ -448,6 +467,21 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/LikeInboxItem"
+  /likes/sent/{targetUserId}:
+    delete:
+      operationId: unlikeProfile
+      tags: [matching]
+      summary: Revoke the signed-in user's pending Like for one profile
+      parameters:
+        - name: targetUserId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "204":
+          description: Outgoing Like revoked
+        "409":
+          description: The users are already or previously matched
   /matches:
     get:
       operationId: getMatches
@@ -1041,7 +1075,7 @@ components:
         profile: { $ref: "#/components/schemas/Profile" }
     Match:
       type: object
-      required: [id, profile, compatibility, createdAt]
+      required: [id, profile, compatibility, createdAt, status, rematchAvailable]
       properties:
         id: { type: string, format: uuid }
         profile: { $ref: "#/components/schemas/Profile" }
@@ -1049,6 +1083,8 @@ components:
         createdAt: { type: string, format: date-time }
         lastActivity: { type: ["string", "null"], format: date-time }
         unreadCount: { type: integer, minimum: 0 }
+        status: { type: string, enum: [active, unmatched] }
+        rematchAvailable: { type: boolean }
     Conversation:
       type: object
       required: [id, profile, compatibility, createdAt, status]

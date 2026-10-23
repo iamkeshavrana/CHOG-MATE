@@ -47,6 +47,7 @@ export * from './likeInboxItemType';
 export * from './liveSale';
 export * from './liveSales';
 export * from './match';
+export * from './matchStatus';
 export * from './message';
 export * from './messageAttachmentUpload';
 export * from './messageAttachmentUploadInput';

@@ -98,6 +98,62 @@ export const CreateAddressSessionResponse = zod.object({
 
 
 /**
+ * @summary Get a visible or socially related user's verified profile
+ */
+export const GetUserProfileParams = zod.object({
+  "userId": zod.coerce.string().uuid()
+})
+
+export const getUserProfileResponseAgeMin = 18;
+export const getUserProfileResponseAgeMax = 120;
+
+export const getUserProfileResponseLookingForOtherMax = 200;
+
+export const getUserProfileResponseChogTraitsItemRarityMin = 0;
+export const getUserProfileResponseChogTraitsItemRarityMax = 100;
+
+export const getUserProfileResponseCompatibilityMin = 0;
+export const getUserProfileResponseCompatibilityMax = 100;
+
+
+
+export const GetUserProfileResponse = zod.object({
+  "userId": zod.string().uuid(),
+  "username": zod.string(),
+  "displayName": zod.string(),
+  "gender": zod.union([zod.literal('Male'),zod.literal('Female'),zod.literal('Gay'),zod.literal('Trans'),zod.literal('Alien'),zod.literal(null)]).nullable(),
+  "age": zod.number().int().min(getUserProfileResponseAgeMin).max(getUserProfileResponseAgeMax).nullable(),
+  "walletAddress": zod.string(),
+  "walletVerified": zod.boolean(),
+  "bio": zod.string().nullable(),
+  "interests": zod.array(zod.string()),
+  "hobbies": zod.array(zod.string()),
+  "languages": zod.array(zod.string()),
+  "lookingFor": zod.array(zod.enum(['Dating', 'Friendship', 'Networking', 'Collaboration', 'Other'])),
+  "lookingForOther": zod.string().max(getUserProfileResponseLookingForOtherMax).nullable(),
+  "chog": zod.object({
+  "tokenId": zod.string(),
+  "contractAddress": zod.string(),
+  "ownerWallet": zod.string(),
+  "verified": zod.boolean(),
+  "name": zod.string().nullish(),
+  "description": zod.string().nullable(),
+  "tier": zod.string().nullable(),
+  "imageUrl": zod.string().url().nullish(),
+  "imageUrls": zod.array(zod.string().url()).optional(),
+  "metadataUrl": zod.string().url().nullish(),
+  "traits": zod.array(zod.object({
+  "traitType": zod.string(),
+  "traitValue": zod.string(),
+  "rarity": zod.number().min(getUserProfileResponseChogTraitsItemRarityMin).max(getUserProfileResponseChogTraitsItemRarityMax).nullish()
+})).optional()
+}),
+  "compatibility": zod.number().int().min(getUserProfileResponseCompatibilityMin).max(getUserProfileResponseCompatibilityMax).nullish(),
+  "whyYouMatch": zod.array(zod.string()).optional()
+})
+
+
+/**
  * @summary End the current wallet session
  */
 export const LogoutWalletResponse = zod.void()
@@ -595,7 +651,9 @@ export const SwipeProfileResponse = zod.object({
   "compatibility": zod.number().int().min(swipeProfileResponseMatchOneCompatibilityMin).max(swipeProfileResponseMatchOneCompatibilityMax),
   "createdAt": zod.coerce.date(),
   "lastActivity": zod.coerce.date().nullish(),
-  "unreadCount": zod.number().int().min(swipeProfileResponseMatchOneUnreadCountMin).optional()
+  "unreadCount": zod.number().int().min(swipeProfileResponseMatchOneUnreadCountMin).optional(),
+  "status": zod.enum(['active', 'unmatched']),
+  "rematchAvailable": zod.boolean()
 }),zod.null()]).optional()
 })
 
@@ -717,6 +775,16 @@ export const GetSentLikesResponse = zod.array(GetSentLikesResponseItem)
 
 
 /**
+ * @summary Revoke the signed-in user's pending Like for one profile
+ */
+export const UnlikeProfileParams = zod.object({
+  "targetUserId": zod.coerce.string().uuid()
+})
+
+export const UnlikeProfileResponse = zod.void()
+
+
+/**
  * @summary List the signed-in user's real mutual matches
  */
 export const getMatchesResponseProfileAgeMin = 18;
@@ -776,7 +844,9 @@ export const GetMatchesResponseItem = zod.object({
   "compatibility": zod.number().int().min(getMatchesResponseCompatibilityMin).max(getMatchesResponseCompatibilityMax),
   "createdAt": zod.coerce.date(),
   "lastActivity": zod.coerce.date().nullish(),
-  "unreadCount": zod.number().int().min(getMatchesResponseUnreadCountMin).optional()
+  "unreadCount": zod.number().int().min(getMatchesResponseUnreadCountMin).optional(),
+  "status": zod.enum(['active', 'unmatched']),
+  "rematchAvailable": zod.boolean()
 })
 export const GetMatchesResponse = zod.array(GetMatchesResponseItem)
 
@@ -841,7 +911,9 @@ export const GetExMatchesResponseItem = zod.object({
   "compatibility": zod.number().int().min(getExMatchesResponseCompatibilityMin).max(getExMatchesResponseCompatibilityMax),
   "createdAt": zod.coerce.date(),
   "lastActivity": zod.coerce.date().nullish(),
-  "unreadCount": zod.number().int().min(getExMatchesResponseUnreadCountMin).optional()
+  "unreadCount": zod.number().int().min(getExMatchesResponseUnreadCountMin).optional(),
+  "status": zod.enum(['active', 'unmatched']),
+  "rematchAvailable": zod.boolean()
 })
 export const GetExMatchesResponse = zod.array(GetExMatchesResponseItem)
 

@@ -19,6 +19,7 @@ import {
   SendMessageResponse,
   SwipeProfileBody,
   SwipeProfileResponse,
+  UnlikeProfileParams,
   UnblockUserParams,
   UnmatchProfileParams,
 } from "@workspace/api-zod";
@@ -260,12 +261,12 @@ router.get("/likes/inbox", async (req, res): Promise<void> => {
           .from("matches")
           .select("user_b")
           .eq("user_a", session.userId)
-          .eq("status", "active"),
+          .in("status", ["active", "unmatched"]),
         admin
           .from("matches")
           .select("user_a")
           .eq("user_b", session.userId)
-          .eq("status", "active"),
+          .in("status", ["active", "unmatched"]),
         admin.from("likes").select("to_user_id").eq("from_user_id", session.userId),
         admin.from("passes").select("to_user_id").eq("from_user_id", session.userId),
         admin.from("super_likes").select("to_user_id").eq("from_user_id", session.userId),
@@ -362,8 +363,8 @@ router.get("/likes/sent", async (req, res): Promise<void> => {
         .not("transaction_hash", "is", null),
       admin.from("blocks").select("blocked_user_id").eq("blocker_id", session.userId),
       admin.from("blocks").select("blocker_id").eq("blocked_user_id", session.userId),
-      admin.from("matches").select("user_b").eq("user_a", session.userId).eq("status", "active"),
-      admin.from("matches").select("user_a").eq("user_b", session.userId).eq("status", "active"),
+      admin.from("matches").select("user_b").eq("user_a", session.userId).in("status", ["active", "unmatched"]),
+      admin.from("matches").select("user_a").eq("user_b", session.userId).in("status", ["active", "unmatched"]),
     ]);
     if ([sentLikes, sentSuperLikes, blocksFrom, blocksTo, matchesA, matchesB]
       .some((result) => result.error)) {
@@ -428,6 +429,56 @@ router.get("/likes/sent", async (req, res): Promise<void> => {
   }
 });
 
+router.delete("/likes/sent/:targetUserId", async (req, res): Promise<void> => {
+  const session = requireWalletSession(req, res);
+  if (!session) return;
+  const parsed = UnlikeProfileParams.safeParse(req.params);
+  if (!parsed.success || parsed.data.targetUserId === session.userId) {
+    res.status(400).json({ error: "That Like could not be removed." });
+    return;
+  }
+
+  try {
+    await requireEligibleProfile(session);
+    const targetUserId = parsed.data.targetUserId;
+    const userA = session.userId < targetUserId ? session.userId : targetUserId;
+    const userB = session.userId < targetUserId ? targetUserId : session.userId;
+    const admin = getSupabaseAdmin();
+    const { data: priorMatch, error: matchError } = await admin
+      .from("matches")
+      .select("id")
+      .eq("user_a", userA)
+      .eq("user_b", userB)
+      .maybeSingle();
+    if (matchError) throw new SocialDataError("CHOG MATE matching is not ready yet.");
+    if (priorMatch) {
+      res.status(409).json({
+        error: "Likes cannot be changed while this relationship is a Match or Ex Match.",
+      });
+      return;
+    }
+
+    const [likeDelete, superLikeDelete] = await Promise.all([
+      admin
+        .from("likes")
+        .delete()
+        .eq("from_user_id", session.userId)
+        .eq("to_user_id", targetUserId),
+      admin
+        .from("super_likes")
+        .delete()
+        .eq("from_user_id", session.userId)
+        .eq("to_user_id", targetUserId),
+    ]);
+    if (likeDelete.error || superLikeDelete.error) {
+      throw new SocialDataError("The outgoing Like could not be removed.");
+    }
+    res.sendStatus(204);
+  } catch (error) {
+    sendSocialError(req, res, error);
+  }
+});
+
 router.get("/matches", async (req, res): Promise<void> => {
   const session = requireWalletSession(req, res);
   if (!session) return;
@@ -480,14 +531,12 @@ router.get("/matches/ex", async (req, res): Promise<void> => {
         .from("matches")
         .select("*")
         .eq("user_a", session.userId)
-        .eq("status", "unmatched")
-        .eq("unmatched_by", session.userId),
+        .eq("status", "unmatched"),
       admin
         .from("matches")
         .select("*")
         .eq("user_b", session.userId)
-        .eq("status", "unmatched")
-        .eq("unmatched_by", session.userId),
+        .eq("status", "unmatched"),
       admin.from("blocks").select("blocked_user_id").eq("blocker_id", session.userId),
       admin.from("blocks").select("blocker_id").eq("blocked_user_id", session.userId),
     ]);
@@ -541,7 +590,7 @@ router.get("/conversations", async (req, res): Promise<void> => {
       .filter((row) => !excluded.has(row.user_a === session.userId ? row.user_b : row.user_a));
     rows.sort((a, b) => (b.last_activity ?? b.created_at).localeCompare(a.last_activity ?? a.created_at));
     res.json(GetConversationsResponse.parse(
-      await buildMatchItems(rows, session.userId, true),
+      await buildMatchItems(rows, session.userId),
     ));
   } catch (error) {
     sendSocialError(req, res, error);
@@ -1053,7 +1102,6 @@ async function getConversationMatch(matchId: string, userId: string): Promise<Ma
 async function buildMatchItems(
   rows: MatchRow[],
   userId: string,
-  includeStatus = false,
 ): Promise<Record<string, unknown>[]> {
   if (rows.length === 0) return [];
   const otherIds = rows.map((row) => (row.user_a === userId ? row.user_b : row.user_a));
@@ -1089,7 +1137,8 @@ async function buildMatchItems(
       createdAt: row.created_at,
       lastActivity: row.last_activity,
       unreadCount: count ?? 0,
-      ...(includeStatus ? { status: row.status } : {}),
+      status: row.status,
+      rematchAvailable: row.status === "unmatched" && row.unmatched_by === userId,
     });
   }
 

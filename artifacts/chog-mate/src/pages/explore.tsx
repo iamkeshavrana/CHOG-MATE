@@ -10,6 +10,7 @@ import {
 } from '@workspace/api-client-react';
 import type { DiscoverProfilesMode, DiscoverProfilesParams, Profile } from '@workspace/api-client-react';
 import { AppShell, ChogArtwork, Eyebrow, PageTitle } from '@/components/shared';
+import { useProfileViewer } from '@/components/profile-viewer-context';
 import { WalletConnectionDialog } from '@/components/wallet-connection-dialog';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import './explore.css';
@@ -49,6 +50,7 @@ function countActiveFilters(filters: Filters): number {
 }
 
 export function ExplorePage() {
+  const { openProfile } = useProfileViewer();
   const queryClient = useQueryClient();
   const [mode, setMode] = useState<DiscoverProfilesMode>('discover');
   const [searchInput, setSearchInput] = useState('');
@@ -58,7 +60,6 @@ export function ExplorePage() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [focusedFilter, setFocusedFilter] = useState<FilterControlKey | null>(null);
   const [walletDialogOpen, setWalletDialogOpen] = useState(false);
-  const [viewingProfile, setViewingProfile] = useState<Profile | null>(null);
   const [notice, setNotice] = useState('');
   const [cursor, setCursor] = useState<string | undefined>();
   const [loadedProfiles, setLoadedProfiles] = useState<Profile[]>([]);
@@ -263,7 +264,7 @@ export function ExplorePage() {
         {!discovery.isLoading && !discovery.isError && profiles.length === 0 && <div className="explore-state" data-testid="empty-explore-profiles"><span className="explore-state-mark"><Compass size={23} /></span><h3>{hasSearch ? 'No one found this time.' : 'Your next connection is still out there.'}</h3><p>{hasSearch ? 'Try a name, username, or active Chog token ID.' : 'Try another direction or loosen your filters to see more holders.'}</p><button type="button" onClick={clearFilters} data-testid="button-reset-explore-empty">Reset discovery</button></div>}
         {profiles.length > 0 && <div className="explore-profile-grid" data-testid="grid-explore-profiles">
           {profiles.map(profile => <article key={profile.userId} className="explore-profile-card" data-testid={`card-explore-profile-${profile.userId}`}>
-            <button type="button" className="explore-profile-open" onClick={() => setViewingProfile(profile)} aria-label={`Open ${profile.displayName}'s profile`} data-testid={`button-open-explore-profile-${profile.userId}`}>
+            <button type="button" className="explore-profile-open" onClick={() => openProfile(profile, { source: 'explore', onLike: () => likeProfile(profile) })} aria-label={`Open ${profile.displayName}'s profile`} data-testid={`button-open-explore-profile-${profile.userId}`}>
               <div className="explore-card-art"><ChogArtwork chog={profile.chog} fit="contain" /><span className="explore-card-verified"><BadgeCheck size={13} /> Verified Chog</span></div>
               <div className="explore-card-info">
                 <div className="explore-card-name-line"><h3>{profile.displayName}{profile.age !== null ? <span>, {profile.age}</span> : null}</h3><span className="explore-card-token">#{profile.chog.tokenId}</span></div>
@@ -310,20 +311,6 @@ export function ExplorePage() {
       </DialogContent>
     </Dialog>
 
-    <Dialog open={Boolean(viewingProfile)} onOpenChange={open => !open && setViewingProfile(null)}>
-      <DialogContent className="explore-profile-dialog">
-        {viewingProfile && <div className="explore-dialog-profile">
-          <div className="explore-dialog-art"><ChogArtwork chog={viewingProfile.chog} fit="contain" /></div>
-          <div className="explore-dialog-copy">
-            <DialogHeader><span className="explore-card-verified"><BadgeCheck size={13} /> Verified Chog holder</span><DialogTitle>{viewingProfile.displayName}{viewingProfile.age !== null ? `, ${viewingProfile.age}` : ''}</DialogTitle><DialogDescription>@{viewingProfile.username} · Chog #{viewingProfile.chog.tokenId}{viewingProfile.chog.tier ? ` · ${viewingProfile.chog.tier}` : ''}</DialogDescription></DialogHeader>
-            {viewingProfile.bio && <p className="explore-dialog-bio">{viewingProfile.bio}</p>}
-            {viewingProfile.lookingFor.length > 0 && <section className="explore-dialog-section"><h3>Looking for</h3><div>{viewingProfile.lookingFor.map(value => <span key={value}>{value}</span>)}</div></section>}
-            {[['Interests', viewingProfile.interests], ['Hobbies', viewingProfile.hobbies], ['Languages', viewingProfile.languages]].filter(([, values]) => (values as string[]).length > 0).map(([label, values]) => <section className="explore-dialog-section" key={label as string}><h3>{label as string}</h3><div>{(values as string[]).map(value => <span key={value}>{value}</span>)}</div></section>)}
-            <button type="button" className="explore-dialog-like" onClick={() => void likeProfile(viewingProfile)} disabled={swipe.isPending} data-testid={`button-dialog-like-${viewingProfile.userId}`}><Heart size={17} /> Like profile</button>
-          </div>
-        </div>}
-      </DialogContent>
-    </Dialog>
     <WalletConnectionDialog open={walletDialogOpen} onOpenChange={setWalletDialogOpen} returnTo="/explore" />
   </AppShell>;
 }

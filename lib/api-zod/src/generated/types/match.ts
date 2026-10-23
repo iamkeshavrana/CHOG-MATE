@@ -5,6 +5,7 @@
  * CHOG MATE wallet, NFT, profile, discovery, and social API
  * OpenAPI spec version: 0.1.0
  */
+import type { MatchStatus } from './matchStatus';
 import type { Profile } from './profile';
 
 export interface Match {
@@ -20,4 +21,6 @@ export interface Match {
   lastActivity?: Date | null;
   /** @minimum 0 */
   unreadCount?: number;
+  status: MatchStatus;
+  rematchAvailable: boolean;
 }

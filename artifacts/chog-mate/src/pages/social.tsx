@@ -10,13 +10,14 @@ import {
   getGetMeQueryKey, getGetLikeInboxQueryKey, getGetSentLikesQueryKey,
   useBlockProfile, useDiscoverProfiles, useGetConversations, useGetExMatches,
   useGetMatches, useGetMessages, useGetAuthSession, useGetLikeInbox, useGetMe,
-  useGetSentLikes, useRematchProfile, useReportProfile,
+  useGetSentLikes, useRematchProfile, useReportProfile, useUnlikeProfile,
   useRequestMessageAttachmentUploadUrl, useSendMessage, useSwipeProfile, useUnmatchProfile,
 } from '@workspace/api-client-react';
 import { type DiscoverProfilesParams, type LikeInboxItem, type Match, type Profile, ReportInputReason } from '@workspace/api-client-react';
 import { formatUnits, type Hex } from 'viem';
 import { useConnection, usePublicClient, useReadContract, useWriteContract } from 'wagmi';
-import { AppShell, ChogArtwork, EmptyState, Eyebrow, PageTitle, ProfileAvatar, QueryState } from '@/components/shared';
+import { AppShell, ChogArtwork, EmptyState, Eyebrow, PageTitle, ProfileAvatar, ProfileOpenButton, QueryState } from '@/components/shared';
+import { useProfileViewer } from '@/components/profile-viewer-context';
 import { WalletConnectionDialog } from '@/components/wallet-connection-dialog';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { appConfig } from '@/lib/config';
@@ -132,62 +133,6 @@ function DiscoverCard({
       </button>
     </div>
   </article>;
-}
-
-function ProfileDetailsDialog({
-  profile,
-  open,
-  onOpenChange,
-  canInteract,
-  onAuthRequired,
-}: {
-  profile: Profile | null;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  canInteract: boolean;
-  onAuthRequired: () => void;
-}) {
-  if (!profile) return null;
-  const sections = [
-    { title: 'Interests', values: profile.interests },
-    { title: 'Hobbies', values: profile.hobbies },
-    { title: 'Languages', values: profile.languages },
-  ].filter(section => section.values.length > 0);
-  const lookingForOther = profile.lookingForOther?.trim();
-  const hasOtherLookingFor = profile.lookingFor.some(value => value.trim().toLowerCase() === 'other');
-
-  return <Dialog open={open} onOpenChange={onOpenChange}>
-    <DialogContent className="discover-profile-dialog max-h-[85dvh] max-w-2xl overflow-y-auto rounded-[28px] p-0">
-      <div className="discover-dialog-art"><ChogArtwork chog={profile.chog} fit="natural"/></div>
-      <div className="discover-dialog-details">
-        <DialogHeader className="text-left">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="min-w-0">
-              <DialogTitle className="display break-words text-3xl font-extrabold tracking-[-.04em] text-[#35205c]" data-testid={`dialog-profile-name-${profile.userId}`}>
-                {profile.displayName}{profile.age !== null ? `, ${profile.age}` : ''}
-              </DialogTitle>
-              <p className="mt-1 text-sm text-[#75677c]" data-testid={`dialog-profile-username-${profile.userId}`}>@{profile.username}</p>
-            </div>
-            <div onClick={event => event.stopPropagation()}>
-              <ReportControl profile={profile} canInteract={canInteract} onAuthRequired={onAuthRequired} />
-            </div>
-          </div>
-          {profile.bio?.trim() && <section className="mt-4" aria-label="About">
-            <h3 className="text-[10px] font-bold uppercase tracking-[.13em] text-[#9476a0]">About</h3>
-            <DialogDescription className="mt-1 whitespace-pre-line break-words text-sm leading-6 text-[#594b62]" data-testid={`text-bio-${profile.userId}`}>{profile.bio}</DialogDescription>
-          </section>}
-        </DialogHeader>
-        {profile.gender && <p className="mt-4 text-xs text-[#81758a]" data-testid={`dialog-profile-gender-${profile.userId}`}><strong className="font-bold text-[#594d64]">Gender:</strong> {profile.gender}</p>}
-        {profile.lookingFor.length > 0 && <section className="discover-dialog-section" aria-label="Looking for"><h3>Looking for</h3><div className="mt-2 flex flex-wrap gap-2">{profile.lookingFor.map(item=><span key={item} className="discover-dialog-tag">{item}</span>)}</div>{hasOtherLookingFor && lookingForOther && <p className="mt-2 rounded-xl bg-white/40 px-3 py-2 text-xs leading-5 text-[#6d6178]">{lookingForOther}</p>}</section>}
-        {sections.map(section=><section key={section.title} className="discover-dialog-section"><h3>{section.title}</h3><div className="mt-2 flex flex-wrap gap-2">{section.values.map(item=><span key={item} className="discover-dialog-tag">{item}</span>)}</div></section>)}
-        <section className="discover-dialog-section" aria-label="Chog identity">
-          <h3>Chog identity</h3>
-          <p className="mt-2 text-sm font-semibold text-[#594d64]" data-testid={`dialog-chog-token-${profile.userId}`}>Chog #{profile.chog.tokenId}</p>
-          {profile.chog.tier && <p className="mt-1 text-sm text-[#75677c]" data-testid={`dialog-chog-tier-${profile.userId}`}>Tier: {profile.chog.tier}</p>}
-        </section>
-      </div>
-    </DialogContent>
-  </Dialog>;
 }
 
 const chogTokenAbi = [
@@ -444,6 +389,7 @@ function formatTokenAmount(value: bigint, decimals: number): string {
 }
 
 export function DiscoverPage() {
+  const { openProfile } = useProfileViewer();
   const maxPreviousCards = 8;
   const swipeFeedbackDuration = 1180;
   const [cursor, setCursor] = useState<string | undefined>();
@@ -454,7 +400,6 @@ export function DiscoverPage() {
   const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
   const [swipeFeedback, setSwipeFeedback] = useState<'pass' | 'like' | null>(null);
   const [walletDialogOpen, setWalletDialogOpen] = useState(false);
-  const [viewingProfile, setViewingProfile] = useState<Profile | null>(null);
   const [superLikeTarget, setSuperLikeTarget] = useState<Profile | null>(null);
   const swipeFeedbackStartedAt = useRef<number | null>(null);
   const swipeFeedbackTimeout = useRef<number | null>(null);
@@ -655,7 +600,18 @@ export function DiscoverPage() {
               transition={{ duration: swipeDirection ? 1.02 : 0.3, ease: 'easeInOut' }}
              data-testid={`discover-card-transition-${currentCard.userId}`}
            >
-             <DiscoverCard profile={currentCard} onAction={action} onOpenProfile={()=>setViewingProfile(currentCard)} onAuthRequired={()=>setWalletDialogOpen(true)} canInteract={canInteract} />
+             <DiscoverCard
+               profile={currentCard}
+               onAction={action}
+               onOpenProfile={() => openProfile(currentCard, {
+                 source: 'browse',
+                 onLike: () => action('like'),
+                 onPass: () => action('pass'),
+                 onSuperLike: () => setSuperLikeTarget(currentCard),
+               })}
+               onAuthRequired={()=>setWalletDialogOpen(true)}
+               canInteract={canInteract}
+             />
            </motion.div>
          </AnimatePresence> : data?.nextCursor ? <EmptyState mark="cm" title="Looking a little further." detail="No complete profiles in this group yet. Continue to the next set of real Chog holders." action={<button onClick={()=>setCursor(data.nextCursor || undefined)} className="button-soft rounded-full px-5 py-2.5 text-sm font-bold" data-testid="button-load-more">Continue discovery</button>} /> :
        <EmptyState mark="cm" title="No one new, for now." detail="Profiles appear when their owner turns Discover visibility on and still holds a verified Chog." action={<button onClick={()=>{setProfileIndex(0);void refetch();}} className="button-soft rounded-full px-5 py-2.5 text-sm font-bold" data-testid="button-refresh-discovery">Check again</button>} />}
@@ -721,7 +677,6 @@ export function DiscoverPage() {
            : <X className="discover-result-pass" size={96} strokeWidth={1.55} />}
        </motion.div>}
      </AnimatePresence>
-    <ProfileDetailsDialog profile={viewingProfile} open={Boolean(viewingProfile)} onOpenChange={open=>{if(!open)setViewingProfile(null);}} canInteract={canInteract} onAuthRequired={()=>setWalletDialogOpen(true)}/>
     <SuperLikeDialog
       profile={superLikeTarget}
       walletAddress={me.data?.walletAddress ?? null}
@@ -751,6 +706,7 @@ export function MatchesPage() {
     query: { enabled: Boolean(me.data), queryKey: getGetSentLikesQueryKey() },
   });
   const [walletDialogOpen, setWalletDialogOpen] = useState(true);
+  const [socialNotice, setSocialNotice] = useState('');
   const [section, setSection] = useState<'matches' | 'ex-match' | 'liked-you' | 'liked-by-you'>(() =>
     typeof window !== 'undefined' && window.location.hash === '#likes'
       ? 'liked-you'
@@ -764,7 +720,7 @@ export function MatchesPage() {
     const syncSectionFromHash = () => {
       if (window.location.hash === '#likes') setSection('liked-you');
       else if (window.location.hash === '#liked-by-you') setSection('liked-by-you');
-      else if (window.location.hash === '#ex-match') setSection('ex-match');
+      else if (window.location.hash === '#ex-match' || window.location.hash === '#ex-matches') setSection('ex-match');
     };
     window.addEventListener('hashchange', syncSectionFromHash);
     return () => window.removeEventListener('hashchange', syncSectionFromHash);
@@ -787,17 +743,25 @@ export function MatchesPage() {
     void qc.invalidateQueries({ queryKey: getGetExMatchesQueryKey() });
     void qc.invalidateQueries({ queryKey: getGetConversationsQueryKey() });
   }
+  function unlikeDone(type: LikeInboxItem['type']) {
+    setSocialNotice(type === 'super_like'
+      ? 'The Super Like was withdrawn. The completed $CHOG transfer is unchanged.'
+      : 'Like removed. This person can appear in future Discover results.');
+    refreshSocialLists();
+    void qc.invalidateQueries({ queryKey: getDiscoverProfilesQueryKey() });
+  }
   if (me.isLoading) return <AppShell><div className="skeleton h-96 rounded-[28px]"/></AppShell>;
   if (me.isError && !isUnauthorized(me.error)) return <AppShell><QueryState loading={false} error retry={()=>void me.refetch()}><div/></QueryState></AppShell>;
   if (!me.data) return <AppShell><div className="page-enter"><PageTitle eyebrow="The feeling is mutual" title="Your matches." description="Sign in to view your mutual connections."/><EmptyState title="Connect your wallet to continue." detail="Your matches are private. Verify your wallet to view them."/></div><WalletConnectionDialog open={walletDialogOpen} onOpenChange={setWalletDialogOpen} returnTo="/matches"/></AppShell>;
   return <AppShell><div className="page-enter">
     <PageTitle eyebrow="The feeling is mutual" title="Your connections." description="See who liked you, who you liked, and the people who liked you back." />
+    {socialNotice && <p className="mb-5 rounded-2xl border border-[#ded4f5] bg-white px-4 py-3 text-sm text-[#514177]" role="status" data-testid="status-social-action">{socialNotice}</p>}
     <div className="mb-6 flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Your likes and matches">
       {([
         { id: 'matches', label: 'Matches', count: matches.length },
-        { id: 'ex-match', label: 'Ex Match', count: exMatchesQuery.data?.length ?? 0 },
         { id: 'liked-you', label: 'Liked You', count: inbox.data?.length ?? 0 },
         { id: 'liked-by-you', label: 'Liked By You', count: sent.data?.length ?? 0 },
+        { id: 'ex-match', label: 'Ex Matches', count: exMatchesQuery.data?.length ?? 0 },
       ] as const).map(item => <button
         key={item.id}
         type="button"
@@ -825,12 +789,12 @@ export function MatchesPage() {
           ? <div className="skeleton h-48 rounded-2xl" />
           : sent.data?.length
             ? <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{sent.data.map(item=><article className="surface flex gap-4 rounded-[24px] p-4" key={item.id} data-testid={`card-liked-by-you-${item.id}`}>
-                <div className="w-24 shrink-0 rounded-2xl bg-[#eee5fb]"><ChogArtwork chog={item.profile.chog} fit="natural"/></div>
+                <ProfileOpenButton profile={item.profile} options={{ source: 'liked-by-me' }} className="block w-24 shrink-0 overflow-hidden rounded-2xl bg-[#eee5fb]" label={`Open ${item.profile.displayName}'s full profile`}><ChogArtwork chog={item.profile.chog} fit="natural"/></ProfileOpenButton>
                 <div className="min-w-0 py-1">
-                  <h2 className="display break-words text-lg font-extrabold text-[#35264b]">{item.profile.displayName}{item.profile.age !== null ? `, ${item.profile.age}` : ''}</h2>
-                  <p className="mt-1 text-xs text-[#887c90]">@{item.profile.username}</p>
+                  <ProfileOpenButton profile={item.profile} options={{ source: 'liked-by-me' }} className="block text-left" label={`Open ${item.profile.displayName}'s full profile`}><h2 className="display break-words text-lg font-extrabold text-[#35264b]">{item.profile.displayName}{item.profile.age !== null ? `, ${item.profile.age}` : ''}</h2><p className="mt-1 break-all text-xs text-[#887c90]">@{item.profile.username}</p></ProfileOpenButton>
                   <p className="mt-2 text-[11px] font-semibold text-[#705b83]">Chog #{item.profile.chog.tokenId} · {item.profile.chog.tier || 'Tier unlisted'}</p>
                   <p className="mt-2 text-[10px] font-semibold text-[#8a6cad]">{item.type === 'super_like' ? 'Super Liked By You · 100 $CHOG sent' : 'Liked By You'}</p>
+                  <UnlikeAction profile={item.profile} type={item.type} onDone={() => unlikeDone(item.type)} />
                 </div>
               </article>)}</div>
             : <EmptyState title="You have not liked anyone yet." detail="Like a Chog holder in Discover and they will appear here until you match." action={<Link href="/discover" className="button-primary inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-bold" data-testid="link-discover-from-liked-by-you">Discover holders <ArrowRight size={15}/></Link>}/>}
@@ -838,9 +802,9 @@ export function MatchesPage() {
     {section === 'matches' && <section id="panel-matches" role="tabpanel" aria-label="Your matches">
       <QueryState loading={isLoading} error={isError} retry={()=>void refetch()}>
         {matches.length ? <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{matches.map(match=><article className="surface flex gap-4 rounded-[26px] p-4 sm:p-5" key={match.id} data-testid={`card-match-${match.id}`}>
-          <div className="w-28 shrink-0 rounded-2xl bg-[#eee5fb]"><ChogArtwork chog={match.profile.chog} fit="natural"/></div>
+          <ProfileOpenButton profile={match.profile} options={{ source: 'matched', matchId: match.id }} className="block w-28 shrink-0 overflow-hidden rounded-2xl bg-[#eee5fb]" label={`Open ${match.profile.displayName}'s full profile`}><ChogArtwork chog={match.profile.chog} fit="natural"/></ProfileOpenButton>
           <div className="min-w-0 flex-1">
-            <div className="flex items-start justify-between gap-2"><div className="min-w-0"><h2 className="display break-words text-lg font-extrabold text-[#24133f]">{match.profile.displayName}{match.profile.age !== null ? `, ${match.profile.age}` : ''}</h2><p className="mt-1 text-xs text-[#82778c]">@{match.profile.username}</p></div><span className="shrink-0 rounded-full bg-[#f2ecff] px-2.5 py-1 text-[10px] font-bold text-[#6246b0]">{match.compatibility}%</span></div>
+            <div className="flex items-start justify-between gap-2"><div className="min-w-0"><ProfileOpenButton profile={match.profile} options={{ source: 'matched', matchId: match.id }} className="block text-left" label={`Open ${match.profile.displayName}'s full profile`}><h2 className="display break-words text-lg font-extrabold text-[#24133f]">{match.profile.displayName}{match.profile.age !== null ? `, ${match.profile.age}` : ''}</h2><p className="mt-1 break-all text-xs text-[#82778c]">@{match.profile.username}</p></ProfileOpenButton></div><span className="shrink-0 rounded-full bg-[#f2ecff] px-2.5 py-1 text-[10px] font-bold text-[#6246b0]">{match.compatibility}%</span></div>
             <p className="mt-2 text-[11px] font-semibold text-[#705b83]">Chog #{match.profile.chog.tokenId} · {match.profile.chog.tier || 'Tier unlisted'}</p>
             <p className="mt-2 text-[10px] text-[#887c90]">Matched {new Date(match.createdAt).toLocaleDateString()}</p>
             <Link href={`/messages?match=${encodeURIComponent(match.id)}`} className="button-primary mt-3 inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-xs font-bold" data-testid={`link-message-${match.id}`}><MessageCircle size={15}/>Message</Link>
@@ -849,7 +813,7 @@ export function MatchesPage() {
         </article>)}</div> : <EmptyState mark="cm" title="Your first match is out there." detail="When someone you like likes you back, you’ll find your mutual connection here." action={<Link href="/discover" className="button-primary inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-bold" data-testid="link-discover-from-matches">Meet people <ArrowRight size={15}/></Link>} />}
       </QueryState>
     </section>}
-    {section === 'ex-match' && <section id="panel-ex-match" role="tabpanel" aria-label="People you unmatched">
+    {section === 'ex-match' && <section id="panel-ex-match" role="tabpanel" aria-label="Ex Matches">
       <QueryState
         loading={exMatchesQuery.isLoading}
         error={exMatchesQuery.isError}
@@ -859,7 +823,7 @@ export function MatchesPage() {
           ? <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{exMatchesQuery.data.map(item =>
               <ExMatchCard key={item.id} item={item} onRematched={refreshSocialLists} />,
             )}</div>
-          : <EmptyState title="No Ex Matches." detail="People you personally unmatch will appear here. You can rematch with them whenever you choose." />}
+          : <EmptyState title="No Ex Matches." detail="People from a previous Match will appear here after either person ends the relationship. Only the person who ended it can Rematch." />}
       </QueryState>
     </section>}
   </div></AppShell>;
@@ -888,10 +852,9 @@ function IncomingLikeCard({ item, onHandled }: { item: LikeInboxItem; onHandled:
 
   return <article className="surface rounded-[24px] p-4" data-testid={`card-incoming-like-${item.id}`}>
     <div className="flex items-start gap-3">
-      <div className="w-28 shrink-0 rounded-2xl bg-[#eee5fb]"><ChogArtwork chog={item.profile.chog} fit="natural"/></div>
+      <ProfileOpenButton profile={item.profile} options={{ source: 'incoming' }} className="block w-28 shrink-0 overflow-hidden rounded-2xl bg-[#eee5fb]" label={`Open ${item.profile.displayName}'s full profile`}><ChogArtwork chog={item.profile.chog} fit="natural"/></ProfileOpenButton>
       <div className="min-w-0 flex-1">
-        <h3 className="break-words text-sm font-bold text-[#35264b]">{item.profile.displayName}{item.profile.age !== null ? `, ${item.profile.age}` : ''}</h3>
-        <p className="mt-1 break-all text-xs text-[#887c90]">@{item.profile.username}</p>
+        <ProfileOpenButton profile={item.profile} options={{ source: 'incoming' }} className="block text-left" label={`Open ${item.profile.displayName}'s full profile`}><h3 className="break-words text-sm font-bold text-[#35264b]">{item.profile.displayName}{item.profile.age !== null ? `, ${item.profile.age}` : ''}</h3><p className="mt-1 break-all text-xs text-[#887c90]">@{item.profile.username}</p></ProfileOpenButton>
         <p className="mt-2 text-[10px] font-semibold text-[#705b83]">Chog #{item.profile.chog.tokenId} · {item.profile.chog.tier || 'Tier unlisted'}</p>
         {item.type === "super_like"
           ? <p className="mt-2 rounded-xl bg-[#f2ecff] px-3 py-2 text-[11px] font-semibold leading-5 text-[#6246b0]">@{item.profile.username} Super Liked you · 100 $CHOG was sent to your wallet.</p>
