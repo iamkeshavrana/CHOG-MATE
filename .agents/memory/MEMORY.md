@@ -7,3 +7,4 @@
 - [Artifact-specific build environments](artifact-build-environments.md) — build a web artifact with its own configured PORT and BASE_PATH, not inherited values from sibling artifacts.
 - [Supabase Realtime topic reuse](supabase-realtime-topic-reuse.md) — channel(topic) returns the existing topic; serialize removal before resubscribing and ignore stale callbacks.
 - [CHOG MATE profile image](chog-mate-profile-image.md) — the selected verified Chog is the only profile image; preserve its aspect ratio and do not add photo uploads or URLs.
+- [CHOG MATE fluid design](chog-mate-fluid-design.md) — sitewide cream background with purple, pink, blue, and red fluids; never a black fluid background.

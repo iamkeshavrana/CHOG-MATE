@@ -16,6 +16,7 @@ import {
 import { AppShell, EmptyState, PageTitle } from '@/components/shared';
 import { WalletConnectionDialog } from '@/components/wallet-connection-dialog';
 import { CallProvider } from '@/components/call-provider';
+import { FluidBackground } from '@/components/fluid-background';
 import { supabase } from '@/lib/supabase';
 import {
   Route,
@@ -147,6 +148,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
+        <FluidBackground />
         <SessionLifecycle />
         <CallProvider>
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
