@@ -1,6 +1,6 @@
 import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowRight, BadgeCheck, FileText, Heart, Image as ImageIcon, MessageCircle, Mic, MoreHorizontal, Paperclip, Phone, Send, Sparkles, Undo2, Video, X } from 'lucide-react';
 import { Link } from 'wouter';
 import {
@@ -1008,6 +1008,22 @@ export function MessagesPage() {
   const conversationCanSend = Boolean(match);
   const messageKey = getGetMessagesQueryKey(matchId);
   const { data: messages, isLoading, isError, refetch } = useGetMessages(matchId, { query: { enabled:!!matchId && Boolean(currentProfile.data), queryKey:messageKey } });
+  const callHistory = useQuery({
+    queryKey: ['call-history', matchId],
+    enabled: Boolean(matchId && currentProfile.data && supabase),
+    queryFn: async () => {
+      const client = supabase;
+      if (!client) return [];
+      const { data, error } = await client
+        .from('calls')
+        .select('id, caller_id, type, status, started_at, connected_at, ended_at')
+        .eq('match_id', matchId)
+        .order('started_at', { ascending: true })
+        .limit(30);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
   const [content, setContent] = useState('');
   const [mediaError, setMediaError] = useState('');
   const [mediaBusy, setMediaBusy] = useState(false);
@@ -1070,6 +1086,25 @@ export function MessagesPage() {
       )
       .subscribe();
     return () => {
+      void client.removeChannel(channel);
+    };
+  }, [matchId, qc]);
+  useEffect(() => {
+    const client = supabase;
+    if (!matchId || !client) return;
+    let disposed = false;
+    const channel = client
+      .channel(`call-history:${matchId}:${crypto.randomUUID()}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'calls', filter: `match_id=eq.${matchId}` },
+        () => {
+          if (!disposed) void qc.invalidateQueries({ queryKey: ['call-history', matchId] });
+        },
+      )
+      .subscribe();
+    return () => {
+      disposed = true;
       void client.removeChannel(channel);
     };
   }, [matchId, qc]);
@@ -1239,6 +1274,37 @@ export function MessagesPage() {
          </div></header>}
          {match?.status === 'unmatched' && <p className="border-b border-[#24133f12] bg-[#fffaf0] px-5 py-3 text-xs leading-5 text-[#806b47]" role="status">You are no longer matched, but this conversation remains available until either person blocks the other.</p>}
         <div className="flex flex-1 flex-col gap-3 overflow-y-auto bg-[radial-gradient(ellipse_at_top,#f7f2ff_0,transparent_68%)] p-5">
+           {callHistory.data?.length ? (
+             <section className="mb-1 space-y-2" aria-label="Call history" data-testid="call-history">
+               <h3 className="text-[10px] font-bold uppercase tracking-[.16em] text-[#8b8091]">Recent calls</h3>
+               {callHistory.data.slice(-8).map(call => {
+                 const endedAt = call.ended_at ? new Date(call.ended_at).getTime() : Date.now();
+                 const connectedAt = call.connected_at ? new Date(call.connected_at).getTime() : null;
+                 const result = call.status === 'missed'
+                   ? 'Missed'
+                   : call.status === 'rejected'
+                     ? 'Declined'
+                     : call.status === 'failed'
+                       ? 'Failed'
+                       : connectedAt
+                         ? formatCallHistoryDuration(Math.max(0, Math.floor((endedAt - connectedAt) / 1000)))
+                         : call.status === 'ended'
+                           ? 'Cancelled'
+                           : 'In progress';
+                 const direction = call.caller_id === currentUserId ? 'Outgoing' : 'Incoming';
+                 const type = call.type === 'video' ? 'video' : 'audio';
+                 return <div key={call.id} className="flex items-center gap-3 rounded-2xl border border-[#eee5d9] bg-white/80 px-3 py-2.5 text-xs" data-testid={`call-history-${call.id}`}>
+                   <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#eee8ff] text-[#7047ff]" aria-hidden="true">
+                     {type === 'video' ? <Video size={15}/> : <Phone size={15}/>}
+                   </span>
+                   <span className="min-w-0 flex-1 font-semibold text-[#51445f]">{direction} {type} call</span>
+                   <span className="shrink-0 text-[#8b8091]">{result}</span>
+                 </div>;
+               })}
+             </section>
+           ) : callHistory.isError ? (
+             <p className="text-xs text-[#a34646]" role="status">Call history is temporarily unavailable.</p>
+           ) : null}
           <QueryState loading={isLoading} error={isError} retry={()=>void refetch()}>{messages?.length ? messages.map(message=>{
             const mine=message.senderId===currentUserId;
             return <div key={message.id} className={`max-w-[82%] rounded-[20px] px-4 py-3 text-sm leading-5 ${mine?'ml-auto rounded-br-md bg-[#7047ff] text-white':'mr-auto rounded-bl-md border border-[#eee5d9] bg-white text-[#51445f]'}`} data-testid={`message-${message.id}`}>
@@ -1277,6 +1343,12 @@ export function MessagesPage() {
       </section>
     </div>
   </div></AppShell>;
+}
+
+function formatCallHistoryDuration(seconds: number): string {
+  const minutes = Math.floor(seconds / 60).toString().padStart(2, '0');
+  const remainder = (seconds % 60).toString().padStart(2, '0');
+  return `${minutes}:${remainder}`;
 }
 
 function isUnauthorized(error: unknown): boolean {

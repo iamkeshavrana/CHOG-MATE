@@ -39,6 +39,7 @@ Environment configuration:
 - `artifacts/api-server/src/lib/opensea.ts` — OpenSea collection, recent sale, and statistics access
 - `lib/api-spec/openapi.yaml` — source of truth for frontend/server API contracts
 - `artifacts/chog-mate/supabase/migrations/` — database schema and policy migrations
+- Peer calls require Supabase migrations `0012_peer_calls.sql` and `0013_call_realtime_and_history.sql`. The API's `SUPABASE_SERVICE_ROLE_KEY` must remain server-only; call setup uses participant-authorized Supabase Realtime with authenticated API polling as a fallback.
 
 ## Architecture decisions
 

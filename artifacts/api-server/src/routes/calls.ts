@@ -49,6 +49,7 @@ interface CallRow {
   type: "audio" | "video";
   status: CallStatus;
   started_at: string;
+  connected_at: string | null;
   last_activity_at: string;
   ended_at: string | null;
 }
@@ -104,7 +105,7 @@ function signalToApi(signal: CallSignalRow) {
   };
 }
 
-async function expireStaleCalls(): Promise<void> {
+export async function expireStaleCalls(): Promise<void> {
   const admin = getSupabaseAdmin();
   const now = Date.now();
   const missedBefore = new Date(now - RING_TIMEOUT_MS).toISOString();
@@ -373,6 +374,9 @@ router.post("/calls/:callId/action", async (req, res): Promise<void> => {
         .update({
           status: nextStatus,
           last_activity_at: timestamp,
+          ...(nextStatus === "connected"
+            ? { connected_at: call.connected_at ?? timestamp }
+            : {}),
           ...(ACTIVE_CALL_STATUSES.includes(nextStatus as (typeof ACTIVE_CALL_STATUSES)[number])
             ? {}
             : { ended_at: timestamp }),

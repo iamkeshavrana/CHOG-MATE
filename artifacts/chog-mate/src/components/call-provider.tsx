@@ -37,6 +37,7 @@ import {
   VolumeX,
 } from "lucide-react";
 import { ProfileAvatar } from "@/components/shared";
+import { supabase } from "@/lib/supabase";
 
 type CallMode = "audio" | "video";
 type CallRole = "caller" | "receiver";
@@ -85,12 +86,103 @@ export function CallProvider({ children }: { children: ReactNode }) {
     queryKey: getGetIncomingCallsQueryKey(),
     queryFn: () => getIncomingCalls(),
     enabled: authenticated,
-    refetchInterval: authenticated ? 2_000 : false,
-    refetchIntervalInBackground: false,
+    refetchInterval: authenticated ? 10_000 : false,
+    refetchIntervalInBackground: true,
     refetchOnWindowFocus: true,
     retry: 1,
   });
   const hasIncomingCall = (incomingQuery.data?.length ?? 0) > 0;
+
+  useEffect(() => {
+    const client = supabase;
+    if (!authenticated || !client) return;
+
+    let disposed = false;
+    let activeUserId: string | null = null;
+    let channel: ReturnType<typeof client.channel> | null = null;
+    let version = 0;
+    let transitionQueue: Promise<void> = Promise.resolve();
+
+    const changeUser = (nextUserId: string | null) => {
+      const currentVersion = ++version;
+      transitionQueue = transitionQueue.then(async () => {
+        if (disposed || currentVersion !== version) return;
+        const previousChannel = channel;
+        channel = null;
+        activeUserId = nextUserId;
+        if (previousChannel) await client.removeChannel(previousChannel);
+        if (
+          disposed ||
+          currentVersion !== version ||
+          !nextUserId
+        ) return;
+
+        const candidate = client.channel(
+          `incoming-calls:${nextUserId}:${crypto.randomUUID()}`,
+        );
+        const configuredChannel = candidate.on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "calls",
+            filter: `receiver_id=eq.${nextUserId}`,
+          },
+          () => {
+            if (
+              disposed ||
+              activeUserId !== nextUserId ||
+              channel !== configuredChannel
+            ) return;
+            void queryClient.invalidateQueries({
+              queryKey: getGetIncomingCallsQueryKey(),
+            });
+          },
+        );
+        channel = configuredChannel;
+        configuredChannel.subscribe((status) => {
+          if (
+            disposed ||
+            activeUserId !== nextUserId ||
+            channel !== configuredChannel
+          ) return;
+          if (status === "SUBSCRIBED") {
+            void queryClient.invalidateQueries({
+              queryKey: getGetIncomingCallsQueryKey(),
+            });
+          }
+        });
+      }).catch(() => {
+        // The periodic authenticated API refresh remains the fallback.
+      });
+    };
+
+    let authEventObserved = false;
+    const { data: authListener } = client.auth.onAuthStateChange((_event, session) => {
+      authEventObserved = true;
+      window.setTimeout(() => {
+        if (!disposed) changeUser(session?.user.id ?? null);
+      }, 0);
+    });
+    void client.auth.getSession().then(({ data }) => {
+      if (!disposed && !authEventObserved) {
+        changeUser(data.session?.user.id ?? null);
+      }
+    }).catch(() => {
+      // The API refresh remains available even when Realtime auth is unavailable.
+    });
+
+    return () => {
+      disposed = true;
+      version += 1;
+      authListener.subscription.unsubscribe();
+      const previousChannel = channel;
+      channel = null;
+      if (previousChannel) {
+        void client.removeChannel(previousChannel);
+      }
+    };
+  }, [authenticated, queryClient]);
 
   const [activeCall, setActiveCall] = useState<ActiveCall | null>(null);
   const activeCallRef = useRef<ActiveCall | null>(null);
@@ -238,15 +330,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
     setBusyState(true);
     let stream: MediaStream | null = null;
     try {
-      stream = await navigator.mediaDevices.getUserMedia(
-        incoming.type === "video"
-          ? { audio: true, video: { facingMode: "user" } }
-          : { audio: true, video: false },
-      );
       const call = await callAction(incoming.id, { action: "accept" });
-      localStreamRef.current = stream;
-      setLocalStream(stream);
-      setMediaReady(true);
       const next = { call, profile: incoming.profile, role: "receiver" as const };
       activeCallRef.current = next;
       setActiveCall(next);
@@ -255,22 +339,41 @@ export function CallProvider({ children }: { children: ReactNode }) {
       await queryClient
         .invalidateQueries({ queryKey: getGetIncomingCallsQueryKey() })
         .catch(() => undefined);
+
+      stream = await navigator.mediaDevices.getUserMedia(
+        incoming.type === "video"
+          ? { audio: true, video: { facingMode: "user" } }
+          : { audio: true, video: false },
+      );
+      if (activeCallRef.current?.call.id !== incoming.id) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
+      localStreamRef.current = stream;
+      setLocalStream(stream);
+      setMediaReady(true);
     } catch (error) {
       stream?.getTracks().forEach((track) => track.stop());
       if (localStreamRef.current === stream) {
         localStreamRef.current = null;
         setLocalStream(null);
       }
-      try {
-        await callAction(incoming.id, { action: "failed" });
-      } catch {
-        // The call may have expired or been ended by the caller.
+      if (activeCallRef.current?.call.id === incoming.id) {
+        try {
+          await callAction(incoming.id, { action: "failed" });
+        } catch {
+          // The call may have expired or been ended by the caller.
+        }
+        clearActiveCall(incoming.id);
       }
+      await queryClient
+        .invalidateQueries({ queryKey: getGetIncomingCallsQueryKey() })
+        .catch(() => undefined);
       showNotice(callErrorMessage(error, "The call could not be accepted."));
     } finally {
       setBusyState(false);
     }
-  }, [queryClient, setBusyState, showNotice]);
+  }, [clearActiveCall, queryClient, setBusyState, showNotice]);
 
   const declineCall = useCallback(async (incoming: IncomingCall) => {
     if (busyRef.current) return;
@@ -312,6 +415,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
     let intervalId: number | null = null;
     let lastHeartbeat = 0;
     let failureCount = 0;
+    let realtimeChannel: ReturnType<NonNullable<typeof supabase>["channel"]> | null = null;
     const queuedCandidates: RTCIceCandidateInit[] = [];
     const peer = new RTCPeerConnection(rtcConfiguration);
     peerRef.current = peer;
@@ -492,6 +596,47 @@ export function CallProvider({ children }: { children: ReactNode }) {
       }
     };
 
+    const realtimeClient = supabase;
+    if (realtimeClient) {
+      void realtimeClient.auth.getSession().then(({ data }) => {
+        if (cancelled || !data.session?.user.id) return;
+        const candidate = realtimeClient.channel(
+          `call-session:${current.call.id}:${crypto.randomUUID()}`,
+        );
+        const configuredChannel = candidate
+          .on(
+            "postgres_changes",
+            {
+              event: "UPDATE",
+              schema: "public",
+              table: "calls",
+              filter: `id=eq.${current.call.id}`,
+            },
+            () => {
+              if (!cancelled) void poll();
+            },
+          )
+          .on(
+            "postgres_changes",
+            {
+              event: "INSERT",
+              schema: "public",
+              table: "call_signals",
+              filter: `call_id=eq.${current.call.id}`,
+            },
+            () => {
+              if (!cancelled) void poll();
+            },
+          );
+        realtimeChannel = configuredChannel;
+        configuredChannel.subscribe((status) => {
+          if (status === "SUBSCRIBED" && !cancelled) void poll();
+        });
+      }).catch(() => {
+        // Authenticated API polling remains available if Realtime is unavailable.
+      });
+    }
+
     if (current.role === "caller") {
       void (async () => {
         try {
@@ -505,7 +650,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       })();
     }
     void poll();
-    intervalId = window.setInterval(() => void poll(), 1_500);
+    intervalId = window.setInterval(() => void poll(), 5_000);
 
     return () => {
       cancelled = true;
@@ -514,6 +659,9 @@ export function CallProvider({ children }: { children: ReactNode }) {
       if (peerRef.current === peer) {
         peer.close();
         peerRef.current = null;
+      }
+      if (realtimeChannel && realtimeClient) {
+        void realtimeClient.removeChannel(realtimeChannel);
       }
     };
   }, [activeCall?.call.id, activeCall?.role, clearActiveCall, markCallFailed, mediaReady, showNotice, updateActiveCall]);
