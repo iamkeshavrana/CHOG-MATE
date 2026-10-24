@@ -434,6 +434,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
 .profile-save-bar { position:sticky;z-index:4;bottom:0;margin-left:-8px;margin-right:-8px;padding:14px 8px max(8px,env(safe-area-inset-bottom));background:linear-gradient(180deg,rgba(255,251,247,.84),rgba(255,251,247,.98) 34%);backdrop-filter:blur(14px); }
 .profile-edit-studio .profile-save-bar { bottom:0;margin-left:-18px;margin-right:-18px;padding:14px 18px max(12px,env(safe-area-inset-bottom)); }
 .profile-edit-studio .field { border-radius:15px;background:rgba(255,253,249,.94);padding:13px 14px; }
+.field.profile-username-input { padding-left:40px; }
 .profile-edit-section { border:1px solid rgba(109,77,135,.15);border-radius:18px;background:rgba(255,252,248,.76);padding:13px 15px; }
 .profile-edit-section summary { display:flex;min-height:24px;align-items:center;gap:11px;cursor:pointer;color:#49335f;font-size:13px;font-weight:750;list-style:none; }
 .profile-edit-section summary::-webkit-details-marker { display:none; }
