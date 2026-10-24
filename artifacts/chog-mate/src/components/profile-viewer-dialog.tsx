@@ -124,7 +124,7 @@ export function ProfileViewerDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         aria-describedby={`profile-dialog-description-${profile.userId}`}
-        className="!fixed !left-1/2 !top-1/2 !grid !w-[calc(100vw-24px)] !max-w-[900px] !translate-x-[-50%] !translate-y-[-50%] !gap-0 !overflow-hidden !rounded-[30px] !border !border-[#eadff0] !bg-[#fffaf5] !p-0 !text-[#35234a] !shadow-[0_28px_90px_#24133f40] [&>button:last-child]:hidden sm:!w-[calc(100vw-48px)] max-sm:!left-0 max-sm:!top-0 max-sm:!h-[100dvh] max-sm:!w-full max-sm:!max-w-none max-sm:!translate-x-0 max-sm:!translate-y-0 max-sm:!rounded-none"
+         className="profile-viewer-studio !fixed !left-1/2 !top-1/2 !grid !w-[calc(100vw-24px)] !max-w-[1040px] !translate-x-[-50%] !translate-y-[-50%] !gap-0 !overflow-hidden !rounded-[32px] !border !border-[#eadff0] !bg-[#fffaf5] !p-0 !text-[#35234a] !shadow-[0_28px_90px_#24133f30] [&>button:last-child]:hidden sm:!w-[calc(100vw-48px)] max-sm:!left-0 max-sm:!top-0 max-sm:!h-[100dvh] max-sm:!w-full max-sm:!max-w-none max-sm:!translate-x-0 max-sm:!translate-y-0 max-sm:!rounded-none"
         data-testid="dialog-profile-viewer"
       >
         <div className="relative flex max-h-[min(88dvh,820px)] min-h-0 flex-col overflow-y-auto max-sm:h-[100dvh] max-sm:max-h-[100dvh]">
@@ -138,7 +138,7 @@ export function ProfileViewerDialog({
             <X size={19} aria-hidden="true" />
           </button>
           <div className="grid min-h-0 flex-1 md:grid-cols-[minmax(250px,0.88fr)_minmax(0,1.12fr)]">
-            <div className="relative flex min-h-[230px] items-center justify-center overflow-hidden bg-[radial-gradient(ellipse_at_50%_42%,#f4dcec_0%,#e9defa_53%,#ddd1f1_100%)] px-5 pb-6 pt-12 sm:min-h-[300px] md:min-h-full md:px-8 md:py-12">
+             <div className="profile-viewer-art relative flex min-h-[230px] items-center justify-center overflow-hidden bg-[radial-gradient(ellipse_at_50%_42%,#f4dcec_0%,#e9defa_53%,#ddd1f1_100%)] px-5 pb-6 pt-12 sm:min-h-[300px] md:min-h-full md:px-8 md:py-12">
               <div className="pointer-events-none absolute inset-0 opacity-40" aria-hidden="true">
                 <div className="absolute -left-12 top-10 h-36 w-36 rounded-full border border-white/80" />
                 <div className="absolute -right-10 bottom-12 h-48 w-48 rounded-full border border-white/70" />
@@ -153,9 +153,12 @@ export function ProfileViewerDialog({
                 <BadgeCheck size={14} className="text-[#8054bf]" aria-hidden="true" />
                 Verified Chog
               </div>
+               {profile.chog.tokenId && <div className="profile-viewer-token absolute right-4 top-4 rounded-[16px] border border-white/70 bg-[#fffaf5]/85 px-3.5 py-2 text-right backdrop-blur sm:right-6 sm:top-6" data-testid={`dialog-chog-token-${profile.userId}`}>
+                 <span className="block text-[8px] font-bold uppercase tracking-[.16em] text-[#8f7b9b]">{profile.chog.tier?.trim() || 'Verified Chog'}</span><span className="mt-0.5 block font-mono text-sm font-bold text-[#51366b]">#{profile.chog.tokenId}</span>
+               </div>}
             </div>
 
-            <div className="flex min-w-0 flex-col px-5 pb-6 pt-6 sm:px-8 sm:pb-8 md:overflow-y-auto md:px-9 md:pb-8 md:pt-10">
+             <div className="profile-viewer-copy flex min-w-0 flex-col px-5 pb-6 pt-6 sm:px-8 sm:pb-8 md:overflow-y-auto md:px-9 md:pb-8 md:pt-10">
               <div className="mb-5 pr-9">
                 <p className="mb-2 text-[10px] font-extrabold uppercase tracking-[.19em] text-[#a06b9a]">A little about them</p>
                 <DialogTitle className="break-words font-[var(--font-display)] text-[30px] font-extrabold leading-[1.05] tracking-[-.045em] text-[#35234a] sm:text-[38px]" data-testid={`dialog-profile-name-${profile.userId}`}>

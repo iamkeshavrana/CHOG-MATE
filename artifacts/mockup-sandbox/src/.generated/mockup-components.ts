@@ -3,9 +3,9 @@ type ModuleMap = Record<string, () => Promise<Record<string, unknown>>>;
 export const modules: ModuleMap = {
   "./components/mockups/chog-home-redesign/Current.tsx": () => import("../components/mockups/chog-home-redesign/Current.tsx"),
   "./components/mockups/chog-home-redesign/FantasyHome.tsx": () => import("../components/mockups/chog-home-redesign/FantasyHome.tsx"),
-  "./components/mockups/discover-profile-card/Current.tsx": () => import("../components/mockups/discover-profile-card/Current.tsx"),
-  "./components/mockups/discover-profile-card/Portrait.tsx": () => import("../components/mockups/discover-profile-card/Portrait.tsx"),
   "./components/mockups/chog-profile-redesign/Current.tsx": () => import("../components/mockups/chog-profile-redesign/Current.tsx"),
   "./components/mockups/chog-profile-redesign/Redesign.tsx": () => import("../components/mockups/chog-profile-redesign/Redesign.tsx"),
+  "./components/mockups/discover-profile-card/Current.tsx": () => import("../components/mockups/discover-profile-card/Current.tsx"),
+  "./components/mockups/discover-profile-card/Portrait.tsx": () => import("../components/mockups/discover-profile-card/Portrait.tsx"),
   "./components/mockups/templates/NeonFluidSimulator-V694nf/FluidSimulator.tsx": () => import("../components/mockups/templates/NeonFluidSimulator-V694nf/FluidSimulator.tsx")
 };

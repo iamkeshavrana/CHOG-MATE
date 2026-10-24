@@ -1,7 +1,7 @@
 import { type FormEvent, useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
-import { Activity, BadgeCheck, Check, ChevronDown, Copy, Heart, Image as ImageIcon, LockKeyhole, LogOut, PencilLine, RefreshCw, Save, Settings2, ShieldCheck, Sparkles, Wallet } from 'lucide-react';
+import { Activity, BadgeCheck, Check, ChevronDown, Copy, Heart, Image as ImageIcon, LoaderCircle, LockKeyhole, LogOut, PencilLine, RefreshCw, Save, Settings2, ShieldCheck, Sparkles, Wallet, X } from 'lucide-react';
 import { MotionConfig, motion } from 'framer-motion';
 import { Link, useLocation } from 'wouter';
 import { formatUnits, isAddress, type Address } from 'viem';
@@ -343,6 +343,7 @@ function ConnectedProfilePage() {
   } = watch();
   const [notice,setNotice] = useState('');
   const [editOpen,setEditOpen] = useState(false);
+  const [createStep,setCreateStep] = useState(0);
   const [initializedWalletAddress,setInitializedWalletAddress] = useState('');
   const [usernameError,setUsernameError] = useState('');
   useEffect(()=>{
@@ -360,6 +361,7 @@ function ConnectedProfilePage() {
     }
     setUsernameError('');
     setNotice('');
+    setCreateStep(0);
     setInitializedWalletAddress(me.data.walletAddress);
   },[profile,me.data,initializedWalletAddress,reset]);
   const update = useUpdateMeProfile();
@@ -379,23 +381,25 @@ function ConnectedProfilePage() {
     if (!/^[a-zA-Z0-9_]{2,24}$/.test(cleanUsername)) {
       setUsernameError('Use 2–24 letters, numbers, or underscores.');
       setNotice('Check the highlighted username before saving.');
+      if (!profile) setCreateStep(0);
       return;
     }
     setUsernameError('');
-    if (!values.displayName.trim()) { setNotice('Add a display name to continue.'); return; }
+    if (!values.displayName.trim()) { setNotice('Add a display name to continue.'); if (!profile) setCreateStep(0); return; }
     const selectedLookingFor = tags(values.lookingFor);
     if (selectedLookingFor.includes('Other') && !values.lookingForOther.trim()) {
       setNotice('Add your own option for “Other” to continue.');
+      if (!profile) setCreateStep(3);
       return;
     }
     const lookingForValues = createLookingForValues(values.lookingFor, values.lookingForOther);
-    if (!lookingForValues.length) { setNotice('Choose at least one option for what you’re looking for.'); return; }
+    if (!lookingForValues.length) { setNotice('Choose at least one option for what you’re looking for.'); if (!profile) setCreateStep(3); return; }
     const tokenIdForSave = profile
       ? me.data?.selectedChogTokenId || profile.chog.tokenId
       : values.selectedChogTokenId;
-    if (!tokenIdForSave) { setNotice('Choose a verified Chog to show on your profile.'); return; }
+    if (!tokenIdForSave) { setNotice('Choose a verified Chog to show on your profile.'); if (!profile) setCreateStep(0); return; }
     const numericAge = values.age.trim() ? Number(values.age) : null;
-    if (numericAge !== null && (!Number.isInteger(numericAge) || numericAge < 18 || numericAge > 120)) { setNotice('Use a whole-number age from 18 to 120.'); return; }
+    if (numericAge !== null && (!Number.isInteger(numericAge) || numericAge < 18 || numericAge > 120)) { setNotice('Use a whole-number age from 18 to 120.'); if (!profile) setCreateStep(0); return; }
     const data: ProfileInput = {
       username: cleanUsername,
       displayName: values.displayName.trim(),
@@ -452,6 +456,47 @@ function ConnectedProfilePage() {
     setValue('lookingFor', next.join(', '), {shouldDirty:true});
     if (option==='Other' && selected.includes(option)) setValue('lookingForOther', '', {shouldDirty:true});
   }
+  function validateCreateStep() {
+    const values = getValues();
+    if (createStep === 0) {
+      if (!/^[a-zA-Z0-9_]{2,24}$/.test(values.username.trim())) {
+        setUsernameError('Use 2–24 letters, numbers, or underscores.');
+        setNotice('Check the highlighted username before continuing.');
+        return false;
+      }
+      setUsernameError('');
+      if (!values.displayName.trim()) {
+        setNotice('Add a display name to continue.');
+        return false;
+      }
+      const numericAge = values.age.trim() ? Number(values.age) : null;
+      if (numericAge !== null && (!Number.isInteger(numericAge) || numericAge < 18 || numericAge > 120)) {
+        setNotice('Use a whole-number age from 18 to 120.');
+        return false;
+      }
+    }
+    if (createStep === 3) {
+      const selectedLookingFor = tags(values.lookingFor);
+      if (!selectedLookingFor.length) {
+        setNotice('Choose at least one option for what you’re looking for.');
+        return false;
+      }
+      if (selectedLookingFor.includes('Other') && !values.lookingForOther.trim()) {
+        setNotice('Add your own option for “Other” to continue.');
+        return false;
+      }
+    }
+    setNotice('');
+    return true;
+  }
+  function goToCreateStep(index: number) {
+    if (index <= createStep) {
+      setCreateStep(index);
+      setNotice('');
+      return;
+    }
+    if (index === createStep + 1 && validateCreateStep()) setCreateStep(index);
+  }
   const selectedChog = me.data?.chogs.find(chog=>chog.verified && chog.tokenId===selectedChogTokenId) || profile?.chog;
   const draftPreview: ProfilePreviewData | null = selectedChog ? {
     username, displayName, gender:profileGenderValue(gender), age:age.trim()?Number(age):null,
@@ -499,7 +544,7 @@ function ConnectedProfilePage() {
       {!me.data ? <EmptyState title="Connect to create your profile." detail="Sign in with the wallet holding your Chog Genesis NFT to get started."/> :
        (!me.data.hasChog || !me.data.chogs.some(chog=>chog.verified)) ? <EmptyState title="No Chog Found" detail="A Chog NFT is required to create a CHOG MATE profile. Connect the wallet that owns a Chog NFT to continue."/> :
        (me.data.hasProfile && !profile) ? <EmptyState title="Choose an active Chog." detail="Your previous active Chog is no longer in this wallet. Choose another verified Chog to restore your profile; your saved details will stay unchanged." action={<Link href="/my-chog" className="button-primary inline-flex rounded-full px-5 py-3 text-xs font-bold" data-testid="link-restore-active-chog">Choose a Chog</Link>}/> :
-           <div className={profile ? 'my-profile-page' : 'space-y-6'}>
+            <div className={profile ? 'my-profile-page' : 'profile-studio-create space-y-6'}>
             {!profile && selectedChog && <section className="grid overflow-hidden rounded-[28px] border border-[#eadde2] bg-[#fffaf8] shadow-[0_13px_35px_rgba(79,43,64,.065)] md:grid-cols-[minmax(0,1fr)_minmax(260px,.85fr)]" aria-label={`Selected Chog #${selectedChog.tokenId}`} data-testid="card-onboarding-selected-chog">
               <div className="relative mx-auto aspect-square w-full max-w-[420px] bg-[#f2e6eb] md:mx-0 md:max-w-none">
                 <ChogArtwork chog={selectedChog} fit="contain"/>
@@ -529,11 +574,14 @@ function ConnectedProfilePage() {
             {notice && <p className="my-profile-save-notice" role="status" data-testid="status-profile-save">{notice}</p>}
             <MyProfileExperience profile={profile} onEdit={openEditProfile}/>
            <Dialog open={editOpen} onOpenChange={setEditOpen}>
-              <DialogContent className="surface max-h-[92dvh] max-w-2xl overflow-y-auto rounded-[28px] border-[#e8dfd5] bg-[#fffaf6] p-5 sm:p-7">
+               <DialogContent className="surface profile-edit-studio max-h-[94dvh] max-w-5xl overflow-y-auto rounded-[30px] border-[#e8dfd5] bg-[#fffaf6] p-4 sm:p-7">
                <DialogHeader className="pr-8 text-left">
-                 <DialogTitle className="display text-2xl font-extrabold text-[#38253a]">Edit Profile</DialogTitle>
-                 <DialogDescription className="text-sm leading-6 text-[#756575]">Update your profile details. Your verified Chog identity stays unchanged.</DialogDescription>
+                  <p className="profile-studio-kicker">PROFILE STUDIO · YOUR IDENTITY</p>
+                  <DialogTitle className="display text-3xl font-extrabold text-[#38253a] sm:text-4xl">Your Chog profile</DialogTitle>
+                  <DialogDescription className="text-sm leading-6 text-[#756575]">Shape how the Chog community sees you. Your verified identity stays yours.</DialogDescription>
                </DialogHeader>
+                 <div className="profile-edit-layout">
+                  {draftPreview && <aside className="profile-edit-preview"><ProfilePreview profile={draftPreview}/></aside>}
                 <form onSubmit={save} className="space-y-4">
                   <div className="flex items-center gap-3 rounded-2xl border border-[#eadde2] bg-[#fff6f4] p-3" aria-label={`Selected verified Chog ${profile.chog.tokenId}`} data-testid="card-edit-selected-chog">
                       <div className="relative h-[68px] w-[68px] shrink-0 overflow-hidden rounded-xl bg-[#f2e6eb]" role="img" aria-label={`Artwork for Chog #${profile.chog.tokenId}`}><ChogArtwork chog={profile.chog} fit="contain"/></div>
@@ -543,58 +591,62 @@ function ConnectedProfilePage() {
                       <p className="text-[10px] text-[#897985]">{profile.chog.tier || 'Genesis'}</p>
                     </div>
                   </div>
-                  <div className="grid gap-3 sm:grid-cols-2">
+                  <details className="profile-edit-section" open>
+                    <summary><span>01</span>Identity</summary>
+                    <div className="grid gap-3 pt-4 sm:grid-cols-2">
                     <label><span className="profile-field-label">Name <span className="text-[#b45a78]">*</span></span><input className="field" value={displayName} onChange={event=>setValue('displayName',event.target.value,{shouldDirty:true})} placeholder="How people will meet you" maxLength={48} required data-testid="input-edit-display-name"/></label>
                    <label><span className="profile-field-label">Username <span className="text-[#b45a78]">*</span></span><span className="relative block"><span className="profile-field-prefix">@</span><input className={`field pl-8 ${usernameError?'!border-[#c65861]':''}`} value={username} onChange={event=>{setValue('username',event.target.value.replace(/[^a-zA-Z0-9_]/g,''),{shouldDirty:true});setUsernameError('');}} placeholder="Your public handle" maxLength={24} minLength={2} required aria-invalid={Boolean(usernameError)} aria-describedby={usernameError?'edit-username-help':'edit-username-format'} data-testid="input-edit-username"/></span><span id={usernameError?'edit-username-help':'edit-username-format'} className={`mt-1.5 block text-[10px] ${usernameError?'text-[#aa4848]':'text-[#978692]'}`}>{usernameError || '2–24 letters, numbers, or underscores.'}</span></label>
                     <label><span className="profile-field-label">Age <span className="font-normal text-[#958a9b]">(optional)</span></span><input className="field" type="number" min="18" max="120" step="1" inputMode="numeric" value={age} onChange={event=>setValue('age',event.target.value,{shouldDirty:true})} placeholder="18+" data-testid="input-edit-profile-age"/><span className="mt-1.5 block text-[10px] leading-4 text-[#978692]">Whole number, 18 to 120.</span></label>
                     <label><span className="profile-field-label">Gender</span><select className="field" value={gender} onChange={event=>setValue('gender',event.target.value,{shouldDirty:true})} data-testid="select-edit-gender"><option value="">Select gender</option>{profileGenderOptions.map(option=><option key={option} value={option}>{option}</option>)}</select></label>
-                    <label className="sm:col-span-2"><span className="profile-field-label">About</span><textarea value={bio} onChange={event=>setValue('bio',event.target.value,{shouldDirty:true})} maxLength={500} rows={3} className="field resize-y" placeholder="What are you curious about lately? What do you love talking about?" data-testid="input-edit-bio"/><span className="mt-1.5 block text-right text-[10px] text-[#978692]">{bio.length}/500</span></label>
-                   <TagField label="Interests" value={interests} onChange={value=>setValue('interests',value,{shouldDirty:true})} placeholder="Art, climbing, long reads" testId="input-edit-interests"/>
-                   <TagField label="Hobbies" value={hobbies} onChange={value=>setValue('hobbies',value,{shouldDirty:true})} placeholder="Hiking, cooking, photography" testId="input-edit-hobbies"/>
-                   <TagField label="Languages" value={languages} onChange={value=>setValue('languages',value,{shouldDirty:true})} placeholder="English, Hindi, Spanish" testId="input-edit-languages"/>
-                    <fieldset className="sm:col-span-2">
+                    </div>
+                  </details>
+                  <details className="profile-edit-section"><summary><span>02</span>About you</summary><div className="pt-4"><label><span className="profile-field-label">About</span><textarea value={bio} onChange={event=>setValue('bio',event.target.value,{shouldDirty:true})} maxLength={500} rows={4} className="field resize-y" placeholder="What are you curious about lately? What do you love talking about?" data-testid="input-edit-bio"/><span className="mt-1.5 block text-right text-[10px] text-[#978692]">{bio.length}/500</span></label></div></details>
+                  <details className="profile-edit-section" open><summary><span>03</span>Interests</summary><div className="pt-4"><TagField label="Interests" value={interests} onChange={value=>setValue('interests',value,{shouldDirty:true})} placeholder="Art, climbing, long reads" testId="input-edit-interests"/></div></details>
+                  <details className="profile-edit-section"><summary><span>04</span>Hobbies</summary><div className="pt-4"><TagField label="Hobbies" value={hobbies} onChange={value=>setValue('hobbies',value,{shouldDirty:true})} placeholder="Hiking, cooking, photography" testId="input-edit-hobbies"/></div></details>
+                  <details className="profile-edit-section"><summary><span>05</span>Languages</summary><div className="pt-4"><TagField label="Languages" value={languages} onChange={value=>setValue('languages',value,{shouldDirty:true})} placeholder="English, Hindi, Spanish" testId="input-edit-languages"/></div></details>
+                  <details className="profile-edit-section" open><summary><span>06</span>Looking for</summary><fieldset className="pt-4">
                      <legend className="profile-field-label">Looking For <span className="text-[#b45a78]">*</span></legend>
                      <p className="mb-3 text-[10px] leading-4 text-[#978692]">Choose one or more.</p>
                      <div className="flex flex-wrap gap-2">
                        {profileLookingForOptions.map(option=><button key={option} type="button" aria-pressed={tags(lookingFor).includes(option)} onClick={()=>toggleLookingForOption(option)} className={`profile-visibility-choice min-h-10 px-4 ${tags(lookingFor).includes(option)?'is-selected':''}`} data-testid={`button-edit-looking-for-${option.toLowerCase()}`}>{option}</button>)}
                      </div>
                      {tags(lookingFor).includes('Other') && <label className="mt-3 block"><span className="profile-field-label">Your option <span className="text-[#b45a78]">*</span></span><input className="field" value={lookingForOther} onChange={event=>setValue('lookingForOther',event.target.value,{shouldDirty:true})} placeholder="Type your own option" maxLength={100} required data-testid="input-edit-looking-for-other"/></label>}
-                   </fieldset>
-                 </div>
+                    </fieldset></details>
                  {notice && <p className="rounded-2xl border border-[#ebc9c5] bg-[#fff1ed] px-4 py-3 text-sm text-[#914c3c]" role="alert" data-testid="status-profile-edit-error">{notice}</p>}
-                  <div className="flex flex-col-reverse gap-3 border-t border-[#eadde2] pt-4 sm:flex-row sm:justify-end">
+                   <div className="profile-save-bar flex flex-col-reverse gap-3 border-t border-[#eadde2] pt-4 sm:flex-row sm:justify-end">
                    <button type="button" onClick={()=>setEditOpen(false)} className="button-soft rounded-full px-5 py-3 text-sm font-bold" data-testid="button-cancel-profile-edit">Cancel</button>
-                   <button type="submit" disabled={update.isPending} className="button-primary rounded-full px-5 py-3 text-sm font-bold disabled:opacity-50" data-testid="button-save-profile-changes">{update.isPending?'Saving…':'Save Changes'}</button>
+                    <button type="submit" disabled={update.isPending} className="button-primary inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-bold disabled:opacity-50" data-testid="button-save-profile-changes">{update.isPending?<><LoaderCircle size={15} className="animate-spin"/>Saving…</>:<><Save size={15}/>Save Changes</>}</button>
                  </div>
-               </form>
+                </form>
+                 </div>
              </DialogContent>
            </Dialog>
          </> : <>
-         {draftPreview && <ProfilePreview profile={draftPreview}/>}
-         {!draftPreview && <div className="surface flex items-center gap-3 rounded-2xl px-4 py-3 text-xs text-[#776575]" role="status"><ShieldCheck size={17} className="shrink-0 text-[#9d4b6b]"/>Choose one of your verified Chogs to see your profile preview.</div>}
           <Form {...form}>
           <form id="edit-profile" onSubmit={save} className="grid scroll-mt-24 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_330px]">
            <section className="profile-form-panel rounded-[28px] p-5 sm:p-8">
+              <nav className="profile-stepper mb-7" aria-label="Profile setup steps" data-testid="profile-setup-steps">
+                {['Identity','About You','Interests','Looking For','Preview'].map((label,index)=><button key={label} type="button" onClick={()=>goToCreateStep(index)} disabled={index>createStep+1} aria-current={createStep===index?'step':undefined} className={`profile-step ${createStep===index?'is-current':''} ${createStep>index?'is-complete':''}`} data-testid={`button-profile-step-${index+1}`}><span className="profile-step-number">{createStep>index?<Check size={13}/>:String(index+1).padStart(2,'0')}</span><span>{label}</span></button>)}
+              </nav>
              <div className="mb-7 flex items-start justify-between gap-4 border-b border-[#eadde2] pb-5">
-               <div><p className="text-[9px] font-bold uppercase tracking-[.18em] text-[#a35b79]">{profile?'Profile details':'First, the basics'}</p><h2 className="display mt-1 text-[28px] text-[#38253a]">{profile?'Refine your introduction.':'Start with what feels like you.'}</h2></div>
+                <div><p className="text-[9px] font-bold uppercase tracking-[.18em] text-[#7955a0]">{['CREATE YOUR CHOG IDENTITY','TELL YOUR STORY','YOUR CIRCLES','WHAT YOU’RE LOOKING FOR','MEET YOUR NEW CHOG IDENTITY'][createStep]}</p><h2 className="display mt-1 text-[28px] text-[#38253a]">{['Tell the community who you are.','A little context goes a long way.','Add the things that feel like you.','Choose what brings you here.','Your identity, ready to meet.'][createStep]}</h2></div>
                <span className="hidden h-10 w-10 shrink-0 place-items-center rounded-full bg-[#f7e9ed] text-[#ac4c70] sm:grid"><Sparkles size={18}/></span>
              </div>
-               <div className="grid gap-4 sm:grid-cols-2">
+                {createStep===0 && <div className="grid gap-4 sm:grid-cols-2">
                  <label><span className="profile-field-label">Name <span className="text-[#b45a78]">*</span></span><input className="field" value={displayName} onChange={event=>setValue('displayName',event.target.value,{shouldDirty:true})} placeholder="How people will meet you" maxLength={48} required data-testid="input-display-name"/></label>
                  <label><span className="profile-field-label">Username <span className="text-[#b45a78]">*</span></span><span className="relative block"><span className="profile-field-prefix">@</span><input className={`field pl-8 ${usernameError?'!border-[#c65861]':''}`} value={username} onChange={event=>{setValue('username',event.target.value.replace(/[^a-zA-Z0-9_]/g,''),{shouldDirty:true});setUsernameError('');}} placeholder="Your public handle" maxLength={24} minLength={2} required aria-invalid={Boolean(usernameError)} aria-describedby={usernameError?'username-help':'username-format'} data-testid="input-username"/></span><span id={usernameError?'username-help':'username-format'} className={`mt-1.5 block text-[10px] ${usernameError?'text-[#aa4848]':'text-[#978692]'}`}>{usernameError || '2–24 letters, numbers, or underscores.'}</span></label>
                  <label><span className="profile-field-label">Age <span className="font-normal text-[#958a9b]">(optional)</span></span><input className="field" type="number" min="18" max="120" step="1" inputMode="numeric" value={age} onChange={event=>setValue('age',event.target.value,{shouldDirty:true})} placeholder="18+" data-testid="input-profile-age"/></label>
                  <label><span className="profile-field-label">Gender</span><select className="field" value={gender} onChange={event=>setValue('gender',event.target.value,{shouldDirty:true})} data-testid="select-profile-gender"><option value="">Select gender</option>{profileGenderOptions.map(option=><option key={option} value={option}>{option}</option>)}</select></label>
-                 <label className="sm:col-span-2"><span className="profile-field-label">About</span><textarea value={bio} onChange={event=>setValue('bio',event.target.value,{shouldDirty:true})} maxLength={500} rows={3} className="field resize-y" placeholder="What are you curious about lately?" data-testid="input-bio"/><span className="mt-1.5 block text-right text-[10px] text-[#978692]">{bio.length}/500</span></label>
-                 <TagField label="Interests" value={interests} onChange={value=>setValue('interests',value,{shouldDirty:true})} placeholder="Art, climbing, long reads" testId="input-interests"/>
-                 <TagField label="Hobbies" value={hobbies} onChange={value=>setValue('hobbies',value,{shouldDirty:true})} placeholder="Hiking, cooking, photography" testId="input-hobbies"/>
-                 <TagField label="Languages" value={languages} onChange={value=>setValue('languages',value,{shouldDirty:true})} placeholder="English, Hindi, Spanish" testId="input-languages"/>
-                 <fieldset className="sm:col-span-2"><legend className="profile-field-label">Looking For <span className="text-[#b45a78]">*</span></legend><p className="mb-3 text-[10px] leading-4 text-[#978692]">Choose one or more.</p><div className="flex flex-wrap gap-2">{profileLookingForOptions.map(option=><button key={option} type="button" aria-pressed={tags(lookingFor).includes(option)} onClick={()=>toggleLookingForOption(option)} className={`profile-visibility-choice min-h-10 px-4 ${tags(lookingFor).includes(option)?'is-selected':''}`} data-testid={`button-looking-for-${option.toLowerCase()}`}>{option}</button>)}</div>{tags(lookingFor).includes('Other') && <label className="mt-3 block"><span className="profile-field-label">Your option <span className="text-[#b45a78]">*</span></span><input className="field" value={lookingForOther} onChange={event=>setValue('lookingForOther',event.target.value,{shouldDirty:true})} placeholder="Type your own option" maxLength={50} required data-testid="input-looking-for-other"/></label>}</fieldset>
-               </div>
+                </div>}
+                {createStep===1 && <div><label><span className="profile-field-label">About you</span><textarea value={bio} onChange={event=>setValue('bio',event.target.value,{shouldDirty:true})} maxLength={500} rows={7} className="field profile-story-field resize-y" placeholder="What are you curious about lately? What do you love talking about?" data-testid="input-bio"/><span className="mt-1.5 block text-right text-[10px] text-[#978692]">{bio.length}/500</span></label></div>}
+                {createStep===2 && <div className="grid gap-4 sm:grid-cols-2">
+                  <TagField label="Interests" value={interests} onChange={value=>setValue('interests',value,{shouldDirty:true})} placeholder="Add your own, separated by commas" testId="input-interests"/>
+                  <TagField label="Hobbies" value={hobbies} onChange={value=>setValue('hobbies',value,{shouldDirty:true})} placeholder="Add your own, separated by commas" testId="input-hobbies"/>
+                  <TagField label="Languages" value={languages} onChange={value=>setValue('languages',value,{shouldDirty:true})} placeholder="Add your own, separated by commas" testId="input-languages"/>
+                </div>}
+                {createStep===3 && <fieldset><legend className="profile-field-label">Looking For <span className="text-[#b45a78]">*</span></legend><p className="mb-3 text-[10px] leading-4 text-[#978692]">Choose one or more.</p><div className="grid gap-2 sm:grid-cols-2">{profileLookingForOptions.map(option=><button key={option} type="button" aria-pressed={tags(lookingFor).includes(option)} onClick={()=>toggleLookingForOption(option)} className={`profile-visibility-choice min-h-12 justify-start px-4 ${tags(lookingFor).includes(option)?'is-selected':''}`} data-testid={`button-looking-for-${option.toLowerCase()}`}><span className="profile-choice-mark">{tags(lookingFor).includes(option)?<Check size={13}/>:null}</span>{option}</button>)}</div>{tags(lookingFor).includes('Other') && <label className="mt-4 block"><span className="profile-field-label">Your option <span className="text-[#b45a78]">*</span></span><input className="field" value={lookingForOther} onChange={event=>setValue('lookingForOther',event.target.value,{shouldDirty:true})} placeholder="Type your own option" maxLength={100} required data-testid="input-looking-for-other"/></label>}</fieldset>}
+                {createStep===4 && <div className="profile-final-preview"><p className="mb-4 text-sm leading-6 text-[#756575]">Your verified Chog and profile details are what other holders will see. Review the live card beside this studio before you create your profile.</p><label className="mt-5 flex items-start gap-3 rounded-2xl border border-[#e8deea] bg-[#fbf7f3] p-4 text-xs leading-5 text-[#6f6075]"><input type="checkbox" checked={Boolean(watch('profileVisible'))} onChange={event=>setValue('profileVisible',event.target.checked,{shouldDirty:true})} className="mt-1 accent-[#68428d]" data-testid="input-profile-visibility"/><span><strong className="block text-[#48345d]">Show me in discovery</strong>Your profile visibility preference is saved with your profile.</span></label></div>}
              {notice && <p className={`mt-6 flex items-start gap-2.5 rounded-2xl px-4 py-3 text-sm leading-5 ${notice.startsWith('Your profile is saved')?'border border-[#bed8c0] bg-[#edf6ec] text-[#3d7048]':'border border-[#ebc9c5] bg-[#fff1ed] text-[#914c3c]'}`} role="status" data-testid="status-profile-save"><span className="mt-0.5"><Check size={15}/></span>{notice}</p>}
-             <div className="mt-7 flex flex-col-reverse justify-between gap-4 border-t border-[#eadde2] pt-5 sm:flex-row sm:items-center">
-               <p className="max-w-xs text-[10px] leading-5 text-[#958692]">Your wallet, verified ownership, and token ID are protected and can’t be edited here.</p>
-               <button type="submit" disabled={update.isPending} className="button-primary inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-bold disabled:opacity-50" data-testid="button-save-profile"><Save size={16}/>{update.isPending?'Saving your profile…':'Save profile'}</button>
-             </div>
            </section>
            <aside className="profile-side-panel h-fit rounded-[28px] p-5 sm:p-6">
               <div className="flex items-start justify-between gap-3">
@@ -604,6 +656,7 @@ function ConnectedProfilePage() {
               <p className="mt-2 text-[11px] leading-5 text-[#897985]">{profile?'Choose which verified Chog represents you.':'Select the verified NFT you want on your profile.'}</p>
               <label className="mt-4 block"><span className="profile-field-label">Selected Chog</span><select className="field" value={selectedChogTokenId} onChange={event=>setValue('selectedChogTokenId',event.target.value,{shouldDirty:true})} data-testid="select-profile-chog">{me.data.chogs.filter(chog=>chog.verified).map(chog=><option key={chog.tokenId} value={chog.tokenId}>Chog #{chog.tokenId}{chog.tier?` · ${chog.tier}`:''}</option>)}</select></label>
                  {selectedChog && <div className="mt-3 flex items-center gap-3 rounded-2xl border border-[#eadde2] bg-[#fffaf8] p-3" data-testid="card-selected-chog-preview"><div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-[#f2e6eb]"><ChogArtwork chog={selectedChog} fit="contain"/></div><div><p className="text-[9px] font-bold uppercase tracking-[.15em] text-[#a35b79]">Profile identity</p><p className="display mt-1 text-base text-[#38253a]">Chog #{selectedChog.tokenId}</p><p className="text-[10px] text-[#897985]">{selectedChog.tier || 'Genesis'}</p></div></div>}
+               {draftPreview ? <div className="mt-5" data-testid="profile-preview-side"><ProfilePreview profile={draftPreview}/></div> : <div className="mt-5 flex items-center gap-3 rounded-2xl bg-[#f8f0ee] px-4 py-3 text-xs leading-5 text-[#776575]" role="status"><ShieldCheck size={17} className="shrink-0 text-[#9d4b6b]"/>Choose one of your verified Chogs to see your profile preview.</div>}
               {profile ? <div className="mt-4 border-t border-[#eadde2] pt-4"><p className="text-[10px] leading-5 text-[#897985]">Switching changes only your active Chog identity. Your profile details stay exactly as they are.</p><button type="button" onClick={()=>void switchActiveChog()} disabled={selectActiveChog.isPending || !selectedChogTokenId || selectedChogTokenId===me.data.selectedChogTokenId} className="button-primary mt-3 w-full rounded-full px-4 py-3 text-xs font-bold disabled:opacity-50" data-testid="button-set-active-chog">{selectActiveChog.isPending?'Revalidating ownership…':selectedChogTokenId===me.data.selectedChogTokenId?'Active Chog':'Make active Chog'}</button></div> : <p className="mt-3 text-[10px] leading-5 text-[#897985]">Your selected Chog becomes your active profile identity when you save.</p>}
             {profile && <div className="mt-5 border-t border-[#eadde2] pt-4">
                 <p className="mb-2 text-xs font-bold text-[#493b4d]">Profile visibility</p>
@@ -611,6 +664,10 @@ function ConnectedProfilePage() {
               </div>}
               <div className="mt-4 flex items-start gap-2 rounded-xl bg-[#f8f0ee] px-3 py-2.5 text-[9px] leading-4 text-[#806f7c]"><LockKeyhole size={13} className="mt-0.5 shrink-0 text-[#9b5670]"/>Only your profile details are shared. Wallet credentials are never displayed.</div>
            </aside>
+            {!profile && <div className="profile-save-bar flex flex-col-reverse justify-between gap-4 border-t border-[#eadde2] pt-5 sm:flex-row sm:items-center lg:col-span-2">
+              <p className="max-w-xs text-[10px] leading-5 text-[#958692]">Your wallet, verified ownership, and token ID are protected and can’t be edited here.</p>
+              <div className="flex gap-2">{createStep>0 && <button type="button" onClick={()=>setCreateStep(step=>Math.max(0,step-1))} className="button-soft rounded-full px-5 py-3 text-sm font-bold" data-testid="button-profile-step-back">Back</button>}{createStep<4 ? <button type="button" onClick={()=>{if(validateCreateStep())setCreateStep(step=>Math.min(4,step+1));}} className="button-primary inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-bold" data-testid="button-profile-step-continue">Continue <ChevronDown size={15} className="-rotate-90"/></button> : <button type="submit" disabled={update.isPending} className="button-primary inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-bold disabled:opacity-50" data-testid="button-save-profile">{update.isPending?<><LoaderCircle size={15} className="animate-spin"/>Creating profile…</>:<><Save size={16}/>Create profile</>}</button>}</div>
+            </div>}
           </form>
           </Form>
          </>}
@@ -754,7 +811,54 @@ function Field({label,value,onChange,placeholder,maxLength,prefix,testId}:{label
   return <label><span className="mb-2 block text-xs font-bold text-[#5c5067]">{label}</span><span className="relative block">{prefix && <span className="absolute left-3 top-3 text-[#9b8fa0]">{prefix}</span>}<input className={`field ${prefix?'pl-8':''}`} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} maxLength={maxLength} data-testid={testId}/></span></label>;
 }
 function TagField({label,value,onChange,placeholder,testId}:{label:string;value:string;onChange:(value:string)=>void;placeholder:string;testId:string}) {
-  return <label className="sm:col-span-2"><span className="mb-2 block text-xs font-bold text-[#5c5067]">{label}</span><input className="field" value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} data-testid={testId}/><span className="mt-1 block text-[10px] text-[#9b8fa0]">Separate each with a comma.</span></label>;
+  const [draft, setDraft] = useState('');
+  const values = tags(value);
+  function addTag(candidate = draft) {
+    const next = candidate.trim();
+    if (!next) {
+      setDraft('');
+      return;
+    }
+    const current = tags(value);
+    if (!current.some(item => item.toLowerCase() === next.toLowerCase())) {
+      onChange([...current, next].join(', '));
+    }
+    setDraft('');
+  }
+  function removeTag(index: number) {
+    onChange(values.filter((_, itemIndex) => itemIndex !== index).join(', '));
+  }
+  return <fieldset className="profile-tag-field min-w-0 sm:col-span-2">
+    <legend className="profile-field-label">{label}</legend>
+    {values.length > 0 && <div className="profile-tag-list" aria-label={`${label} selected`}>
+      {values.map((item, index) => <span className="profile-tag-chip" key={`${item}-${index}`} data-testid={`${testId}-tag-${index}`}>
+        {item}
+        <button type="button" onClick={() => removeTag(index)} aria-label={`Remove ${item}`} data-testid={`${testId}-remove-${index}`}><X size={12} aria-hidden="true"/></button>
+      </span>)}
+    </div>}
+    <div className="profile-tag-input-row">
+      <input
+        className="field"
+        value={draft}
+        onChange={event => setDraft(event.target.value)}
+        onKeyDown={event => {
+          if (event.key === 'Enter' || event.key === ',') {
+            event.preventDefault();
+            addTag();
+          } else if (event.key === 'Backspace' && !draft && values.length > 0) {
+            removeTag(values.length - 1);
+          }
+        }}
+        placeholder={placeholder}
+        aria-label={`Add ${label.toLowerCase()}`}
+        data-testid={testId}
+      />
+      <button type="button" className="profile-tag-add" onClick={() => addTag()} data-testid={`${testId}-add`}>
+        <Check size={14} aria-hidden="true"/> Add
+      </button>
+    </div>
+    <span className="mt-1 block text-[10px] text-[#9b8fa0]">Enter a value, then press Enter or Add. These are your own values.</span>
+  </fieldset>;
 }
 
 function ProfilePreview({ profile }: { profile: ProfilePreviewData }) {
