@@ -614,7 +614,7 @@ export function DiscoverPage() {
              />
            </motion.div>
          </AnimatePresence> : data?.nextCursor ? <EmptyState mark="cm" title="Looking a little further." detail="No complete profiles in this group yet. Continue to the next set of real Chog holders." action={<button onClick={()=>setCursor(data.nextCursor || undefined)} className="button-soft rounded-full px-5 py-2.5 text-sm font-bold" data-testid="button-load-more">Continue discovery</button>} /> :
-       <EmptyState mark="cm" title="No one new, for now." detail="Profiles appear when their owner turns Discover visibility on and still holds a verified Chog." action={<button onClick={()=>{setProfileIndex(0);void refetch();}} className="button-soft rounded-full px-5 py-2.5 text-sm font-bold" data-testid="button-refresh-discovery">Check again</button>} />}
+       <EmptyState mark="cm" title="No one new, for now." detail="Eligible Chog holders appear here unless either of you has blocked the other." action={<button onClick={()=>{setProfileIndex(0);void refetch();}} className="button-soft rounded-full px-5 py-2.5 text-sm font-bold" data-testid="button-refresh-discovery">Check again</button>} />}
      </QueryState>
        </div>
       <div className="discover-action-area" role="group" aria-label="Discover actions">

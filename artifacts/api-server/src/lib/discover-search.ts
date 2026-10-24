@@ -29,7 +29,7 @@ export async function findDiscoverSearchCandidates(
   searchTerm: string,
 ): Promise<DiscoverSearchProfileRow[]> {
   const candidates = new Map<string, DiscoverSearchProfileRow>();
-  for (const profile of await loadVisibleProfilesMatching(admin, searchTerm)) {
+  for (const profile of await loadProfilesMatching(admin, searchTerm)) {
     candidates.set(profile.user_id, profile);
   }
 
@@ -47,7 +47,7 @@ export async function findDiscoverSearchCandidates(
       userTokens.add(token.token_id);
       tokensByUser.set(token.user_id, userTokens);
     }
-    const tokenProfileMatches = await loadVisibleProfilesByUserIds(
+    const tokenProfileMatches = await loadProfilesByUserIds(
       admin,
       [...tokensByUser.keys()],
     );
@@ -68,7 +68,7 @@ export async function findDiscoverSearchCandidates(
   );
 }
 
-async function loadVisibleProfilesMatching(
+async function loadProfilesMatching(
   admin: SupabaseAdmin,
   searchTerm: string,
 ): Promise<SearchableProfileRow[]> {
@@ -80,7 +80,6 @@ async function loadVisibleProfilesMatching(
       .select(
         "user_id,updated_at,active_chog_token_id,name,display_name,username,bio,looking_for_other,interests,hobbies,languages,looking_for",
       )
-      .eq("profile_visible", true)
       .order("updated_at", { ascending: false })
       .order("user_id", { ascending: true })
       .range(offset, offset + SEARCH_BATCH_SIZE - 1);
@@ -135,7 +134,7 @@ async function loadVerifiedChogTokenMatches(
   return rows;
 }
 
-async function loadVisibleProfilesByUserIds(
+async function loadProfilesByUserIds(
   admin: SupabaseAdmin,
   userIds: string[],
 ): Promise<DiscoverSearchProfileRow[]> {
@@ -146,7 +145,6 @@ async function loadVisibleProfilesByUserIds(
     const { data, error } = await admin
       .from("profiles")
       .select("user_id,updated_at,active_chog_token_id")
-      .eq("profile_visible", true)
       .in("user_id", batch);
     if (error) {
       throw new SocialDataError("CHOG MATE database setup is incomplete.", error);

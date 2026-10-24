@@ -80,58 +80,6 @@ router.get("/profiles/:userId", async (req, res): Promise<void> => {
         return;
       }
 
-      if (!bundle.profile.profile_visible) {
-        const [likeFromMe, likeToMe, superLikeFromMe, superLikeToMe, match] =
-          await Promise.all([
-            admin
-              .from("likes")
-              .select("id")
-              .eq("from_user_id", session.userId)
-              .eq("to_user_id", targetUserId)
-              .maybeSingle(),
-            admin
-              .from("likes")
-              .select("id")
-              .eq("from_user_id", targetUserId)
-              .eq("to_user_id", session.userId)
-              .maybeSingle(),
-            admin
-              .from("super_likes")
-              .select("id")
-              .eq("from_user_id", session.userId)
-              .eq("to_user_id", targetUserId)
-              .maybeSingle(),
-            admin
-              .from("super_likes")
-              .select("id")
-              .eq("from_user_id", targetUserId)
-              .eq("to_user_id", session.userId)
-              .maybeSingle(),
-            admin
-              .from("matches")
-              .select("id")
-              .or(
-                `and(user_a.eq.${session.userId},user_b.eq.${targetUserId}),and(user_a.eq.${targetUserId},user_b.eq.${session.userId})`,
-              )
-              .maybeSingle(),
-          ]);
-        if ([likeFromMe, likeToMe, superLikeFromMe, superLikeToMe, match].some(result => result.error)) {
-          throw new SocialDataError("CHOG MATE profiles are not ready yet.");
-        }
-        if (
-          !likeFromMe.data &&
-          !likeToMe.data &&
-          !superLikeFromMe.data &&
-          !superLikeToMe.data &&
-          !match.data
-        ) {
-          res.status(404).json({ error: "This profile is not available." });
-          return;
-        }
-      }
-    } else if (!bundle.profile.profile_visible && session?.userId !== targetUserId) {
-      res.status(404).json({ error: "This profile is not available." });
-      return;
     }
 
     if (!isAddress(bundle.user.wallet_address)) {
@@ -452,37 +400,18 @@ router.get("/discover", async (req, res): Promise<void> => {
     const offset = parseCursor(parsed.data.cursor);
     const excluded = new Set<string>();
     if (session) {
-      const [outBlocks, inBlocks, passes, likes, superLikes, matchesA, matchesB] =
-        await Promise.all([
-          admin
-            .from("blocks")
-            .select("blocked_user_id")
-            .eq("blocker_id", session.userId),
-          admin
-            .from("blocks")
-            .select("blocker_id")
-            .eq("blocked_user_id", session.userId),
-          admin.from("passes").select("to_user_id").eq("from_user_id", session.userId),
-          admin.from("likes").select("to_user_id").eq("from_user_id", session.userId),
-          admin
-            .from("super_likes")
-            .select("to_user_id")
-            .eq("from_user_id", session.userId),
-          admin
-            .from("matches")
-            .select("user_b")
-            .eq("user_a", session.userId)
-            .eq("status", "active"),
-          admin
-            .from("matches")
-            .select("user_a")
-            .eq("user_b", session.userId)
-            .eq("status", "active"),
-        ]);
+      const [outBlocks, inBlocks] = await Promise.all([
+        admin
+          .from("blocks")
+          .select("blocked_user_id")
+          .eq("blocker_id", session.userId),
+        admin
+          .from("blocks")
+          .select("blocker_id")
+          .eq("blocked_user_id", session.userId),
+      ]);
       if (
-          [outBlocks, inBlocks, passes, likes, superLikes, matchesA, matchesB].some(
-          (result) => result.error,
-        )
+        [outBlocks, inBlocks].some((result) => result.error)
       ) {
         throw new SocialDataError("CHOG MATE database setup is incomplete.");
       }
@@ -490,11 +419,6 @@ router.get("/discover", async (req, res): Promise<void> => {
       excluded.add(session.userId);
       for (const row of outBlocks.data ?? []) excluded.add(row.blocked_user_id);
       for (const row of inBlocks.data ?? []) excluded.add(row.blocker_id);
-      for (const row of passes.data ?? []) excluded.add(row.to_user_id);
-      for (const row of likes.data ?? []) excluded.add(row.to_user_id);
-      for (const row of superLikes.data ?? []) excluded.add(row.to_user_id);
-      for (const row of matchesA.data ?? []) excluded.add(row.user_b);
-      for (const row of matchesB.data ?? []) excluded.add(row.user_a);
     }
 
     // Advance only over candidates considered for this response; a wider
@@ -513,10 +437,9 @@ router.get("/discover", async (req, res): Promise<void> => {
       const { data: candidates, error: candidatesError } = await admin
         .from("profiles")
         .select("user_id")
-        .eq("profile_visible", true)
         .order("updated_at", { ascending: false })
-          .order("user_id", { ascending: true })
-          .range(offset, offset + pageSize);
+        .order("user_id", { ascending: true })
+        .range(offset, offset + pageSize);
       if (candidatesError) {
         throw new SocialDataError("CHOG MATE database setup is incomplete.", candidatesError);
       }
@@ -526,7 +449,7 @@ router.get("/discover", async (req, res): Promise<void> => {
       hasMoreCandidates = (candidates?.length ?? 0) > pageSize;
     }
     const ids = candidateUserIds.filter((id) => !excluded.has(id));
-    const bundles = await loadProfileBundles(ids);
+    const bundles = await loadProfileBundles(ids, { includePrivate: true });
     const ranked: Array<{
       bundle: NonNullable<Awaited<ReturnType<typeof loadProfileBundle>>>;
       compatibility: number | null;
@@ -538,7 +461,7 @@ router.get("/discover", async (req, res): Promise<void> => {
 
     for (const [userId, bundle] of bundles) {
       if (
-        !isCompleteDiscoverableProfile(bundle) ||
+        !isCompleteDiscoverableProfile(bundle, false) ||
         !isAddress(bundle.user.wallet_address) ||
         (session && bundle.user.id === session.userId)
       ) {

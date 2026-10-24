@@ -123,7 +123,7 @@ router.post("/swipes", async (req, res): Promise<void> => {
       res.status(400).json({ error: "You can't swipe on your own profile." });
       return;
     }
-    const targetMap = await loadProfileBundles([targetId]);
+    const targetMap = await loadProfileBundles([targetId], { includePrivate: true });
     const target = targetMap.get(targetId);
     if (!target) {
       res.status(404).json({ error: "This profile is no longer available." });
@@ -700,8 +700,32 @@ router.post("/matches/:matchId/rematch", async (req, res): Promise<void> => {
       p_match_id: parsed.data.matchId,
       p_user_id: session.userId,
     });
-    if (error) throw new SocialDataError("The match could not be restored.");
-    if (data !== true) {
+    let rematched = data === true;
+    if (
+      error &&
+      (error.code === "PGRST202" || error.code === "42883")
+    ) {
+      // Older Supabase projects may not yet have migration 0011's RPC.
+      // Keep Rematch working with a guarded single-row update while preserving
+      // the same participant, status, and original-unmatcher checks.
+      const { data: updatedMatch, error: updateError } = await admin
+        .from("matches")
+        .update({
+          status: "active",
+          unmatched_by: null,
+          last_activity: new Date().toISOString(),
+        })
+        .eq("id", parsed.data.matchId)
+        .eq("status", "unmatched")
+        .eq("unmatched_by", session.userId)
+        .select("id")
+        .maybeSingle();
+      if (updateError) throw new SocialDataError("The match could not be restored.");
+      rematched = Boolean(updatedMatch);
+    } else if (error) {
+      throw new SocialDataError("The match could not be restored.");
+    }
+    if (!rematched) {
       res.status(409).json({
         error: "This Ex Match changed before it could be restored. Refresh your connections and try again.",
       });

@@ -1,7 +1,7 @@
 import { type FormEvent, useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
-import { Activity, BadgeCheck, Check, ChevronDown, Copy, Eye, EyeOff, Heart, Image as ImageIcon, LockKeyhole, LogOut, PencilLine, RefreshCw, Save, Settings2, ShieldCheck, Sparkles, Wallet } from 'lucide-react';
+import { Activity, BadgeCheck, Check, ChevronDown, Copy, Heart, Image as ImageIcon, LockKeyhole, LogOut, PencilLine, RefreshCw, Save, Settings2, ShieldCheck, Sparkles, Wallet } from 'lucide-react';
 import { MotionConfig, motion } from 'framer-motion';
 import { Link, useLocation } from 'wouter';
 import { formatUnits, isAddress, type Address } from 'viem';
@@ -9,7 +9,7 @@ import { useConnection, useDisconnect, useReadContract } from 'wagmi';
 import {
   getGetAuthSessionQueryKey, getGetBlockedUsersQueryKey, getGetMeQueryKey, getGetNftOwnershipQueryKey,
   useGetBlockedUsers, useGetMe, useGetNftOwnership, useLogoutWallet, useSelectActiveChog,
-  useUnblockUser, useUpdateDiscoverVisibility, useUpdateMeProfile,
+  useUnblockUser, useUpdateMeProfile,
 } from '@workspace/api-client-react';
 import type { Chog, Profile, ProfileInput } from '@workspace/api-client-react';
 import { AppShell, ChogArtwork, EmptyState, Eyebrow, PageTitle, QueryState } from '@/components/shared';
@@ -533,7 +533,6 @@ function ConnectedProfilePage() {
     lookingFor,
     lookingForOther,
     selectedChogTokenId,
-    profileVisible,
   } = watch();
   const [notice,setNotice] = useState('');
   const [editOpen,setEditOpen] = useState(false);
@@ -790,13 +789,9 @@ function ConnectedProfilePage() {
               <label className="mt-4 block"><span className="profile-field-label">Selected Chog</span><select className="field" value={selectedChogTokenId} onChange={event=>setValue('selectedChogTokenId',event.target.value,{shouldDirty:true})} data-testid="select-profile-chog">{me.data.chogs.filter(chog=>chog.verified).map(chog=><option key={chog.tokenId} value={chog.tokenId}>Chog #{chog.tokenId}{chog.tier?` · ${chog.tier}`:''}</option>)}</select></label>
                {selectedChog && <div className="mt-3 flex items-center gap-3 rounded-2xl border border-[#eadde2] bg-[#fffaf8] p-3" data-testid="card-selected-chog-preview"><div className="max-h-16 max-w-16 shrink-0 rounded-xl bg-[#f2e6eb]"><ChogArtwork chog={selectedChog} fit="natural" className="max-h-16 max-w-16"/></div><div><p className="text-[9px] font-bold uppercase tracking-[.15em] text-[#a35b79]">Profile identity</p><p className="display mt-1 text-base text-[#38253a]">Chog #{selectedChog.tokenId}</p><p className="text-[10px] text-[#897985]">{selectedChog.tier || 'Genesis'}</p></div></div>}
               {profile ? <div className="mt-4 border-t border-[#eadde2] pt-4"><p className="text-[10px] leading-5 text-[#897985]">Switching changes only your active Chog identity. Your profile details stay exactly as they are.</p><button type="button" onClick={()=>void switchActiveChog()} disabled={selectActiveChog.isPending || !selectedChogTokenId || selectedChogTokenId===me.data.selectedChogTokenId} className="button-primary mt-3 w-full rounded-full px-4 py-3 text-xs font-bold disabled:opacity-50" data-testid="button-set-active-chog">{selectActiveChog.isPending?'Revalidating ownership…':selectedChogTokenId===me.data.selectedChogTokenId?'Active Chog':'Make active Chog'}</button></div> : <p className="mt-3 text-[10px] leading-5 text-[#897985]">Your selected Chog becomes your active profile identity when you save.</p>}
-              {profile && <div className="mt-5 border-t border-[#eadde2] pt-4">
-                <p className="mb-3 flex items-center gap-2 text-xs font-bold text-[#493b4d]"><Eye size={15} className="text-[#a34d70]"/>Discovery visibility</p>
-                <div className="grid grid-cols-2 gap-2">
-                  <button type="button" onClick={()=>setValue('profileVisible',true,{shouldDirty:true})} aria-pressed={profileVisible===true} className={`profile-visibility-choice ${profileVisible===true?'is-selected':''}`} data-testid="button-profile-show"><Eye size={14}/>Show profile</button>
-                  <button type="button" onClick={()=>setValue('profileVisible',false,{shouldDirty:true})} aria-pressed={profileVisible===false} className={`profile-visibility-choice ${profileVisible===false?'is-selected':''}`} data-testid="button-profile-hide"><EyeOff size={14}/>Hide from discovery</button>
-                </div>
-                <p className="mt-2.5 text-[10px] leading-5 text-[#978692]">{profileVisible===null?'Choose how you want to appear; current visibility is not returned by the profile service.':'Saved together with your profile when you choose Save profile.'} <Link href="/settings" className="font-bold text-[#a34d70]" data-testid="link-profile-visibility-settings">Manage in Settings</Link></p>
+            {profile && <div className="mt-5 border-t border-[#eadde2] pt-4">
+                <p className="mb-2 text-xs font-bold text-[#493b4d]">Profile visibility</p>
+                <p className="text-[10px] leading-5 text-[#978692]">Profiles appear in Explore unless either person has blocked the other. Blocked users are managed in <Link href="/settings" className="font-bold text-[#a34d70]" data-testid="link-profile-visibility-settings">Settings</Link>.</p>
               </div>}
               <div className="mt-4 flex items-start gap-2 rounded-xl bg-[#f8f0ee] px-3 py-2.5 text-[9px] leading-4 text-[#806f7c]"><LockKeyhole size={13} className="mt-0.5 shrink-0 text-[#9b5670]"/>Only your profile details are shared. Wallet credentials are never displayed.</div>
            </aside>
@@ -949,19 +944,14 @@ function TagField({label,value,onChange,placeholder,testId}:{label:string;value:
 export function SettingsPage() {
   const me=useGetMe();
   const profile=me.data?.profile;
-  const [visible,setVisible]=useState<boolean|null>(null);
   const [message,setMessage]=useState('');
   const blockedUsers=useGetBlockedUsers({query:{queryKey:getGetBlockedUsersQueryKey(),refetchOnWindowFocus:true}});
-  const updateVisibility=useUpdateDiscoverVisibility();
   const unblock=useUnblockUser();
   const logout=useLogoutWallet();
   const walletConnection=useConnection();
   const walletDisconnect=useDisconnect();
   const qc=useQueryClient();
   const [,navigate]=useLocation();
-  useEffect(() => {
-    if (me.data) setVisible(me.data.profileVisible);
-  }, [me.data?.profileVisible]);
   const walletAddress=me.data?.walletAddress;
   const shortWalletAddress=walletAddress ? `${walletAddress.slice(0,6)}…${walletAddress.slice(-4)}` : '';
   async function copyWalletAddress() {
@@ -971,27 +961,6 @@ export function SettingsPage() {
       setMessage('Wallet address copied.');
     } catch {
       setMessage('Could not copy the wallet address. Please copy it manually.');
-    }
-  }
-  async function changeVisibility(nextVisible:boolean) {
-    if (!me.data?.hasProfile || visible===null || nextVisible===visible) return;
-    const previousVisible=visible;
-    setVisible(nextVisible);
-    setMessage('');
-    try {
-      await updateVisibility.mutateAsync({data:{visible:nextVisible}});
-      await qc.invalidateQueries({queryKey:getGetMeQueryKey()});
-      setMessage(`Discover visibility is now ${nextVisible?'on':'off'}.`);
-    } catch (error) {
-      setVisible(previousVisible);
-      const responseData = error && typeof error === 'object' && 'data' in error
-        ? (error as { data?: unknown }).data
-        : null;
-      const responseMessage = responseData && typeof responseData === 'object' && 'error' in responseData
-        && typeof (responseData as { error?: unknown }).error === 'string'
-        ? (responseData as { error: string }).error
-        : null;
-      setMessage(responseMessage || 'We couldn’t update Discover visibility. Please try again.');
     }
   }
   async function unblockUser(userId:string) {
@@ -1023,7 +992,7 @@ export function SettingsPage() {
     navigate('/');
   }
   return <AppShell displayName={profile?.displayName}><div className="page-enter">
-    <PageTitle eyebrow="Account preferences" title="Settings." description="Manage your wallet connection, Discover visibility, and blocked users." />
+    <PageTitle eyebrow="Account preferences" title="Settings." description="Manage your wallet connection and blocked users." />
     <div className="space-y-5">
       <section className="surface rounded-[26px] p-6" aria-labelledby="settings-wallet-title">
         <Eyebrow>Connected Wallet</Eyebrow>
@@ -1036,15 +1005,9 @@ export function SettingsPage() {
       </section>
 
       <section className="surface rounded-[26px] p-6" aria-labelledby="settings-visibility-title">
-        <Eyebrow>Discover Visibility</Eyebrow>
-        <h2 id="settings-visibility-title" className="display text-2xl font-extrabold text-[#24133f]">Show me in Discover</h2>
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-[#faf6ef] p-4">
-          <div><p className="text-sm font-semibold text-[#594d64]">Show me in Discover</p><p className="mt-1 text-xs text-[#887c90]" data-testid="text-settings-visibility">{me.isLoading?'Loading saved preference…':!me.data?.hasProfile?'Create a profile to change this setting.':visible===null?'Saved preference unavailable.':`Currently ${visible?'on':'off'}.`}</p></div>
-          <button type="button" role="switch" aria-checked={visible===true} aria-label="Show me in Discover" onClick={()=>void changeVisibility(visible!==true)} disabled={!me.data?.hasProfile||visible===null||updateVisibility.isPending} className={`relative h-8 w-14 shrink-0 rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${visible?'bg-[#8a63ff]':'bg-[#cfc5d2]'}`} data-testid="toggle-discover-visibility">
-            <span className={`absolute top-1 h-6 w-6 rounded-full bg-white shadow transition-transform ${visible?'translate-x-7':'translate-x-1'}`}/>
-          </button>
-        </div>
-        {updateVisibility.isPending && <p className="mt-3 text-xs text-[#887c90]" role="status">Saving Discover visibility…</p>}
+        <Eyebrow>Profile visibility</Eyebrow>
+        <h2 id="settings-visibility-title" className="display text-2xl font-extrabold text-[#24133f]">Profiles appear in Explore</h2>
+        <p className="mt-3 rounded-2xl bg-[#faf6ef] p-4 text-sm leading-6 text-[#594d64]" data-testid="text-settings-visibility">Every eligible Chog holder appears in Explore, regardless of their saved visibility preference. Blocking is the only way to keep a specific person out of your Explore results.</p>
       </section>
 
       <section className="surface rounded-[26px] p-6" aria-labelledby="settings-blocked-title">

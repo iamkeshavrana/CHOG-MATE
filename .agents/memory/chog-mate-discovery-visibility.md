@@ -9,13 +9,13 @@ description: Product rule for how member identity and Chog NFT details appear in
 
 **How to apply:** Keep photo and Chog artwork visible together from the first discovery card. Do not add reveal flows or blur identity details.
 
-**Discover visibility gate:** The owner-controlled `profile_visible` setting is the privacy gate. Missing age or profile-photo values must not independently hide an opted-in profile; keep verified, currently owned Chog checks.
+**Explore listing rule:** Show eligible, complete Chog-holder profiles regardless of `profile_visible` or prior interaction state (likes, passes, active matches, and ex-matches). Exclude the current account and users blocked in either direction. Profile detail and interaction endpoints must follow the same rule while preserving block and current-ownership checks.
 
-**Why:** The user specified that the Settings toggle controls whether a profile appears. Production had opted-in holders excluded only because age and photo fields were empty.
+**Why:** On 2026-10-24, the user explicitly changed the product rule: every eligible profile should appear in Explore regardless of visibility preference or relationship history, with blocking as the only exclusion.
 
-**How to apply:** Filter `profile_visible = true` in both Discover and Search, never expose opted-out profiles, verify active Chog ownership separately, and render missing age/photo safely.
+**How to apply:** Do not filter by `profile_visible`, likes, passes, or match status in Explore/search. Do not let profile detail or Like Back reject an otherwise eligible hidden profile. Continue excluding self and both directions of blocks, and verify current Chog ownership.
 
-**Preview safety rule:** Do not insert synthetic users or change a real profile's `profile_visible` value just to make a Discover preview non-empty. Diagnose with read-only queries; keep the owner's visibility setting and on-chain ownership checks intact.
+**Preview safety rule:** Do not insert synthetic users or change a real profile's `profile_visible` value just to make an Explore preview non-empty. Keep real profile and on-chain ownership checks intact.
 
 **Why:** The user explicitly prohibited fake users, manual visibility changes for preview, and bypassing ownership verification during Discover diagnosis.
 
