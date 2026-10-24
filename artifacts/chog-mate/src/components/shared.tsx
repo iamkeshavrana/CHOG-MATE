@@ -11,7 +11,7 @@ import { WalletConnectionDialog } from '@/components/wallet-connection-dialog';
 export function Brand({ inverse = false }: { inverse?: boolean }) {
   return <Link href="/" className="inline-flex items-center gap-3" data-testid="link-brand">
     <img
-      src="https://media1.tenor.com/m/O3waRaZ2i4AAAAAC/chog-monad.gif"
+      src={`${import.meta.env.BASE_URL}chog-wave-transparent.gif`}
       alt="Chog dancing"
       width={48}
       height={48}
@@ -71,7 +71,7 @@ export function AppShell({ children, displayName }: { children: ReactNode; displ
   return <div className="app-shell grain relative">
     <header className={`topbar relative z-20 sticky top-0 ${headerHidden ? 'is-hidden' : ''}`}>
       <div className="mx-auto flex h-[72px] max-w-[1440px] items-center justify-between px-5 md:px-9">
-        <Brand inverse />
+        <Brand />
         <nav className="nav-glass hidden items-center gap-0.5 rounded-full p-1 md:flex" aria-label="Main navigation">
           {(authenticated ? links : publicLinks).map(({ href, label, icon: Icon }) => <Link key={href} href={href} aria-current={path === href ? 'page' : undefined} data-testid={`link-nav-${label.toLowerCase().replace(' ', '-')}`} className={`nav-link flex items-center gap-1.5 rounded-full px-2 py-2 text-[11px] font-semibold lg:gap-2 lg:px-2.5 lg:text-xs xl:px-3 xl:text-[13px] ${path === href ? 'active' : ''}`}><Icon size={14} strokeWidth={2.2} />{label}</Link>)}
         </nav>

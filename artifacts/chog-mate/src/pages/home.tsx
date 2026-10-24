@@ -13,6 +13,7 @@ import {
   Sparkles,
   UsersRound,
 } from 'lucide-react';
+import heroArtwork from '@assets/image_1792825260966.png';
 import {
   getGetCollectionStatsQueryKey,
   getGetLiveSalesQueryKey,
@@ -93,30 +94,30 @@ export default function HomePage() {
   return (
     <AppShell>
       <div className="home-page">
-        <section className="home-hero mx-auto grid max-w-[1240px] items-center gap-5 pb-14 pt-8 md:min-h-[650px] md:grid-cols-[1fr_.9fr] md:gap-4 md:pb-16 md:pt-4">
+        <section className="home-hero mx-auto grid max-w-[1240px] items-center gap-5 pb-14 pt-8 md:min-h-[650px] md:grid-cols-[1fr_.9fr] md:gap-4 md:pb-16 md:pt-4" style={{ backgroundImage: `url(${heroArtwork})` }}>
           <div className="relative z-[1] max-w-[620px]">
             <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-[#d9cafa] bg-white/75 px-3.5 py-2 text-xs font-semibold text-[#503877] shadow-sm backdrop-blur-xl">
               <span className="grid h-5 w-5 place-items-center rounded-full bg-[#eee8ff] text-[#7047ff]">
                 <ShieldCheck size={12} />
               </span>
-              A community for verified Chog holders
+              The Chog community, verified
             </div>
             <h1
               className="home-main-heading display text-[53px] font-extrabold leading-[.96] tracking-[-.065em] sm:text-[75px] lg:text-[88px]"
               data-testid="heading-home"
             >
-              MEET YOUR
+              YOUR CHOG.
               <br />
-              <span>CHOG MATE</span>
+              <span>YOUR MATE.</span>
             </h1>
             <div className="mt-7">
               <p className="display text-[19px] font-extrabold italic tracking-[-.03em] text-[#624490]">
-                Meet Match Chog
+                Your story starts here.
               </p>
             </div>
             <p className="mt-5 max-w-[470px] text-[16px] leading-7 text-[#72667a]">
-              Your Chog is already one of a kind. Meet the people who get it —
-              for dates, friendships, ideas, and everything in between.
+              Discover extraordinary Chogs, meet your kind of people, and find
+              your connection in the Chog universe.
             </p>
             <div className="mt-8 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
               {showWallet ? (
