@@ -20,6 +20,7 @@ export interface WalletSession {
   userId: string;
   walletAddress: `0x${string}`;
   expiresAt: number;
+  identityMode: "wallet_connected";
 }
 
 const challenges = new Map<string, Challenge>();
@@ -142,6 +143,7 @@ export function setWalletSessionCookie(
     userId,
     walletAddress,
     expiresAt: Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS,
+    identityMode: "wallet_connected",
   };
   const payload = Buffer.from(JSON.stringify(session)).toString("base64url");
   const signature = sign(payload);
@@ -185,18 +187,16 @@ export function readWalletSession(request: Request): WalletSession | null {
     ) {
       return null;
     }
-    // Older address-only sessions must not remain valid after the wallet-only
-    // onboarding change. Legacy signed-wallet cookies remain compatible.
-    if (
-      "identityMode" in session &&
-      session.identityMode !== "wallet_connected"
-    ) {
+    // Require a fresh wallet-connected session so older address-only cookies
+    // cannot remain valid after the wallet-only onboarding change.
+    if (session.identityMode !== "wallet_connected") {
       return null;
     }
     return {
       userId: session.userId,
       walletAddress: getAddress(session.walletAddress),
       expiresAt: session.expiresAt,
+      identityMode: "wallet_connected",
     };
   } catch {
     return null;

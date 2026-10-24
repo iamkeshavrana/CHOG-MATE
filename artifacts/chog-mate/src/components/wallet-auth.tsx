@@ -119,6 +119,13 @@ export default function WalletAuthPanel({
         );
       }
       await connectAsync({ connector: injectedConnector });
+    } catch (error) {
+      const err = error as { code?: number };
+      if (err.code === 4001) {
+        setFeedback("Wallet connection was cancelled.");
+        return;
+      }
+      throw error;
     } finally {
       setOpeningWallet(false);
     }
@@ -231,7 +238,7 @@ export default function WalletAuthPanel({
       const err = error as { code?: number; message?: string };
       setFeedback(
         err.code === 4001
-          ? "Wallet signing was cancelled. Your wallet remains connected."
+          ? "Wallet connection was cancelled."
           : getApiErrorMessage(
               error,
               "Wallet verification could not be completed. Please try again.",
@@ -355,7 +362,7 @@ export default function WalletAuthPanel({
                 className="display text-xl font-extrabold text-[#24133f]"
                 data-testid="heading-no-chog-found"
               >
-                No Chog Found
+                No Chog NFT found in this wallet.
               </h2>
               <p
                 className="mt-1 text-sm leading-6 text-[#82778c]"
@@ -364,6 +371,15 @@ export default function WalletAuthPanel({
                 A Chog NFT is required to create a CHOG MATE profile. Connect a
                 wallet that owns a Chog NFT to continue.
               </p>
+              <a
+                href="https://opensea.io/collection/chog-genesis"
+                target="_blank"
+                rel="noreferrer"
+                className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-[#a34d70] underline-offset-4 hover:underline"
+                data-testid="link-no-chog-collection"
+              >
+                View the official Chog Genesis collection <ExternalLink size={13} />
+              </a>
             </div>
           ) : (
             <div>

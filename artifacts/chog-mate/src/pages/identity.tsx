@@ -266,6 +266,20 @@ type ConnectedProfileFormValues = {
   profileVisible: boolean | null;
 };
 
+type ProfilePreviewData = Pick<
+  Profile,
+  | 'username'
+  | 'displayName'
+  | 'gender'
+  | 'age'
+  | 'bio'
+  | 'interests'
+  | 'hobbies'
+  | 'languages'
+  | 'lookingFor'
+  | 'lookingForOther'
+> & { chog: Chog };
+
 const emptyConnectedProfile: ConnectedProfileFormValues = {
   username: '',
   displayName: '',
@@ -741,6 +755,74 @@ function Field({label,value,onChange,placeholder,maxLength,prefix,testId}:{label
 }
 function TagField({label,value,onChange,placeholder,testId}:{label:string;value:string;onChange:(value:string)=>void;placeholder:string;testId:string}) {
   return <label className="sm:col-span-2"><span className="mb-2 block text-xs font-bold text-[#5c5067]">{label}</span><input className="field" value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} data-testid={testId}/><span className="mt-1 block text-[10px] text-[#9b8fa0]">Separate each with a comma.</span></label>;
+}
+
+function ProfilePreview({ profile }: { profile: ProfilePreviewData }) {
+  const details = [
+    ...profile.interests.map((value) => ({ label: value, kind: 'Interest' })),
+    ...profile.hobbies.map((value) => ({ label: value, kind: 'Hobby' })),
+    ...profile.languages.map((value) => ({ label: value, kind: 'Language' })),
+  ];
+
+  return (
+    <section
+      className="surface overflow-hidden rounded-[26px] p-4 sm:p-5"
+      aria-label="Live profile preview"
+      data-testid="profile-preview"
+    >
+      <div className="mb-3 flex items-center gap-2">
+        <ShieldCheck size={15} className="text-[#a34d70]" />
+        <p className="text-[10px] font-bold uppercase tracking-[.16em] text-[#a34d70]">
+          Profile preview
+        </p>
+      </div>
+      <div className="flex items-center gap-4">
+        <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl bg-[#f2e6eb] ring-1 ring-[#eadde2] sm:h-28 sm:w-28">
+          <ChogArtwork chog={profile.chog} fit="contain" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-[.12em] text-[#967d8d]">
+            Chog #{profile.chog.tokenId}
+            {profile.chog.tier ? ` · ${profile.chog.tier}` : ''}
+          </p>
+          <h2 className="display mt-1 truncate text-xl font-extrabold text-[#38253a] sm:text-2xl">
+            {profile.displayName.trim() || 'Your name'}
+            {profile.age ? `, ${profile.age}` : ''}
+          </h2>
+          <p className="mt-1 truncate text-xs font-semibold text-[#a34d70]">
+            @{profile.username.trim() || 'your-username'}
+            {profile.gender ? ` · ${profile.gender}` : ''}
+          </p>
+          {profile.lookingFor.length > 0 && (
+            <p className="mt-2 line-clamp-2 text-[10px] leading-4 text-[#756776]">
+              Looking for {profile.lookingFor
+                .map((value) => value === 'Other'
+                  ? profile.lookingForOther || 'Other'
+                  : value)
+                .join(' · ')}
+            </p>
+          )}
+        </div>
+      </div>
+      {profile.bio?.trim() && (
+        <p className="mt-4 whitespace-pre-wrap break-words text-xs leading-5 text-[#5f5361]">
+          {profile.bio.trim()}
+        </p>
+      )}
+      {details.length > 0 && (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {details.map((detail, index) => (
+            <span
+              key={`${detail.kind}-${detail.label}-${index}`}
+              className="rounded-full border border-[#eadde2] bg-[#fffaf8] px-3 py-1.5 text-[10px] text-[#6f5d6c]"
+            >
+              {detail.label}
+            </span>
+          ))}
+        </div>
+      )}
+    </section>
+  );
 }
 
 export function SettingsPage() {
