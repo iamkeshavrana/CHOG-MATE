@@ -14,5 +14,9 @@ export const ProfileInputLookingForItem = {
   Friendship: 'Friendship',
   Networking: 'Networking',
   Collaboration: 'Collaboration',
+  Gaming: 'Gaming',
+  'Startup_&_Business': 'Startup & Business',
+  Creative: 'Creative',
+  'Hackathon_/_Teammates': 'Hackathon / Teammates',
   Other: 'Other',
 } as const;

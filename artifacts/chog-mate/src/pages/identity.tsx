@@ -232,7 +232,11 @@ export function MyChogPage() {
 const tags = (text: string) => text.split(',').map(value=>value.trim()).filter(Boolean);
 const joinTags = (values?: string[]) => values?.join(', ') || '';
 const profileGenderOptions = ['Male', 'Female', 'Gay', 'Trans', 'Alien'] as const satisfies readonly NonNullable<Profile['gender']>[];
-const profileLookingForOptions = ['Dating', 'Friendship', 'Networking', 'Collaboration', 'Other'] as const satisfies readonly Profile['lookingFor'][number][];
+const profileLookingForOptions = ['Dating', 'Friendship', 'Networking', 'Collaboration', 'Gaming', 'Startup & Business', 'Creative', 'Hackathon / Teammates', 'Other'] as const satisfies readonly Profile['lookingFor'][number][];
+const profileLookingForOptionLabel = (option: typeof profileLookingForOptions[number]) =>
+  option === 'Other' ? 'Others' : option;
+const profileLookingForTestId = (option: typeof profileLookingForOptions[number]) =>
+  option.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
 function profileGenderValue(value: string): Profile['gender'] {
   return profileGenderOptions.find(option=>option===value) ?? null;
@@ -388,7 +392,7 @@ function ConnectedProfilePage() {
     if (!values.displayName.trim()) { setNotice('Add a display name to continue.'); if (!profile) setCreateStep(0); return; }
     const selectedLookingFor = tags(values.lookingFor);
     if (selectedLookingFor.includes('Other') && !values.lookingForOther.trim()) {
-      setNotice('Add your own option for “Other” to continue.');
+      setNotice('Add your own option for “Others” to continue.');
       if (!profile) setCreateStep(3);
       return;
     }
@@ -482,7 +486,7 @@ function ConnectedProfilePage() {
         return false;
       }
       if (selectedLookingFor.includes('Other') && !values.lookingForOther.trim()) {
-        setNotice('Add your own option for “Other” to continue.');
+        setNotice('Add your own option for “Others” to continue.');
         return false;
       }
     }
@@ -608,7 +612,7 @@ function ConnectedProfilePage() {
                      <legend className="profile-field-label">Looking For <span className="text-[#b45a78]">*</span></legend>
                      <p className="mb-3 text-[10px] leading-4 text-[#978692]">Choose one or more.</p>
                      <div className="flex flex-wrap gap-2">
-                       {profileLookingForOptions.map(option=><button key={option} type="button" aria-pressed={tags(lookingFor).includes(option)} onClick={()=>toggleLookingForOption(option)} className={`profile-visibility-choice min-h-10 px-4 ${tags(lookingFor).includes(option)?'is-selected':''}`} data-testid={`button-edit-looking-for-${option.toLowerCase()}`}>{option}</button>)}
+                       {profileLookingForOptions.map(option=><button key={option} type="button" aria-pressed={tags(lookingFor).includes(option)} onClick={()=>toggleLookingForOption(option)} className={`profile-visibility-choice min-h-10 px-4 ${tags(lookingFor).includes(option)?'is-selected':''}`} data-testid={`button-edit-looking-for-${profileLookingForTestId(option)}`}>{profileLookingForOptionLabel(option)}</button>)}
                      </div>
                      {tags(lookingFor).includes('Other') && <label className="mt-3 block"><span className="profile-field-label">Your option <span className="text-[#b45a78]">*</span></span><input className="field" value={lookingForOther} onChange={event=>setValue('lookingForOther',event.target.value,{shouldDirty:true})} placeholder="Type your own option" maxLength={100} required data-testid="input-edit-looking-for-other"/></label>}
                     </fieldset></details>
@@ -644,7 +648,7 @@ function ConnectedProfilePage() {
                   <TagField label="Hobbies" value={hobbies} onChange={value=>setValue('hobbies',value,{shouldDirty:true})} placeholder="Add your own, separated by commas" testId="input-hobbies"/>
                   <TagField label="Languages" value={languages} onChange={value=>setValue('languages',value,{shouldDirty:true})} placeholder="Add your own, separated by commas" testId="input-languages"/>
                 </div>}
-                {createStep===3 && <fieldset><legend className="profile-field-label">Looking For <span className="text-[#b45a78]">*</span></legend><p className="mb-3 text-[10px] leading-4 text-[#978692]">Choose one or more.</p><div className="grid gap-2 sm:grid-cols-2">{profileLookingForOptions.map(option=><button key={option} type="button" aria-pressed={tags(lookingFor).includes(option)} onClick={()=>toggleLookingForOption(option)} className={`profile-visibility-choice min-h-12 justify-start px-4 ${tags(lookingFor).includes(option)?'is-selected':''}`} data-testid={`button-looking-for-${option.toLowerCase()}`}><span className="profile-choice-mark">{tags(lookingFor).includes(option)?<Check size={13}/>:null}</span>{option}</button>)}</div>{tags(lookingFor).includes('Other') && <label className="mt-4 block"><span className="profile-field-label">Your option <span className="text-[#b45a78]">*</span></span><input className="field" value={lookingForOther} onChange={event=>setValue('lookingForOther',event.target.value,{shouldDirty:true})} placeholder="Type your own option" maxLength={100} required data-testid="input-looking-for-other"/></label>}</fieldset>}
+                 {createStep===3 && <fieldset><legend className="profile-field-label">Looking For <span className="text-[#b45a78]">*</span></legend><p className="mb-3 text-[10px] leading-4 text-[#978692]">Choose one or more.</p><div className="grid gap-2 sm:grid-cols-2">{profileLookingForOptions.map(option=><button key={option} type="button" aria-pressed={tags(lookingFor).includes(option)} onClick={()=>toggleLookingForOption(option)} className={`profile-visibility-choice min-h-12 justify-start px-4 ${tags(lookingFor).includes(option)?'is-selected':''}`} data-testid={`button-looking-for-${profileLookingForTestId(option)}`}><span className="profile-choice-mark">{tags(lookingFor).includes(option)?<Check size={13}/>:null}</span>{profileLookingForOptionLabel(option)}</button>)}</div>{tags(lookingFor).includes('Other') && <label className="mt-4 block"><span className="profile-field-label">Your option <span className="text-[#b45a78]">*</span></span><input className="field" value={lookingForOther} onChange={event=>setValue('lookingForOther',event.target.value,{shouldDirty:true})} placeholder="Type your own option" maxLength={100} required data-testid="input-looking-for-other"/></label>}</fieldset>}
                 {createStep===4 && <div className="profile-final-preview"><p className="mb-4 text-sm leading-6 text-[#756575]">Your verified Chog and profile details are what other holders will see. Review the live card beside this studio before you create your profile.</p><label className="mt-5 flex items-start gap-3 rounded-2xl border border-[#e8deea] bg-[#fbf7f3] p-4 text-xs leading-5 text-[#6f6075]"><input type="checkbox" checked={Boolean(watch('profileVisible'))} onChange={event=>setValue('profileVisible',event.target.checked,{shouldDirty:true})} className="mt-1 accent-[#68428d]" data-testid="input-profile-visibility"/><span><strong className="block text-[#48345d]">Show me in discovery</strong>Your profile visibility preference is saved with your profile.</span></label></div>}
              {notice && <p className={`mt-6 flex items-start gap-2.5 rounded-2xl px-4 py-3 text-sm leading-5 ${notice.startsWith('Your profile is saved')?'border border-[#bed8c0] bg-[#edf6ec] text-[#3d7048]':'border border-[#ebc9c5] bg-[#fff1ed] text-[#914c3c]'}`} role="status" data-testid="status-profile-save"><span className="mt-0.5"><Check size={15}/></span>{notice}</p>}
            </section>
@@ -781,7 +785,7 @@ function MyProfileExperience({profile,onEdit}:{profile:Profile;onEdit:()=>void})
           <h3 className="my-profile-section-label"><span/>Looking For</h3>
           <div className="my-profile-tags">
             {profile.lookingFor.map((value,index)=><span className="my-profile-tag my-profile-tag-looking" key={`${value}-${index}`}>
-              {value==='Other' && profile.lookingForOther?.trim() ? `Other: ${profile.lookingForOther.trim()}` : value}
+              {value==='Other' && profile.lookingForOther?.trim() ? `Others: ${profile.lookingForOther.trim()}` : profileLookingForOptionLabel(value)}
             </span>)}
           </div>
         </motion.section>}
@@ -901,7 +905,7 @@ function ProfilePreview({ profile }: { profile: ProfilePreviewData }) {
             <p className="mt-2 line-clamp-2 text-[10px] leading-4 text-[#756776]">
               Looking for {profile.lookingFor
                 .map((value) => value === 'Other'
-                  ? profile.lookingForOther || 'Other'
+                  ? profile.lookingForOther || 'Others'
                   : value)
                 .join(' · ')}
             </p>

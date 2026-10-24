@@ -142,6 +142,10 @@ export const ProfileLookingForItem = {
   Friendship: 'Friendship',
   Networking: 'Networking',
   Collaboration: 'Collaboration',
+  Gaming: 'Gaming',
+  'Startup_&_Business': 'Startup & Business',
+  Creative: 'Creative',
+  'Hackathon_/_Teammates': 'Hackathon / Teammates',
   Other: 'Other',
 } as const;
 
@@ -214,6 +218,10 @@ export const ProfileInputLookingForItem = {
   Friendship: 'Friendship',
   Networking: 'Networking',
   Collaboration: 'Collaboration',
+  Gaming: 'Gaming',
+  'Startup_&_Business': 'Startup & Business',
+  Creative: 'Creative',
+  'Hackathon_/_Teammates': 'Hackathon / Teammates',
   Other: 'Other',
 } as const;
 
@@ -259,7 +267,7 @@ export interface ProfileInput {
   languages: string[];
   /**
      * @minItems 1
-     * @maxItems 5
+     * @maxItems 9
      */
   lookingFor: ProfileInputLookingForItem[];
   /**

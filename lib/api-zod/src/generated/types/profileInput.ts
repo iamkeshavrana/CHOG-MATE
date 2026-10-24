@@ -50,7 +50,7 @@ export interface ProfileInput {
   languages: string[];
   /**
      * @minItems 1
-     * @maxItems 5
+     * @maxItems 9
      */
   lookingFor: ProfileInputLookingForItem[];
   /**

@@ -103,7 +103,7 @@ export const GetUserProfileResponse = zod.object({
   "interests": zod.array(zod.string()),
   "hobbies": zod.array(zod.string()),
   "languages": zod.array(zod.string()),
-  "lookingFor": zod.array(zod.enum(['Dating', 'Friendship', 'Networking', 'Collaboration', 'Other'])),
+  "lookingFor": zod.array(zod.enum(['Dating', 'Friendship', 'Networking', 'Collaboration', 'Gaming', 'Startup & Business', 'Creative', 'Hackathon / Teammates', 'Other'])),
   "lookingForOther": zod.string().max(getUserProfileResponseLookingForOtherMax).nullable(),
   "chog": zod.object({
   "tokenId": zod.string(),
@@ -307,7 +307,7 @@ export const GetMeResponse = zod.object({
   "interests": zod.array(zod.string()),
   "hobbies": zod.array(zod.string()),
   "languages": zod.array(zod.string()),
-  "lookingFor": zod.array(zod.enum(['Dating', 'Friendship', 'Networking', 'Collaboration', 'Other'])),
+  "lookingFor": zod.array(zod.enum(['Dating', 'Friendship', 'Networking', 'Collaboration', 'Gaming', 'Startup & Business', 'Creative', 'Hackathon / Teammates', 'Other'])),
   "lookingForOther": zod.string().max(getMeResponseProfileOneLookingForOtherMax).nullable(),
   "chog": zod.object({
   "tokenId": zod.string(),
@@ -359,7 +359,7 @@ export const updateMeProfileBodyLanguagesItemMax = 50;
 
 export const updateMeProfileBodyLanguagesMax = 20;
 
-export const updateMeProfileBodyLookingForMax = 5;
+export const updateMeProfileBodyLookingForMax = 9;
 
 export const updateMeProfileBodyLookingForOtherMax = 200;
 
@@ -374,7 +374,7 @@ export const UpdateMeProfileBody = zod.object({
   "interests": zod.array(zod.string().max(updateMeProfileBodyInterestsItemMax)).max(updateMeProfileBodyInterestsMax),
   "hobbies": zod.array(zod.string().max(updateMeProfileBodyHobbiesItemMax)).max(updateMeProfileBodyHobbiesMax),
   "languages": zod.array(zod.string().max(updateMeProfileBodyLanguagesItemMax)).max(updateMeProfileBodyLanguagesMax),
-  "lookingFor": zod.array(zod.enum(['Dating', 'Friendship', 'Networking', 'Collaboration', 'Other'])).min(1).max(updateMeProfileBodyLookingForMax),
+  "lookingFor": zod.array(zod.enum(['Dating', 'Friendship', 'Networking', 'Collaboration', 'Gaming', 'Startup & Business', 'Creative', 'Hackathon / Teammates', 'Other'])).min(1).max(updateMeProfileBodyLookingForMax),
   "lookingForOther": zod.string().max(updateMeProfileBodyLookingForOtherMax).nullable(),
   "selectedChogTokenId": zod.string(),
   "profileVisible": zod.boolean().optional()
@@ -405,7 +405,7 @@ export const UpdateMeProfileResponse = zod.object({
   "interests": zod.array(zod.string()),
   "hobbies": zod.array(zod.string()),
   "languages": zod.array(zod.string()),
-  "lookingFor": zod.array(zod.enum(['Dating', 'Friendship', 'Networking', 'Collaboration', 'Other'])),
+  "lookingFor": zod.array(zod.enum(['Dating', 'Friendship', 'Networking', 'Collaboration', 'Gaming', 'Startup & Business', 'Creative', 'Hackathon / Teammates', 'Other'])),
   "lookingForOther": zod.string().max(updateMeProfileResponseLookingForOtherMax).nullable(),
   "chog": zod.object({
   "tokenId": zod.string(),
@@ -526,7 +526,7 @@ export const DiscoverProfilesResponse = zod.object({
   "interests": zod.array(zod.string()),
   "hobbies": zod.array(zod.string()),
   "languages": zod.array(zod.string()),
-  "lookingFor": zod.array(zod.enum(['Dating', 'Friendship', 'Networking', 'Collaboration', 'Other'])),
+  "lookingFor": zod.array(zod.enum(['Dating', 'Friendship', 'Networking', 'Collaboration', 'Gaming', 'Startup & Business', 'Creative', 'Hackathon / Teammates', 'Other'])),
   "lookingForOther": zod.string().max(discoverProfilesResponseProfilesItemLookingForOtherMax).nullable(),
   "chog": zod.object({
   "tokenId": zod.string(),
@@ -599,7 +599,7 @@ export const SwipeProfileResponse = zod.object({
   "interests": zod.array(zod.string()),
   "hobbies": zod.array(zod.string()),
   "languages": zod.array(zod.string()),
-  "lookingFor": zod.array(zod.enum(['Dating', 'Friendship', 'Networking', 'Collaboration', 'Other'])),
+  "lookingFor": zod.array(zod.enum(['Dating', 'Friendship', 'Networking', 'Collaboration', 'Gaming', 'Startup & Business', 'Creative', 'Hackathon / Teammates', 'Other'])),
   "lookingForOther": zod.string().max(swipeProfileResponseMatchOneProfileLookingForOtherMax).nullable(),
   "chog": zod.object({
   "tokenId": zod.string(),
@@ -663,7 +663,7 @@ export const GetLikeInboxResponseItem = zod.object({
   "interests": zod.array(zod.string()),
   "hobbies": zod.array(zod.string()),
   "languages": zod.array(zod.string()),
-  "lookingFor": zod.array(zod.enum(['Dating', 'Friendship', 'Networking', 'Collaboration', 'Other'])),
+  "lookingFor": zod.array(zod.enum(['Dating', 'Friendship', 'Networking', 'Collaboration', 'Gaming', 'Startup & Business', 'Creative', 'Hackathon / Teammates', 'Other'])),
   "lookingForOther": zod.string().max(getLikeInboxResponseProfileLookingForOtherMax).nullable(),
   "chog": zod.object({
   "tokenId": zod.string(),
@@ -721,7 +721,7 @@ export const GetSentLikesResponseItem = zod.object({
   "interests": zod.array(zod.string()),
   "hobbies": zod.array(zod.string()),
   "languages": zod.array(zod.string()),
-  "lookingFor": zod.array(zod.enum(['Dating', 'Friendship', 'Networking', 'Collaboration', 'Other'])),
+  "lookingFor": zod.array(zod.enum(['Dating', 'Friendship', 'Networking', 'Collaboration', 'Gaming', 'Startup & Business', 'Creative', 'Hackathon / Teammates', 'Other'])),
   "lookingForOther": zod.string().max(getSentLikesResponseProfileLookingForOtherMax).nullable(),
   "chog": zod.object({
   "tokenId": zod.string(),
@@ -792,7 +792,7 @@ export const GetMatchesResponseItem = zod.object({
   "interests": zod.array(zod.string()),
   "hobbies": zod.array(zod.string()),
   "languages": zod.array(zod.string()),
-  "lookingFor": zod.array(zod.enum(['Dating', 'Friendship', 'Networking', 'Collaboration', 'Other'])),
+  "lookingFor": zod.array(zod.enum(['Dating', 'Friendship', 'Networking', 'Collaboration', 'Gaming', 'Startup & Business', 'Creative', 'Hackathon / Teammates', 'Other'])),
   "lookingForOther": zod.string().max(getMatchesResponseProfileLookingForOtherMax).nullable(),
   "chog": zod.object({
   "tokenId": zod.string(),
@@ -859,7 +859,7 @@ export const GetExMatchesResponseItem = zod.object({
   "interests": zod.array(zod.string()),
   "hobbies": zod.array(zod.string()),
   "languages": zod.array(zod.string()),
-  "lookingFor": zod.array(zod.enum(['Dating', 'Friendship', 'Networking', 'Collaboration', 'Other'])),
+  "lookingFor": zod.array(zod.enum(['Dating', 'Friendship', 'Networking', 'Collaboration', 'Gaming', 'Startup & Business', 'Creative', 'Hackathon / Teammates', 'Other'])),
   "lookingForOther": zod.string().max(getExMatchesResponseProfileLookingForOtherMax).nullable(),
   "chog": zod.object({
   "tokenId": zod.string(),
@@ -936,7 +936,7 @@ export const GetConversationsResponseItem = zod.object({
   "interests": zod.array(zod.string()),
   "hobbies": zod.array(zod.string()),
   "languages": zod.array(zod.string()),
-  "lookingFor": zod.array(zod.enum(['Dating', 'Friendship', 'Networking', 'Collaboration', 'Other'])),
+  "lookingFor": zod.array(zod.enum(['Dating', 'Friendship', 'Networking', 'Collaboration', 'Gaming', 'Startup & Business', 'Creative', 'Hackathon / Teammates', 'Other'])),
   "lookingForOther": zod.string().max(getConversationsResponseProfileLookingForOtherMax).nullable(),
   "chog": zod.object({
   "tokenId": zod.string(),
@@ -1131,7 +1131,7 @@ export const GetIncomingCallsResponseItem = zod.object({
   "interests": zod.array(zod.string()),
   "hobbies": zod.array(zod.string()),
   "languages": zod.array(zod.string()),
-  "lookingFor": zod.array(zod.enum(['Dating', 'Friendship', 'Networking', 'Collaboration', 'Other'])),
+  "lookingFor": zod.array(zod.enum(['Dating', 'Friendship', 'Networking', 'Collaboration', 'Gaming', 'Startup & Business', 'Creative', 'Hackathon / Teammates', 'Other'])),
   "lookingForOther": zod.string().max(getIncomingCallsResponseTwoProfileLookingForOtherMax).nullable(),
   "chog": zod.object({
   "tokenId": zod.string(),
