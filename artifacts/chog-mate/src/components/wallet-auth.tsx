@@ -193,7 +193,9 @@ export default function WalletAuthPanel({
       let destination =
         requestedDestination?.startsWith("/profile")
           ? requestedDestination
-          : "/my-chog";
+              : session.hasChog
+                ? "/profile"
+                : requestedDestination ?? "/my-chog";
       if (session.hasChog) {
         try {
           const current = await queryClient.fetchQuery({
@@ -203,9 +205,11 @@ export default function WalletAuthPanel({
           });
           if (current.hasProfile && current.profile) {
             destination = requestedDestination ?? "/discover";
+              } else if (!requestedDestination?.startsWith("/profile")) {
+                destination = "/profile";
           }
         } catch {
-          // If the profile lookup is unavailable, land on the ownership gallery.
+              // Ownership is verified; let the profile page retry its account lookup.
         }
       }
       navigate(destination);
@@ -402,6 +406,24 @@ export default function WalletAuthPanel({
                   </article>
                 ))}
               </div>
+            </div>
+          )}
+          {ownedChogs.length > 0 && (
+            <div className="mt-5 flex flex-col gap-3 border-t border-[#eee7f2] pt-4 sm:flex-row sm:items-center sm:justify-between">
+              <p className="max-w-md text-xs leading-5 text-[#82778c]">
+                Your Chog is verified. Continue to sign in; new accounts go
+                straight to profile setup. Signing does not send a transaction.
+              </p>
+              <button
+                type="button"
+                onClick={() => void connect()}
+                disabled={busy || isConnecting || isWrongNetwork}
+                className="button-primary inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-full px-5 text-xs font-bold disabled:opacity-60"
+                data-testid="button-continue-profile-setup"
+              >
+                {busy ? "Verifying…" : "Continue to CHOG MATE"}
+                <ArrowRight size={15} />
+              </button>
             </div>
           )}
         </section>

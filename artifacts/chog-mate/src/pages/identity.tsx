@@ -173,6 +173,22 @@ export function MyChogPage() {
   }
   return <AppShell displayName={profile?.displayName}><div className={`page-enter ${profile ? 'my-profile-page' : ''}`}>
     <PageTitle eyebrow="Your verified collection" title="My Chogs." description="Your owned Chog Genesis NFTs and live $CHOG balance." />
+    {me.data && !me.data.hasProfile && verifiedChogs.length > 0 && (
+      <section className="surface mb-5 flex flex-col gap-4 rounded-[24px] border border-[#eadde2] p-5 sm:flex-row sm:items-center sm:justify-between sm:px-6" data-testid="card-create-profile-next-step">
+        <div>
+          <Eyebrow>Next step</Eyebrow>
+          <h2 className="display text-xl font-extrabold text-[#24133f]">Create your profile</h2>
+          <p className="mt-1 text-xs leading-5 text-[#82778c]">Your Chog is verified. Add the details people will see when they meet you.</p>
+        </div>
+        <Link
+          href={`/profile?chog=${encodeURIComponent(tokenId)}`}
+          className="button-primary inline-flex min-h-11 shrink-0 items-center justify-center rounded-full px-5 text-xs font-bold"
+          data-testid="link-create-profile-from-my-chogs"
+        >
+          Create your profile
+        </Link>
+      </section>
+    )}
     <QueryState loading={me.isLoading} error={me.isError} retry={()=>void me.refetch()}>
       {!me.data ? <EmptyState title="Connect your wallet first." detail="Your verified collection appears here after wallet sign-in."/> :
       <>
