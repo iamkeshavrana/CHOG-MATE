@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, BadgeCheck, ExternalLink, RefreshCw } from "lucide-react";
+import {
+  ArrowRight,
+  BadgeCheck,
+  Check,
+  ExternalLink,
+  RefreshCw,
+} from "lucide-react";
 import {
   getGetMeQueryOptions,
   getGetMeQueryKey,
@@ -22,18 +28,16 @@ import { appKit, monadNetwork } from "@/lib/appkit";
 import { walletAuthConfigured } from "@/lib/config";
 import { supabase } from "@/lib/supabase";
 import { ChogArtwork } from "@/components/shared";
-import ManualAddressScan from "@/components/manual-address-scan";
 
 export default function WalletAuthPanel({
   autoOpen = false,
-  showManualAddressScan = true,
   returnTo,
 }: {
   autoOpen?: boolean;
-  showManualAddressScan?: boolean;
   returnTo?: string;
 }) {
   const [busy, setBusy] = useState(false);
+  const [selectedChogTokenId, setSelectedChogTokenId] = useState("");
   const [openingWallet, setOpeningWallet] = useState(false);
   const [appKitModalOpen, setAppKitModalOpen] = useState(false);
   const [feedback, setFeedback] = useState("");
@@ -74,6 +78,9 @@ export default function WalletAuthPanel({
             chog.ownerWallet.toLowerCase() === address?.toLowerCase(),
         )
       : [];
+  const selectedChog = ownedChogs.find(
+    (chog) => chog.tokenId === selectedChogTokenId,
+  );
   const requestedDestination = safeInternalReturnTo(returnTo);
   const isConnecting =
     connection.isConnecting ||
@@ -143,16 +150,22 @@ export default function WalletAuthPanel({
     }
   }
 
-  async function connect() {
+  async function connectWallet() {
     setFeedback("");
-    if (!isConnected) {
-      try {
-        await openWallet();
-      } catch (error) {
-        const message =
-          error instanceof Error ? error.message : "Please try again.";
-        setFeedback(`Wallet connection failed. ${message}`);
-      }
+    if (isConnected) return;
+    try {
+      await openWallet();
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Please try again.";
+      setFeedback(`Wallet connection failed. ${message}`);
+    }
+  }
+
+  async function signInWithSelectedChog() {
+    setFeedback("");
+    if (!selectedChog || !ownedChogs.some((chog) => chog.tokenId === selectedChog.tokenId)) {
+      setFeedback("Select one of your verified Chogs to continue.");
       return;
     }
     if (isWrongNetwork) {
@@ -190,12 +203,7 @@ export default function WalletAuthPanel({
       });
       if (sessionError) throw sessionError;
       await queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
-      let destination =
-        requestedDestination?.startsWith("/profile")
-          ? requestedDestination
-              : session.hasChog
-                ? "/profile"
-                : requestedDestination ?? "/my-chog";
+      let destination = requestedDestination ?? "/my-chog";
       if (session.hasChog) {
         try {
           const current = await queryClient.fetchQuery({
@@ -205,11 +213,11 @@ export default function WalletAuthPanel({
           });
           if (current.hasProfile && current.profile) {
             destination = requestedDestination ?? "/discover";
-              } else if (!requestedDestination?.startsWith("/profile")) {
-                destination = "/profile";
+          } else {
+            destination = `/profile?chog=${encodeURIComponent(selectedChog.tokenId)}`;
           }
         } catch {
-              // Ownership is verified; let the profile page retry its account lookup.
+          destination = `/profile?chog=${encodeURIComponent(selectedChog.tokenId)}`;
         }
       }
       navigate(destination);
@@ -230,8 +238,8 @@ export default function WalletAuthPanel({
     <div className="flex w-full flex-col items-start gap-3">
       <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
         <button
-          onClick={() => void connect()}
-          disabled={busy || isConnecting || isWrongNetwork}
+          onClick={() => void connectWallet()}
+              disabled={busy || isConnecting || isWrongNetwork}
           className="button-primary inline-flex min-h-[54px] items-center gap-3 rounded-full px-7 text-sm font-bold disabled:cursor-wait disabled:opacity-70"
           data-testid="button-connect-wallet"
         >
@@ -240,7 +248,7 @@ export default function WalletAuthPanel({
             : busy
               ? "Verifying your wallet…"
               : isConnected
-                ? "Verify wallet"
+                ? "Wallet connected"
                 : "Connect wallet"}
           <ArrowRight size={17} />
         </button>
@@ -271,7 +279,6 @@ export default function WalletAuthPanel({
           )}
         </div>
       </div>
-      {showManualAddressScan && <ManualAddressScan returnTo={returnTo} />}
       {isWrongNetwork && (
         <div
           className="mt-3 flex flex-col gap-2 rounded-2xl border border-[#ead8ce] bg-[#fff8f1] px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
@@ -294,7 +301,7 @@ export default function WalletAuthPanel({
       )}
       {isConnected && !isWrongNetwork && (
         <section
-          className="surface mt-4 w-full max-w-xl rounded-[24px] p-4 sm:p-5"
+          className="surface mt-4 w-full max-w-4xl rounded-[24px] p-4 sm:p-6"
           aria-label="Connected wallet Chog ownership"
           data-testid="panel-wallet-chog-ownership"
         >
@@ -362,18 +369,33 @@ export default function WalletAuthPanel({
                   </p>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 {ownedChogs.map((chog) => (
                   <article
                     key={chog.tokenId}
-                    className="overflow-hidden rounded-2xl border border-[#eee7f2] bg-white"
+                    className={`overflow-hidden rounded-2xl border-2 bg-white transition ${
+                      selectedChogTokenId === chog.tokenId
+                        ? "border-[#8a63ff] shadow-[0_0_0_3px_#8a63ff1c]"
+                        : "border-[#eee7f2] hover:border-[#dacbf3]"
+                    }`}
                     data-testid={`card-connected-chog-${chog.tokenId}`}
                   >
-                    <div className="aspect-square bg-[#f4eddf]">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedChogTokenId(chog.tokenId)}
+                      aria-pressed={selectedChogTokenId === chog.tokenId}
+                      className="relative block aspect-square w-full bg-[#f4eddf] text-left"
+                      data-testid={`button-select-connected-chog-${chog.tokenId}`}
+                    >
                       <ChogArtwork chog={chog} />
-                    </div>
-                    <div className="p-3">
-                      <p className="display text-sm font-extrabold text-[#24133f]">
+                      {selectedChogTokenId === chog.tokenId && (
+                        <span className="absolute right-3 top-3 rounded-full bg-[#7047ff] p-2 text-white">
+                          <Check size={17} />
+                        </span>
+                      )}
+                    </button>
+                    <div className="p-4">
+                      <p className="display text-base font-extrabold text-[#24133f]">
                         Chog #{chog.tokenId}
                       </p>
                       {chog.name && (
@@ -387,10 +409,22 @@ export default function WalletAuthPanel({
                         </p>
                       )}
                       {chog.description && (
-                        <p className="mt-1 line-clamp-3 text-[10px] leading-4 text-[#82778c]">
+                        <p className="mt-2 line-clamp-3 text-xs leading-5 text-[#82778c]">
                           {chog.description}
                         </p>
                       )}
+                      <button
+                        type="button"
+                        onClick={() => setSelectedChogTokenId(chog.tokenId)}
+                        aria-pressed={selectedChogTokenId === chog.tokenId}
+                        className="button-soft mt-3 inline-flex min-h-9 items-center gap-2 rounded-full px-4 text-xs font-bold"
+                        data-testid={`button-choose-connected-chog-${chog.tokenId}`}
+                      >
+                        {selectedChogTokenId === chog.tokenId
+                          ? "Selected"
+                          : "Select this Chog"}
+                        {selectedChogTokenId === chog.tokenId && <Check size={14} />}
+                      </button>
                       {chog.metadataUrl && (
                         <a
                           href={chog.metadataUrl}
@@ -408,20 +442,20 @@ export default function WalletAuthPanel({
               </div>
             </div>
           )}
-          {ownedChogs.length > 0 && (
+          {ownedChogs.length > 0 && selectedChog && (
             <div className="mt-5 flex flex-col gap-3 border-t border-[#eee7f2] pt-4 sm:flex-row sm:items-center sm:justify-between">
               <p className="max-w-md text-xs leading-5 text-[#82778c]">
-                Your Chog is verified. Continue to sign in; new accounts go
-                straight to profile setup. Signing does not send a transaction.
+                Chog #{selectedChog.tokenId} is selected. Sign a wallet message
+                to continue to profile setup. This does not send a transaction.
               </p>
               <button
                 type="button"
-                onClick={() => void connect()}
+                onClick={() => void signInWithSelectedChog()}
                 disabled={busy || isConnecting || isWrongNetwork}
                 className="button-primary inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-full px-5 text-xs font-bold disabled:opacity-60"
                 data-testid="button-continue-profile-setup"
               >
-                {busy ? "Verifying…" : "Continue to CHOG MATE"}
+                {busy ? "Verifying…" : `Continue with Chog #${selectedChog.tokenId}`}
                 <ArrowRight size={15} />
               </button>
             </div>

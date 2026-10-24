@@ -1,7 +1,5 @@
 import { Router, type IRouter } from "express";
 import {
-  CreateAddressSessionBody,
-  CreateAddressSessionResponse,
   CreateAuthChallengeBody,
   CreateAuthChallengeResponse,
   VerifyWalletBody,
@@ -19,7 +17,6 @@ import {
   verifyWalletChallenge,
 } from "../lib/wallet-auth";
 import { getSupabaseAdmin } from "../lib/supabase";
-import { getSafeBackendErrorFields, toApiFailure } from "../lib/backend-errors";
 
 const router: IRouter = Router();
 
@@ -102,83 +99,6 @@ router.post("/auth/verify", async (req, res): Promise<void> => {
     res.status(503).json({
       error: "We couldn't verify your wallet right now. Please try again shortly.",
     });
-  }
-});
-
-router.post("/auth/address", async (req, res): Promise<void> => {
-  const parsed = CreateAddressSessionBody.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: "Enter a valid wallet address." });
-    return;
-  }
-
-  try {
-    const walletAddress = getAddress(parsed.data.walletAddress);
-    const chogs = await getOwnedChogs(walletAddress);
-    if (chogs.length === 0) {
-      res.status(403).json({
-        error: "This address must currently own a Chog Genesis NFT to create an account.",
-      });
-      return;
-    }
-
-    const account = await createWalletAuthSession(walletAddress, {
-      repairAddressOnlyCredentials: true,
-    });
-    const admin = getSupabaseAdmin();
-    const { data: existingUser, error: existingUserError } = await admin
-      .from("users")
-      .select("id")
-      .eq("wallet_address", account.walletAddress.toLowerCase())
-      .maybeSingle();
-    if (existingUserError) {
-      throw existingUserError;
-    }
-    if (existingUser && existingUser.id !== account.userId) {
-      res.status(409).json({
-        error: "This wallet is already linked to a different CHOG MATE account. Contact support to recover it.",
-      });
-      return;
-    }
-
-    const { error: userError } = await admin.from("users").upsert(
-      {
-        id: account.userId,
-        wallet_address: account.walletAddress.toLowerCase(),
-        last_seen: new Date().toISOString(),
-      },
-      { onConflict: "id" },
-    );
-    if (userError) throw userError;
-
-    setWalletSessionCookie(
-      res,
-      account.userId,
-      account.walletAddress,
-      "address_only",
-    );
-    res.json(
-      CreateAddressSessionResponse.parse({
-        userId: account.userId,
-        walletAddress: account.walletAddress,
-        hasChog: true,
-        identityMode: "address_only",
-        accessToken: account.accessToken,
-        refreshToken: account.refreshToken,
-        expiresIn: account.expiresIn,
-      }),
-    );
-  } catch (error) {
-    const failure = toApiFailure(error, {
-      code: "ACCOUNT_SESSION_FAILED",
-      error:
-        "We couldn't create or resume this account session. Check the Supabase Auth configuration and server logs.",
-    });
-    req.log.error(
-      { ...getSafeBackendErrorFields(error), responseCode: failure.body.code },
-      "Address-only account sign-in failed",
-    );
-    res.status(failure.status).json(failure.body);
   }
 });
 

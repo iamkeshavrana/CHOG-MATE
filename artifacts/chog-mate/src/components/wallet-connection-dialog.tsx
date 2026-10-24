@@ -26,12 +26,11 @@ export function WalletConnectionDialog({
             Connect to make a connection.
           </DialogTitle>
           <DialogDescription className="text-sm leading-6 text-[#82778c]">
-            Browse profiles freely. Sign in with a connected wallet, or verify
-            Chog ownership by address to create a persistent social account.
-            Address-only accounts can interact, but cannot send blockchain transactions.
+            Connect your wallet to scan its Chog collection. Choose the NFT you
+            want to represent you, then sign in and create your profile.
           </DialogDescription>
         </DialogHeader>
-        <div className="max-h-[min(70vh,680px)] overflow-y-auto pr-1">
+        <div className="max-h-[min(78vh,820px)] overflow-y-auto pr-1">
         <Suspense
           fallback={
             <div className="skeleton h-14 w-52 rounded-full" role="status">
@@ -39,7 +38,7 @@ export function WalletConnectionDialog({
             </div>
           }
         >
-          <WalletAuthPanel showManualAddressScan returnTo={returnTo} />
+          <WalletAuthPanel returnTo={returnTo} />
         </Suspense>
         </div>
       </DialogContent>

@@ -84,41 +84,6 @@ paths:
                 $ref: "#/components/schemas/SessionUser"
         "401":
           description: Signature is invalid or expired
-  /auth/address:
-    post:
-      operationId: createAddressSession
-      tags: [auth]
-      summary: Start an address-only social account after verifying Chog ownership
-      description: Does not prove wallet control and must never authorize blockchain transactions.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/WalletInput"
-      responses:
-        "200":
-          description: Address-only social session created or resumed
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SessionUser"
-        "400":
-          description: Wallet address is invalid
-        "403":
-          description: Address does not currently own a Chog Genesis NFT
-        "409":
-          description: Wallet is already linked to another account
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ApiErrorResponse"
-        "503":
-          description: Ownership or account service is unavailable
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ApiErrorResponse"
   /profiles/{userId}:
     get:
       operationId: getUserProfile

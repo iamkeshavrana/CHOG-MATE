@@ -90,9 +90,9 @@ function RequireSession({ children }: { children: ReactNode }) {
       <div className="page-enter mx-auto max-w-2xl">
         <PageTitle eyebrow="A private account area" title="Connect to continue." description="Create or restore a CHOG MATE account to view this private page. Home and Discover remain open to everyone." />
         <EmptyState
-          title="Connect your wallet or create an account."
-          detail="You can sign in with a connected wallet or create an address-only social account after Chog ownership is verified."
-          action={<button type="button" onClick={() => setWalletDialogOpen(true)} className="button-primary rounded-full px-5 py-3 text-sm font-bold" data-testid="button-auth-required">Connect Wallet / Create Account</button>}
+          title="Connect your wallet to continue."
+          detail="Scan your Chog NFTs, choose one, and sign in to create your profile."
+          action={<button type="button" onClick={() => setWalletDialogOpen(true)} className="button-primary rounded-full px-5 py-3 text-sm font-bold" data-testid="button-auth-required">Connect wallet</button>}
         />
       </div>
       <WalletConnectionDialog open={walletDialogOpen} onOpenChange={setWalletDialogOpen} returnTo={returnTo} />
