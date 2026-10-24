@@ -212,6 +212,9 @@ function SuperLikeDialog({
     ? formatTokenAmount(balance.data, decimals.data)
     : null;
   const insufficient = amount !== null && balance.data !== undefined && balance.data < amount;
+  const shortfallText = insufficient && amount !== null && balance.data !== undefined && decimals.data !== undefined
+    ? formatTokenAmountAtLeast(amount - balance.data, decimals.data)
+    : null;
 
   useEffect(() => {
     setTransactionHash(null);
@@ -322,6 +325,11 @@ function SuperLikeDialog({
           </p>
           {profile && <p className="mt-2 break-all text-[10px] leading-4 text-[#978a9b]">Recipient · {profile.walletAddress}</p>}
         </div>
+        {shortfallText !== null && balanceText !== null && (
+          <p className="rounded-xl bg-[#fff0ee] px-3 py-2 text-xs leading-5 text-[#a34646]" role="status" data-testid="status-super-like-insufficient-balance">
+            Your balance is {balanceText} $CHOG; this Super Like requires 100 $CHOG. You need {shortfallText} more before you can send it.
+          </p>
+        )}
         {!connection.isConnected && <p className="text-xs leading-5 text-[#8b8091]">Connect the wallet used for your CHOG MATE profile to continue.</p>}
         {connection.isConnected && connection.chainId !== monadNetwork.id && <p className="text-xs text-[#a34646]" role="alert">Switch your wallet to Monad Mainnet before sending.</p>}
         {phase && <p className="text-xs font-semibold text-[#7053a4]" role="status">{phase}</p>}
@@ -378,6 +386,13 @@ function formatTokenAmount(value: bigint, decimals: number): string {
   const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   const trimmedFraction = fraction.slice(0, 4).replace(/0+$/, '');
   return trimmedFraction ? `${grouped}.${trimmedFraction}` : grouped;
+}
+
+function formatTokenAmountAtLeast(value: bigint, decimals: number): string {
+  const displayedDecimals = Math.min(decimals, 4);
+  const hiddenUnit = 10n ** BigInt(decimals - displayedDecimals);
+  const roundedUp = ((value + hiddenUnit - 1n) / hiddenUnit) * hiddenUnit;
+  return formatTokenAmount(roundedUp, decimals);
 }
 
 export function DiscoverPage() {
