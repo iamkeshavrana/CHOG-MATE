@@ -20,3 +20,11 @@ description: Product rule for how member identity and Chog NFT details appear in
 **Why:** The user explicitly prohibited fake users, manual visibility changes for preview, and bypassing ownership verification during Discover diagnosis.
 
 **How to apply:** When Discover is empty, report the real row counts and the exact failing gates. Do not write visibility or seed account data as a debugging workaround.
+
+## Swipe deck exhaustion
+
+**Rule:** Discover must advance past a profile when a left/right swipe is already recorded, instead of leaving the same card stuck in the deck. When no profiles and no next page remain, show a clear end-of-list message.
+
+**Why:** The user explicitly asked that swiping the last available profile show that no more profiles are available instead of repeating the card.
+
+**How to apply:** Keep this local to Discover; preserve Explore's visibility and prior-interaction rules. Continue pagination when `nextCursor` exists, show the terminal empty state when it does not, and do not weaken Super Like transaction safeguards.
