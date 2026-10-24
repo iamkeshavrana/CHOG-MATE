@@ -65,32 +65,6 @@ export const VerifyWalletResponse = zod.object({
   "userId": zod.string().uuid(),
   "walletAddress": zod.string(),
   "hasChog": zod.boolean(),
-  "identityMode": zod.enum(['wallet_connected', 'address_only']),
-  "accessToken": zod.string(),
-  "refreshToken": zod.string(),
-  "expiresIn": zod.number().int().min(1)
-})
-
-
-/**
- * Does not prove wallet control and must never authorize blockchain transactions.
- * @summary Start an address-only social account after verifying Chog ownership
- */
-export const createAddressSessionBodyWalletAddressRegExp = new RegExp('^0x[a-fA-F0-9]{40}$');
-
-
-export const CreateAddressSessionBody = zod.object({
-  "walletAddress": zod.string().regex(createAddressSessionBodyWalletAddressRegExp)
-})
-
-
-
-
-export const CreateAddressSessionResponse = zod.object({
-  "userId": zod.string().uuid(),
-  "walletAddress": zod.string(),
-  "hasChog": zod.boolean(),
-  "identityMode": zod.enum(['wallet_connected', 'address_only']),
   "accessToken": zod.string(),
   "refreshToken": zod.string(),
   "expiresIn": zod.number().int().min(1)
@@ -302,7 +276,6 @@ export const GetMeResponse = zod.object({
   "walletAddress": zod.string(),
   "hasChog": zod.boolean(),
   "hasProfile": zod.boolean(),
-  "identityMode": zod.enum(['wallet_connected', 'address_only']),
   "chogs": zod.array(zod.object({
   "tokenId": zod.string(),
   "contractAddress": zod.string(),

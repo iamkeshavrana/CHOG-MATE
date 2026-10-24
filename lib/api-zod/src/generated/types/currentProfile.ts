@@ -6,14 +6,12 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { Chog } from './chog';
-import type { CurrentProfileIdentityMode } from './currentProfileIdentityMode';
 import type { Profile } from './profile';
 
 export interface CurrentProfile {
   walletAddress: string;
   hasChog: boolean;
   hasProfile: boolean;
-  identityMode: CurrentProfileIdentityMode;
   chogs: Chog[];
   /** @nullable */
   selectedChogTokenId?: string | null;

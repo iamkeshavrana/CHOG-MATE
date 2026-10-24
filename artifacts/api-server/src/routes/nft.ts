@@ -11,6 +11,7 @@ import {
   getChogCollectionSupply,
   getOwnedChogs,
 } from "../lib/chogs";
+import { getSafeBackendErrorFields } from "../lib/backend-errors";
 import {
   getCollectionStats,
   getChogCollectionPage,
@@ -111,10 +112,7 @@ router.get("/nft/ownership/:walletAddress", async (req, res): Promise<void> => {
       }),
     );
   } catch (error) {
-    req.log.warn(
-      { errorType: error instanceof Error ? error.name : "UnknownError" },
-      "Chog ownership lookup unavailable",
-    );
+    req.log.warn(getSafeBackendErrorFields(error), "Chog ownership lookup unavailable");
     res.status(503).json({
       error: "Chog ownership is temporarily unavailable. Please try again.",
     });

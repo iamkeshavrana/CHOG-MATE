@@ -868,12 +868,11 @@ components:
         signature: { type: string, pattern: "^0x[a-fA-F0-9]{130}$" }
     SessionUser:
       type: object
-      required: [userId, walletAddress, hasChog, identityMode, accessToken, refreshToken, expiresIn]
+      required: [userId, walletAddress, hasChog, accessToken, refreshToken, expiresIn]
       properties:
         userId: { type: string, format: uuid }
         walletAddress: { type: string }
         hasChog: { type: boolean }
-        identityMode: { type: string, enum: [wallet_connected, address_only] }
         accessToken: { type: string }
         refreshToken: { type: string }
         expiresIn: { type: integer, minimum: 1 }
@@ -979,12 +978,11 @@ components:
           items: { type: string }
     CurrentProfile:
       type: object
-      required: [walletAddress, hasChog, hasProfile, chogs, profileVisible, identityMode]
+      required: [walletAddress, hasChog, hasProfile, chogs, profileVisible]
       properties:
         walletAddress: { type: string }
         hasChog: { type: boolean }
         hasProfile: { type: boolean }
-        identityMode: { type: string, enum: [wallet_connected, address_only] }
         chogs:
           type: array
           items: { $ref: "#/components/schemas/Chog" }

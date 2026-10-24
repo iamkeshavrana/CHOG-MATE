@@ -17,6 +17,7 @@ import {
   verifyWalletChallenge,
 } from "../lib/wallet-auth";
 import { getSupabaseAdmin } from "../lib/supabase";
+import { getSafeBackendErrorFields, toApiFailure } from "../lib/backend-errors";
 
 const router: IRouter = Router();
 
@@ -52,27 +53,34 @@ router.post("/auth/verify", async (req, res): Promise<void> => {
   }
 
   try {
-    const verified = await verifyWalletChallenge(
+    const wallet = await verifyWalletChallenge(
       parsed.data.walletAddress,
       parsed.data.nonce,
       parsed.data.signature as `0x${string}`,
     );
-    const chogs = await getOwnedChogs(getAddress(verified.walletAddress));
+    const chogs = await getOwnedChogs(getAddress(wallet.walletAddress));
+    if (chogs.length === 0) {
+      res.status(403).json({
+        code: "CHOG_OWNERSHIP_REQUIRED",
+        error: "This wallet does not currently own a verified Chog Genesis NFT.",
+      });
+      return;
+    }
 
-    if (chogs.length > 0) {
-      const admin = getSupabaseAdmin();
-      const { error } = await admin.from("users").upsert(
-        {
-          id: verified.userId,
-          wallet_address: verified.walletAddress.toLowerCase(),
-          wallet_verified: true,
-          last_seen: new Date().toISOString(),
-        },
-        { onConflict: "id" },
-      );
-      if (error) {
-        req.log.warn({ code: error.code }, "Could not create wallet profile record");
-      }
+    const verified = await createWalletAuthSession(wallet.walletAddress);
+
+    const admin = getSupabaseAdmin();
+    const { error } = await admin.from("users").upsert(
+      {
+        id: verified.userId,
+        wallet_address: verified.walletAddress.toLowerCase(),
+        wallet_verified: true,
+        last_seen: new Date().toISOString(),
+      },
+      { onConflict: "id" },
+    );
+    if (error) {
+      throw error;
     }
 
     setWalletSessionCookie(res, verified.userId, verified.walletAddress);
@@ -80,25 +88,29 @@ router.post("/auth/verify", async (req, res): Promise<void> => {
       VerifyWalletResponse.parse({
         userId: verified.userId,
         walletAddress: verified.walletAddress,
-        hasChog: chogs.length > 0,
-        identityMode: "wallet_connected",
+        hasChog: true,
         accessToken: verified.accessToken,
         refreshToken: verified.refreshToken,
         expiresIn: verified.expiresIn,
       }),
     );
   } catch (error) {
-    req.log.warn(
-      { errorType: error instanceof Error ? error.name : "UnknownError" },
-      "Wallet verification failed",
-    );
-    if (error instanceof Error && error.message.includes("Challenge")) {
-      res.status(401).json({ error: "Your wallet request expired. Please try again." });
+    req.log.warn(getSafeBackendErrorFields(error), "Wallet verification failed");
+    if (
+      error instanceof Error &&
+      (/challenge|signature/i.test(error.message))
+    ) {
+      res.status(401).json({
+        code: "WALLET_SIGNATURE_INVALID",
+        error: "Your wallet request expired or the signature did not match. Please try again.",
+      });
       return;
     }
-    res.status(503).json({
+    const failure = toApiFailure(error, {
+      code: "WALLET_VERIFICATION_UNAVAILABLE",
       error: "We couldn't verify your wallet right now. Please try again shortly.",
     });
+    res.status(failure.status).json(failure.body);
   }
 });
 

@@ -1,7 +1,7 @@
 - [Monad NFT enumeration](monad-nft-enumeration.md) — use the collection’s owner-list method; Monad log scans are range-capped.
 - [Supabase project alignment](supabase-project-alignment.md) — verify the frontend URL and database/service credentials target the same project before migrations.
 - [Supabase under Node 20](supabase-node20-websocket.md) — install a global WebSocket implementation before creating Supabase clients in this runtime.
-- [Manual address onboarding](manual-wallet-test-profiles.md) — address-only sign-in creates persistent social accounts, but never proves wallet control or authorizes transactions.
+- [Wallet-only onboarding](manual-wallet-test-profiles.md) — CHOG MATE accounts require a connected wallet, verified signature, and server-confirmed Chog ownership.
 - [CHOG MATE public/auth access](chog-mate-public-auth-access.md) — Home and Discover are public; private navigation and social actions require a valid account session.
 - [CHOG MATE discovery visibility](chog-mate-discovery-visibility.md) — Explore shows eligible holders regardless of visibility preference; blocks are the only social exclusion.
 - [Artifact-specific build environments](artifact-build-environments.md) — build a web artifact with its own configured PORT and BASE_PATH, not inherited values from sibling artifacts.

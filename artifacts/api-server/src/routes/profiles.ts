@@ -136,7 +136,6 @@ router.get("/me", async (req, res): Promise<void> => {
       GetMeResponse.parse({
         walletAddress: session.walletAddress,
         hasChog: chogs.length > 0,
-        identityMode: session.identityMode,
         hasProfile: Boolean(storedProfile),
         chogs,
         selectedChogTokenId: selected?.tokenId ?? null,

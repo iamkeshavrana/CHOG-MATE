@@ -36,13 +36,7 @@ const chogTokenBalanceAbi = [
   },
 ] as const;
 
-function MyChogTokenBalance({
-  walletAddress,
-  identityMode,
-}: {
-  walletAddress: string;
-  identityMode: 'wallet_connected' | 'address_only';
-}) {
+function MyChogTokenBalance({walletAddress}: {walletAddress: string}) {
   const connection = useConnection();
   const verifiedAddress = isAddress(walletAddress) ? walletAddress as Address : undefined;
   const connectedAddress = connection.isConnected && connection.address && isAddress(connection.address)
@@ -59,13 +53,11 @@ function MyChogTokenBalance({
   const accountError = !verifiedAddress
     ? 'The verified wallet address is unavailable.'
     : connection.isConnected && !walletMatches
-      ? identityMode === 'address_only'
-        ? 'The connected wallet does not match this address-only account.'
-        : 'The connected wallet does not match the signed-in account.'
+      ? 'The connected wallet does not match the signed-in account.'
       : null;
 
   // useReadContract uses the configured Monad public client, not a wallet signer.
-  // This also permits a read-only balance lookup for a disconnected address-only account.
+  // It permits a read-only balance lookup for the signed-in wallet while disconnected.
   const decimals = useReadContract({
     address: appConfig.chogTokenAddress,
     abi: chogTokenBalanceAbi,
@@ -184,7 +176,7 @@ export function MyChogPage() {
     <QueryState loading={me.isLoading} error={me.isError} retry={()=>void me.refetch()}>
       {!me.data ? <EmptyState title="Connect your wallet first." detail="Your verified collection appears here after wallet sign-in."/> :
       <>
-        <MyChogTokenBalance walletAddress={wallet} identityMode={me.data.identityMode}/>
+        <MyChogTokenBalance walletAddress={wallet}/>
         <QueryState loading={ownership.isLoading} error={ownership.isError} retry={()=>void ownership.refetch()}>
           {!verifiedChogs.length
             ? <EmptyState title="No Chog Found" detail="No verified Chog Genesis NFTs are currently owned by this wallet." mark="cm"/>
@@ -493,21 +485,30 @@ function ConnectedProfilePage() {
       {!me.data ? <EmptyState title="Connect to create your profile." detail="Sign in with the wallet holding your Chog Genesis NFT to get started."/> :
        (!me.data.hasChog || !me.data.chogs.some(chog=>chog.verified)) ? <EmptyState title="No Chog Found" detail="A Chog NFT is required to create a CHOG MATE profile. Connect the wallet that owns a Chog NFT to continue."/> :
        (me.data.hasProfile && !profile) ? <EmptyState title="Choose an active Chog." detail="Your previous active Chog is no longer in this wallet. Choose another verified Chog to restore your profile; your saved details will stay unchanged." action={<Link href="/my-chog" className="button-primary inline-flex rounded-full px-5 py-3 text-xs font-bold" data-testid="link-restore-active-chog">Choose a Chog</Link>}/> :
-          <div className={profile ? 'my-profile-page' : 'space-y-6'}>
+           <div className={profile ? 'my-profile-page' : 'space-y-6'}>
+            {!profile && selectedChog && <section className="grid overflow-hidden rounded-[28px] border border-[#eadde2] bg-[#fffaf8] shadow-[0_13px_35px_rgba(79,43,64,.065)] md:grid-cols-[minmax(0,1fr)_minmax(260px,.85fr)]" aria-label={`Selected Chog #${selectedChog.tokenId}`} data-testid="card-onboarding-selected-chog">
+              <div className="relative mx-auto aspect-square w-full max-w-[420px] bg-[#f2e6eb] md:mx-0 md:max-w-none">
+                <ChogArtwork chog={selectedChog} fit="contain"/>
+              </div>
+              <div className="flex flex-col justify-center p-5 sm:p-8">
+                <p className="text-[9px] font-bold uppercase tracking-[.17em] text-[#a35b79]">Your selected verified Chog</p>
+                <h2 className="display mt-2 text-3xl text-[#38253a]">CHOG #{selectedChog.tokenId}</h2>
+                {selectedChog.name && <p className="mt-1 text-sm font-semibold text-[#766a80]">{selectedChog.name}</p>}
+                <p className="mt-2 text-xs text-[#897985]">{selectedChog.tier || 'Genesis'}</p>
+                <p className="mt-4 max-w-sm text-xs leading-5 text-[#897985]">This verified Chog will be your CHOG MATE profile image.</p>
+                {selectedChog.metadataUrl && <a href={selectedChog.metadataUrl} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-1 self-start text-xs font-bold text-[#a34d70]" data-testid="link-onboarding-chog-metadata">View NFT metadata <ImageIcon size={13}/></a>}
+              </div>
+            </section>}
            <div
              className={`flex items-start gap-3 rounded-2xl border px-4 py-3 text-xs leading-5 ${
-               me.data.identityMode === 'address_only'
-                 ? 'border-[#ead8ce] bg-[#fff8f1] text-[#755247]'
-                 : 'border-[#cfe2cb] bg-[#eef8ea] text-[#447a43]'
-              } ${profile ? 'my-profile-identity-status' : ''}`}
+                'border-[#cfe2cb] bg-[#eef8ea] text-[#447a43]'
+               } ${profile ? 'my-profile-identity-status' : ''}`}
              role="status"
              data-testid="status-profile-identity"
            >
              <BadgeCheck size={16} className="mt-0.5 shrink-0" />
              <span>
-               {me.data.identityMode === 'address_only'
-                 ? 'NFT ownership is verified, but this wallet is not connected. Address-only accounts can use social features but cannot send blockchain transactions. This does not prove control of the address.'
-                 : 'Wallet connected and signature verified. Blockchain transactions still require your wallet to approve each transaction.'}
+                Wallet connected and signature verified. Blockchain transactions still require your wallet to approve each transaction.
              </span>
            </div>
          {profile ? <>

@@ -4,8 +4,7 @@ import {
   timingSafeEqual,
 } from "node:crypto";
 import type { Request, Response } from "express";
-import type { SupabaseClient } from "@supabase/supabase-js";
-import { recoverMessageAddress, getAddress } from "viem";
+import { recoverMessageAddress, getAddress, isAddress } from "viem";
 import { getSupabaseAdmin, getSupabasePublic, getWalletAuthCredentials } from "./supabase";
 
 const COOKIE_NAME = "chog_session";
@@ -20,7 +19,6 @@ interface Challenge {
 export interface WalletSession {
   userId: string;
   walletAddress: `0x${string}`;
-  identityMode: "wallet_connected" | "address_only";
   expiresAt: number;
 }
 
@@ -64,13 +62,7 @@ export async function verifyWalletChallenge(
   walletAddress: string,
   nonce: string,
   signature: `0x${string}`,
-): Promise<{
-  userId: string;
-  walletAddress: `0x${string}`;
-  accessToken: string;
-  refreshToken: string;
-  expiresIn: number;
-}> {
+): Promise<{ walletAddress: `0x${string}` }> {
   const normalized = getAddress(walletAddress);
   const challenge = challenges.get(normalized.toLowerCase());
   if (!challenge || challenge.expiresAt <= Date.now()) {
@@ -83,18 +75,22 @@ export async function verifyWalletChallenge(
     throw new Error("Challenge nonce did not match");
   }
 
-  const recovered = await recoverMessageAddress({ message: challenge.message, signature });
+  let recovered: `0x${string}`;
+  try {
+    recovered = await recoverMessageAddress({ message: challenge.message, signature });
+  } catch {
+    throw new Error("Wallet signature is invalid");
+  }
   if (recovered.toLowerCase() !== normalized.toLowerCase()) {
     throw new Error("Wallet signature did not match");
   }
   challenges.delete(normalized.toLowerCase());
 
-  return createWalletAuthSession(normalized);
+  return { walletAddress: normalized };
 }
 
 export async function createWalletAuthSession(
   walletAddress: string,
-  options: { repairAddressOnlyCredentials?: boolean } = {},
 ): Promise<{
   userId: string;
   walletAddress: `0x${string}`;
@@ -113,40 +109,8 @@ export async function createWalletAuthSession(
   });
 
   const publicClient = getSupabasePublic();
-  let signInResult = await publicClient.auth.signInWithPassword(credentials);
-  let expectedUserId = created.user?.id;
-
-  if (
-    options.repairAddressOnlyCredentials &&
-    (createError?.code === "email_exists" ||
-      createError?.code === "user_already_exists") &&
-    signInResult.error?.code === "invalid_credentials"
-  ) {
-    const existingUser = await findAuthUserByEmail(admin, credentials.email);
-    if (!existingUser) {
-      throw createError ?? new Error("Wallet account could not be established");
-    }
-
-    const existingWalletAddress = existingUser.user_metadata?.wallet_address;
-    if (
-      typeof existingWalletAddress === "string" &&
-      existingWalletAddress.toLowerCase() !== normalized.toLowerCase()
-    ) {
-      throw new Error("Wallet account identity did not match");
-    }
-
-    // Address-only credentials are derived from SESSION_SECRET. Preserve the
-    // existing Auth user ID if that secret changed, then sign in with the
-    // current derived password. This recovery is enabled only by /auth/address.
-    const { error: passwordRepairError } =
-      await admin.auth.admin.updateUserById(existingUser.id, {
-        password: credentials.password,
-      });
-    if (passwordRepairError) throw passwordRepairError;
-
-    expectedUserId = existingUser.id;
-    signInResult = await publicClient.auth.signInWithPassword(credentials);
-  }
+  const signInResult = await publicClient.auth.signInWithPassword(credentials);
+  const expectedUserId = created.user?.id;
 
   const { data: signedIn, error: signInError } = signInResult;
   if (signInError || !signedIn.user || !signedIn.session) {
@@ -169,37 +133,14 @@ export async function createWalletAuthSession(
   };
 }
 
-async function findAuthUserByEmail(
-  admin: SupabaseClient,
-  email: string,
-) {
-  const normalizedEmail = email.toLowerCase();
-
-  for (let page = 1; ; page += 1) {
-    const { data, error } = await admin.auth.admin.listUsers({
-      page,
-      perPage: 1000,
-    });
-    if (error) throw error;
-
-    const existingUser = data.users.find(
-      (user) => user.email?.toLowerCase() === normalizedEmail,
-    );
-    if (existingUser) return existingUser;
-    if (data.users.length < 1000) return null;
-  }
-}
-
 export function setWalletSessionCookie(
   response: Response,
   userId: string,
   walletAddress: `0x${string}`,
-  identityMode: WalletSession["identityMode"] = "wallet_connected",
 ): void {
   const session: WalletSession = {
     userId,
     walletAddress,
-    identityMode,
     expiresAt: Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS,
   };
   const payload = Buffer.from(JSON.stringify(session)).toString("base64url");
@@ -233,19 +174,30 @@ export function readWalletSession(request: Request): WalletSession | null {
   if (supplied.length !== expected.length || !timingSafeEqual(supplied, expected)) return null;
 
   try {
-    const session = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as WalletSession;
+    const session: unknown = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
     if (
+      !isRecord(session) ||
       typeof session.userId !== "string" ||
       typeof session.walletAddress !== "string" ||
+      !isAddress(session.walletAddress, { strict: false }) ||
+      typeof session.expiresAt !== "number" ||
       session.expiresAt <= Math.floor(Date.now() / 1000)
     ) {
       return null;
     }
-    if (!isWalletIdentityMode(session.identityMode)) {
-      // Existing signed-wallet cookies predate identity-mode tracking.
-      session.identityMode = "wallet_connected";
+    // Older address-only sessions must not remain valid after the wallet-only
+    // onboarding change. Legacy signed-wallet cookies remain compatible.
+    if (
+      "identityMode" in session &&
+      session.identityMode !== "wallet_connected"
+    ) {
+      return null;
     }
-    return session;
+    return {
+      userId: session.userId,
+      walletAddress: getAddress(session.walletAddress),
+      expiresAt: session.expiresAt,
+    };
   } catch {
     return null;
   }
@@ -263,21 +215,8 @@ export function requireWalletSession(
   return session;
 }
 
-export function requireConnectedWalletSession(
-  request: Request,
-  response: Response,
-): WalletSession | null {
-  const session = requireWalletSession(request, response);
-  if (!session) return null;
-  if (session.identityMode !== "wallet_connected") {
-    response.status(403).json({ error: "Connect your wallet to continue." });
-    return null;
-  }
-  return session;
-}
-
-function isWalletIdentityMode(value: unknown): value is WalletSession["identityMode"] {
-  return value === "wallet_connected" || value === "address_only";
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
 function sign(payload: string): string {

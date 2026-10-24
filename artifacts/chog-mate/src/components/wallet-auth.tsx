@@ -63,8 +63,9 @@ export default function WalletAuthPanel({
       enabled: Boolean(address && isConnected && !isWrongNetwork),
       queryKey: getGetNftOwnershipQueryKey(address ?? ""),
       refetchOnWindowFocus: true,
+      refetchOnMount: "always",
       retry: 1,
-      staleTime: 30_000,
+      staleTime: 0,
     },
   });
   const ownershipMatchesWallet =
@@ -94,6 +95,11 @@ export default function WalletAuthPanel({
     setAppKitModalOpen(appKit.getState().open);
     return appKit.subscribeState((state) => setAppKitModalOpen(state.open));
   }, []);
+
+  useEffect(() => {
+    setSelectedChogTokenId("");
+    setFeedback("");
+  }, [address]);
 
   const openWallet = useCallback(async () => {
     setFeedback("");
@@ -226,8 +232,10 @@ export default function WalletAuthPanel({
       setFeedback(
         err.code === 4001
           ? "Wallet signing was cancelled. Your wallet remains connected."
-          : err.message ||
+          : getApiErrorMessage(
+              error,
               "Wallet verification could not be completed. Please try again.",
+            ),
       );
     } finally {
       setBusy(false);
@@ -305,14 +313,14 @@ export default function WalletAuthPanel({
           aria-label="Connected wallet Chog ownership"
           data-testid="panel-wallet-chog-ownership"
         >
-          {ownership.isLoading ||
+          {ownership.isFetching ||
           (!ownershipMatchesWallet && !ownership.isError) ? (
             <p
               className="flex items-center gap-2 text-sm font-semibold text-[#715795]"
               role="status"
             >
               <RefreshCw size={15} className="animate-spin" />
-              Checking Chog ownership for this wallet…
+              Scanning your Chog NFTs…
             </p>
           ) : ownership.isError ? (
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -321,8 +329,10 @@ export default function WalletAuthPanel({
                   Ownership check unavailable
                 </h2>
                 <p className="mt-1 text-xs leading-5 text-[#82778c]">
-                  We couldn’t verify this wallet on Monad. No ownership result
-                  has been assumed.
+                  {getApiErrorMessage(
+                    ownership.error,
+                    "We couldn’t verify this wallet on Monad. No ownership result has been assumed.",
+                  )}
                 </p>
               </div>
               <button
@@ -369,7 +379,7 @@ export default function WalletAuthPanel({
                   </p>
                 </div>
               </div>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {ownedChogs.map((chog) => (
                   <article
                     key={chog.tokenId}
@@ -473,6 +483,20 @@ export default function WalletAuthPanel({
       )}
     </div>
   );
+}
+
+function getApiErrorMessage(error: unknown, fallback: string): string {
+  if (typeof error !== "object" || error === null) return fallback;
+  const candidate = error as { data?: unknown; message?: unknown };
+  if (typeof candidate.data === "object" && candidate.data !== null) {
+    const response = candidate.data as { error?: unknown };
+    if (typeof response.error === "string" && response.error.trim()) {
+      return response.error;
+    }
+  }
+  return typeof candidate.message === "string" && candidate.message.trim()
+    ? candidate.message
+    : fallback;
 }
 
 function safeInternalReturnTo(value?: string): string | undefined {

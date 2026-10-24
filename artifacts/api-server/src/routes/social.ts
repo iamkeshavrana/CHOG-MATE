@@ -94,16 +94,6 @@ router.post("/swipes", async (req, res): Promise<void> => {
     return;
   }
 
-  if (
-    parsed.data.action === "super_like" &&
-    session.identityMode !== "wallet_connected"
-  ) {
-    res.status(403).json({
-      error: "Connect your wallet to continue.",
-    });
-    return;
-  }
-
   try {
     const current = await requireEligibleProfile(session);
     const targetId = parsed.data.targetUserId;

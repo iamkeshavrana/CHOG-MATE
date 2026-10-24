@@ -39,19 +39,10 @@ export interface WalletSignatureInput {
   signature: string;
 }
 
-export type SessionUserIdentityMode = typeof SessionUserIdentityMode[keyof typeof SessionUserIdentityMode];
-
-
-export const SessionUserIdentityMode = {
-  wallet_connected: 'wallet_connected',
-  address_only: 'address_only',
-} as const;
-
 export interface SessionUser {
   userId: string;
   walletAddress: string;
   hasChog: boolean;
-  identityMode: SessionUserIdentityMode;
   accessToken: string;
   refreshToken: string;
   /** @minimum 1 */
@@ -189,19 +180,10 @@ export interface Profile {
   whyYouMatch?: string[];
 }
 
-export type CurrentProfileIdentityMode = typeof CurrentProfileIdentityMode[keyof typeof CurrentProfileIdentityMode];
-
-
-export const CurrentProfileIdentityMode = {
-  wallet_connected: 'wallet_connected',
-  address_only: 'address_only',
-} as const;
-
 export interface CurrentProfile {
   walletAddress: string;
   hasChog: boolean;
   hasProfile: boolean;
-  identityMode: CurrentProfileIdentityMode;
   chogs: Chog[];
   /** @nullable */
   selectedChogTokenId?: string | null;

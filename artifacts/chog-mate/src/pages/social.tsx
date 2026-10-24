@@ -165,13 +165,11 @@ const chogTokenAbi = [
 function SuperLikeDialog({
   profile,
   walletAddress,
-  identityMode,
   onOpenChange,
   onConfirmed,
 }: {
   profile: Profile | null;
   walletAddress: string | null;
-  identityMode: 'wallet_connected' | 'address_only' | undefined;
   onOpenChange: (open: boolean) => void;
   onConfirmed: (transactionHash: Hex) => Promise<void>;
 }) {
@@ -190,8 +188,7 @@ function SuperLikeDialog({
   const canUseWallet = Boolean(
     connection.isConnected &&
     connection.chainId === monadNetwork.id &&
-    walletMatchesSession &&
-    identityMode === 'wallet_connected',
+    walletMatchesSession,
   );
   const decimals = useReadContract({
     address: appConfig.chogTokenAddress,
@@ -246,11 +243,7 @@ function SuperLikeDialog({
       return;
     }
     if (!canUseWallet || !connection.address || !walletMatchesSession) {
-      setError(
-        identityMode === 'address_only'
-          ? 'Connect your wallet to continue.'
-          : 'Connect the wallet used for this verified profile on Monad Mainnet.',
-      );
+      setError('Connect the wallet used for this verified profile on Monad Mainnet.');
       return;
     }
     if (!publicClient || decimals.isLoading || balance.isLoading) {
@@ -331,7 +324,6 @@ function SuperLikeDialog({
         </div>
         {!connection.isConnected && <p className="text-xs leading-5 text-[#8b8091]">Connect the wallet used for your CHOG MATE profile to continue.</p>}
         {connection.isConnected && connection.chainId !== monadNetwork.id && <p className="text-xs text-[#a34646]" role="alert">Switch your wallet to Monad Mainnet before sending.</p>}
-        {identityMode === 'address_only' && <p className="text-xs leading-5 text-[#a34646]" role="alert">Connect your wallet to continue. Address-only accounts can like and message, but cannot sign blockchain transactions.</p>}
         {phase && <p className="text-xs font-semibold text-[#7053a4]" role="status">{phase}</p>}
         {transactionHash && (
           <a href={`https://monadscan.com/tx/${transactionHash}`} target="_blank" rel="noreferrer" className="break-all text-xs font-semibold text-[#7047ff] underline">
@@ -680,7 +672,6 @@ export function DiscoverPage() {
     <SuperLikeDialog
       profile={superLikeTarget}
       walletAddress={me.data?.walletAddress ?? null}
-      identityMode={me.data?.identityMode}
       onOpenChange={open=>{if(!open)setSuperLikeTarget(null);}}
       onConfirmed={async transactionHash => {
         if (!superLikeTarget) throw new Error('The selected profile is no longer available.');
