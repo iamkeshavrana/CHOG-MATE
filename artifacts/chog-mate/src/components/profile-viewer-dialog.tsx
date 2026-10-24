@@ -143,11 +143,10 @@ export function ProfileViewerDialog({
                 <div className="absolute -left-12 top-10 h-36 w-36 rounded-full border border-white/80" />
                 <div className="absolute -right-10 bottom-12 h-48 w-48 rounded-full border border-white/70" />
               </div>
-              <div className="relative flex w-full max-w-[390px] items-center justify-center">
+              <div className="relative flex h-[min(48dvh,420px)] min-h-[230px] w-full max-w-[390px] items-center justify-center overflow-hidden rounded-2xl">
                 <ChogArtwork
                   chog={profile.chog}
-                  fit="natural"
-                  className="max-h-[min(48dvh,420px)]"
+                  fit="contain"
                 />
               </div>
               <div className="absolute bottom-4 left-4 flex items-center gap-2 rounded-full border border-white/70 bg-[#fffaf5]/80 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[.14em] text-[#624b78] backdrop-blur sm:bottom-6 sm:left-6">

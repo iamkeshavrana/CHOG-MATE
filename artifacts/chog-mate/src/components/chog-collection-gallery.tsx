@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowUpRight, ImageOff, RefreshCw } from 'lucide-react';
-import { Eyebrow } from '@/components/shared';
+import { ChogImageFrame, Eyebrow } from '@/components/shared';
 
 interface ChogCollectionItem {
   tokenId: string;
@@ -223,23 +223,21 @@ function CollectionImage({ item }: { item: ChogCollectionItem }) {
   const source = item.imageUrls[sourceIndex];
 
   if (!source) {
-    return (
-      <div className="grid aspect-square place-items-center bg-[radial-gradient(ellipse_at_30%_20%,#7d55ca,#21143b_72%)] px-5 text-center text-violet-100/75">
-        <span className="flex flex-col items-center gap-2 text-xs font-semibold">
-          <ImageOff size={20} /> Artwork unavailable
-        </span>
-      </div>
-    );
+    return <ChogImageFrame fit="contain" className="aspect-square w-full bg-[radial-gradient(ellipse_at_30%_20%,#7d55ca,#21143b_72%)] px-5 text-center text-violet-100/75">
+      <span className="flex h-full w-full flex-col items-center justify-center gap-2 text-xs font-semibold">
+        <ImageOff size={20} /> Artwork unavailable
+      </span>
+    </ChogImageFrame>;
   }
 
-  return (
+  return <ChogImageFrame fit="contain" className="aspect-square w-full">
     <img
       src={source}
       alt={item.name ?? `Chog Genesis #${item.tokenId}`}
       loading="lazy"
       decoding="async"
-      className="aspect-square w-full object-contain"
+      className="h-full w-full object-contain object-center"
       onError={() => setSourceIndex((index) => index + 1)}
     />
-  );
+  </ChogImageFrame>;
 }

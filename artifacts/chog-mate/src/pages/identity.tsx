@@ -197,9 +197,9 @@ export function MyChogPage() {
                       className={`overflow-hidden rounded-[22px] border-2 bg-white transition ${isSelected?'border-[#8a63ff] shadow-[0_0_0_3px_#8a63ff1c]':'border-transparent'}`}
                       data-testid={`card-owned-chog-${item.tokenId}`}
                     >
-                      <div className="relative aspect-square bg-[#f4eddf]">
+                      <div className="relative aspect-square overflow-hidden bg-[#f4eddf]">
                         {item.imageUrl
-                          ? <img src={item.imageUrl} alt={`Chog #${item.tokenId}`} className="h-full w-full object-contain" data-testid={`img-owned-chog-${item.tokenId}`}/>
+                          ? <img src={item.imageUrl} alt={`Chog #${item.tokenId}`} className="block h-full w-full object-contain object-center" data-testid={`img-owned-chog-${item.tokenId}`}/>
                           : <div className="grid h-full place-items-center bg-[#f7f2e9] px-5 text-center text-sm font-semibold text-[#81758a]" role="status">Real artwork is unavailable for Chog #{item.tokenId}.</div>}
                         {isActive && <span className="absolute right-3 top-3 rounded-full bg-[#7047ff] px-3 py-1.5 text-[9px] font-bold uppercase tracking-wide text-white" data-testid={`status-active-chog-${item.tokenId}`}>Active profile Chog</span>}
                       </div>
@@ -258,13 +258,14 @@ function ProfilePreview({profile,testMode=false}:{profile:ProfilePreviewData;tes
   return <>
     <style>{`
       .profile-preview-card{background:#fffaf8;border:1px solid rgba(116,66,89,.15);box-shadow:0 18px 45px rgba(79,43,64,.09)}
+      .profile-artwork{display:flex;height:min(58dvh,440px);min-height:250px;align-items:center;justify-content:center}
       .profile-artwork img{transition:transform .7s cubic-bezier(.2,.75,.25,1)}
       .profile-preview-card:hover .profile-artwork img{transform:scale(1.025)}
       @media(prefers-reduced-motion:reduce){.profile-artwork img{transition:none}}
     `}</style>
     <section className="profile-preview-card mx-auto max-w-[520px] overflow-hidden rounded-[30px]" aria-label="Public profile preview" data-testid="profile-preview">
       <div className="profile-artwork relative overflow-hidden bg-[#eadde2]">
-        <ChogArtwork chog={profile.chog} fit="natural"/>
+        <ChogArtwork chog={profile.chog} fit="contain"/>
         <div className="absolute inset-0 bg-gradient-to-t from-[#261529]/85 via-transparent to-transparent"/>
         <div className="absolute bottom-5 left-5 right-5 text-white">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-white/30 bg-white/15 px-3 py-1.5 text-[9px] font-bold uppercase tracking-[.13em] backdrop-blur"><BadgeCheck size={12}/>{testMode ? 'Local preview' : 'Verified holder'}</span>
@@ -444,7 +445,7 @@ function ManualTestProfilePage() {
             <aside className="surface h-fit rounded-[28px] p-5 sm:p-6">
               <Eyebrow>Selected test NFT</Eyebrow>
               <h2 className="display mt-1 text-2xl font-extrabold text-[#24133f]">Chog #{chog.tokenId}</h2>
-              <div className="mt-4 rounded-2xl bg-[#f4eddf]"><ChogArtwork chog={chog} fit="natural"/></div>
+              <div className="mt-4 aspect-square overflow-hidden rounded-2xl bg-[#f4eddf]"><ChogArtwork chog={chog} fit="contain"/></div>
                <p className="mt-3 text-[11px] leading-5 text-[#998ea0]">This address scan is a local-only preview. Ownership verification does not prove control of the wallet, create a signed-in account, or publish profile details.</p>
             </aside>
           </form>
@@ -720,7 +721,7 @@ function ConnectedProfilePage() {
                </DialogHeader>
                 <form onSubmit={save} className="space-y-4">
                   <div className="flex items-center gap-3 rounded-2xl border border-[#eadde2] bg-[#fff6f4] p-3" aria-label={`Selected verified Chog ${profile.chog.tokenId}`} data-testid="card-edit-selected-chog">
-                     <div className="max-h-[68px] max-w-[68px] shrink-0 rounded-xl bg-[#f2e6eb]" role="img" aria-label={`Artwork for Chog #${profile.chog.tokenId}`}><ChogArtwork chog={profile.chog} fit="natural" className="max-h-[68px] max-w-[68px]"/></div>
+                      <div className="relative h-[68px] w-[68px] shrink-0 overflow-hidden rounded-xl bg-[#f2e6eb]" role="img" aria-label={`Artwork for Chog #${profile.chog.tokenId}`}><ChogArtwork chog={profile.chog} fit="contain"/></div>
                     <div className="min-w-0">
                       <p className="text-[9px] font-bold uppercase tracking-[.15em] text-[#a35b79]">Your verified Chog</p>
                       <p className="display mt-1 text-lg text-[#38253a]">Chog #{profile.chog.tokenId}</p>
@@ -787,7 +788,7 @@ function ConnectedProfilePage() {
               </div>
               <p className="mt-2 text-[11px] leading-5 text-[#897985]">{profile?'Choose which verified Chog represents you.':'Select the verified NFT you want on your profile.'}</p>
               <label className="mt-4 block"><span className="profile-field-label">Selected Chog</span><select className="field" value={selectedChogTokenId} onChange={event=>setValue('selectedChogTokenId',event.target.value,{shouldDirty:true})} data-testid="select-profile-chog">{me.data.chogs.filter(chog=>chog.verified).map(chog=><option key={chog.tokenId} value={chog.tokenId}>Chog #{chog.tokenId}{chog.tier?` · ${chog.tier}`:''}</option>)}</select></label>
-               {selectedChog && <div className="mt-3 flex items-center gap-3 rounded-2xl border border-[#eadde2] bg-[#fffaf8] p-3" data-testid="card-selected-chog-preview"><div className="max-h-16 max-w-16 shrink-0 rounded-xl bg-[#f2e6eb]"><ChogArtwork chog={selectedChog} fit="natural" className="max-h-16 max-w-16"/></div><div><p className="text-[9px] font-bold uppercase tracking-[.15em] text-[#a35b79]">Profile identity</p><p className="display mt-1 text-base text-[#38253a]">Chog #{selectedChog.tokenId}</p><p className="text-[10px] text-[#897985]">{selectedChog.tier || 'Genesis'}</p></div></div>}
+                 {selectedChog && <div className="mt-3 flex items-center gap-3 rounded-2xl border border-[#eadde2] bg-[#fffaf8] p-3" data-testid="card-selected-chog-preview"><div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-[#f2e6eb]"><ChogArtwork chog={selectedChog} fit="contain"/></div><div><p className="text-[9px] font-bold uppercase tracking-[.15em] text-[#a35b79]">Profile identity</p><p className="display mt-1 text-base text-[#38253a]">Chog #{selectedChog.tokenId}</p><p className="text-[10px] text-[#897985]">{selectedChog.tier || 'Genesis'}</p></div></div>}
               {profile ? <div className="mt-4 border-t border-[#eadde2] pt-4"><p className="text-[10px] leading-5 text-[#897985]">Switching changes only your active Chog identity. Your profile details stay exactly as they are.</p><button type="button" onClick={()=>void switchActiveChog()} disabled={selectActiveChog.isPending || !selectedChogTokenId || selectedChogTokenId===me.data.selectedChogTokenId} className="button-primary mt-3 w-full rounded-full px-4 py-3 text-xs font-bold disabled:opacity-50" data-testid="button-set-active-chog">{selectActiveChog.isPending?'Revalidating ownership…':selectedChogTokenId===me.data.selectedChogTokenId?'Active Chog':'Make active Chog'}</button></div> : <p className="mt-3 text-[10px] leading-5 text-[#897985]">Your selected Chog becomes your active profile identity when you save.</p>}
             {profile && <div className="mt-5 border-t border-[#eadde2] pt-4">
                 <p className="mb-2 text-xs font-bold text-[#493b4d]">Profile visibility</p>

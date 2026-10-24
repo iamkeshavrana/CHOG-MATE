@@ -647,7 +647,10 @@ router.post("/matches/:matchId/rematch", async (req, res): Promise<void> => {
       .select("id,user_a,user_b,status,unmatched_by")
       .eq("id", parsed.data.matchId)
       .maybeSingle();
-    if (matchError) throw new SocialDataError("The match could not be restored.");
+    if (matchError) {
+      logRematchDatabaseError(req, "Could not load the Ex Match", matchError);
+      throw new SocialDataError("The match could not be restored.");
+    }
     if (!match || (match.user_a !== session.userId && match.user_b !== session.userId)) {
       res.status(404).json({ error: "That Ex Match is not available." });
       return;
@@ -687,6 +690,10 @@ router.post("/matches/:matchId/rematch", async (req, res): Promise<void> => {
         .maybeSingle(),
     ]);
     if (blockedByMe.error || blockedMe.error) {
+      logRematchDatabaseError(req, "Could not verify blocks for Rematch", {
+        blockedByMe: blockedByMe.error,
+        blockedMe: blockedMe.error,
+      });
       throw new SocialDataError("The match could not be restored.");
     }
     if (blockedByMe.data || blockedMe.data) {
@@ -705,6 +712,12 @@ router.post("/matches/:matchId/rematch", async (req, res): Promise<void> => {
       error &&
       (error.code === "PGRST202" || error.code === "42883")
     ) {
+      if (process.env.NODE_ENV === "development") {
+        req.log.warn(
+          { err: error, matchId: parsed.data.matchId },
+          "Rematch RPC is unavailable; using a guarded match update",
+        );
+      }
       // Older Supabase projects may not yet have migration 0011's RPC.
       // Keep Rematch working with a guarded single-row update while preserving
       // the same participant, status, and original-unmatcher checks.
@@ -718,11 +731,16 @@ router.post("/matches/:matchId/rematch", async (req, res): Promise<void> => {
         .eq("id", parsed.data.matchId)
         .eq("status", "unmatched")
         .eq("unmatched_by", session.userId)
+        .or(`user_a.eq.${session.userId},user_b.eq.${session.userId}`)
         .select("id")
         .maybeSingle();
-      if (updateError) throw new SocialDataError("The match could not be restored.");
+      if (updateError) {
+        logRematchDatabaseError(req, "Could not restore the Ex Match", updateError);
+        throw new SocialDataError("The match could not be restored.");
+      }
       rematched = Boolean(updatedMatch);
     } else if (error) {
+      logRematchDatabaseError(req, "Rematch RPC failed", error);
       throw new SocialDataError("The match could not be restored.");
     }
     if (!rematched) {
@@ -730,6 +748,15 @@ router.post("/matches/:matchId/rematch", async (req, res): Promise<void> => {
         error: "This Ex Match changed before it could be restored. Refresh your connections and try again.",
       });
       return;
+    }
+    const { error: notificationError } = await admin.from("notifications").insert({
+      user_id: otherUserId,
+      actor_id: session.userId,
+      type: "match",
+      related_id: parsed.data.matchId,
+    });
+    if (notificationError) {
+      logRematchDatabaseError(req, "Rematch succeeded but its notification could not be saved", notificationError);
     }
     res.sendStatus(204);
   } catch (error) {
@@ -1277,6 +1304,12 @@ function sendSocialError(req: Request, res: Response, error: unknown): void {
     "Social service failed",
   );
   res.status(503).json({ error: "This action is temporarily unavailable. Please try again." });
+}
+
+function logRematchDatabaseError(req: Request, message: string, error: unknown): void {
+  if (process.env.NODE_ENV === "development") {
+    req.log.error({ err: error }, message);
+  }
 }
 
 function isAllowedChatAttachment(

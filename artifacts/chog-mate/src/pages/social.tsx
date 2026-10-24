@@ -749,18 +749,21 @@ export function MatchesPage() {
           : '';
     window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}${hash}`);
   }
-  function refreshSocialLists() {
-    void qc.invalidateQueries({ queryKey: getGetLikeInboxQueryKey() });
-    void qc.invalidateQueries({ queryKey: getGetSentLikesQueryKey() });
-    void qc.invalidateQueries({ queryKey: getGetMatchesQueryKey() });
-    void qc.invalidateQueries({ queryKey: getGetExMatchesQueryKey() });
-    void qc.invalidateQueries({ queryKey: getGetConversationsQueryKey() });
+  async function refreshSocialLists(successNotice?: string): Promise<void> {
+    await Promise.all([
+      qc.invalidateQueries({ queryKey: getGetLikeInboxQueryKey() }),
+      qc.invalidateQueries({ queryKey: getGetSentLikesQueryKey() }),
+      qc.invalidateQueries({ queryKey: getGetMatchesQueryKey() }),
+      qc.invalidateQueries({ queryKey: getGetExMatchesQueryKey() }),
+      qc.invalidateQueries({ queryKey: getGetConversationsQueryKey() }),
+    ]);
+    if (successNotice) setSocialNotice(successNotice);
   }
   function unlikeDone(type: LikeInboxItem['type']) {
     setSocialNotice(type === 'super_like'
       ? 'The Super Like was withdrawn. The completed $CHOG transfer is unchanged.'
       : 'Like removed. This person can appear in future Discover results.');
-    refreshSocialLists();
+    void refreshSocialLists();
     void qc.invalidateQueries({ queryKey: getDiscoverProfilesQueryKey() });
   }
   if (me.isLoading) return <AppShell><div className="skeleton h-96 rounded-[28px]"/></AppShell>;
@@ -792,7 +795,7 @@ export function MatchesPage() {
         : inbox.isLoading
           ? <div className="skeleton h-48 rounded-2xl" />
           : inbox.data?.length
-            ? <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{inbox.data.map(item=><IncomingLikeCard key={item.id} item={item} onHandled={refreshSocialLists} />)}</div>
+            ? <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{inbox.data.map(item=><IncomingLikeCard key={item.id} item={item} onHandled={() => void refreshSocialLists()} />)}</div>
             : <EmptyState title="No new likes yet." detail="People who like you will appear here. Like them back to create a Match."/>}
     </section>}
     {section === 'liked-by-you' && <section id="panel-liked-by-you" role="tabpanel" aria-label="People you liked">
@@ -811,7 +814,7 @@ export function MatchesPage() {
                 key={item.id}
                 data-testid={`card-liked-by-you-${item.id}`}
               >
-                <ProfileOpenButton profile={item.profile} options={{ source: 'liked-by-me' }} className="block w-24 shrink-0 overflow-hidden rounded-2xl bg-[#eee5fb]" label={`Open ${item.profile.displayName}'s full profile`}><ChogArtwork chog={item.profile.chog} fit="natural"/></ProfileOpenButton>
+                <ProfileOpenButton profile={item.profile} options={{ source: 'liked-by-me' }} className="block aspect-square h-24 w-24 shrink-0 overflow-hidden rounded-2xl bg-[#eee5fb]" label={`Open ${item.profile.displayName}'s full profile`}><ChogArtwork chog={item.profile.chog} fit="contain"/></ProfileOpenButton>
                 <div className="min-w-0 py-1">
                   <ProfileOpenButton profile={item.profile} options={{ source: 'liked-by-me' }} className="block text-left" label={`Open ${item.profile.displayName}'s full profile`}><h2 className="display break-words text-lg font-extrabold text-[#35264b]">{item.profile.displayName}{item.profile.age !== null ? `, ${item.profile.age}` : ''}</h2><p className="mt-1 break-all text-xs text-[#887c90]">@{item.profile.username}</p></ProfileOpenButton>
                   <p className="mt-2 text-[11px] font-semibold text-[#705b83]">Chog #{item.profile.chog.tokenId} · {item.profile.chog.tier || 'Tier unlisted'}</p>
@@ -833,13 +836,13 @@ export function MatchesPage() {
           key={match.id}
           data-testid={`card-match-${match.id}`}
         >
-          <ProfileOpenButton profile={match.profile} options={{ source: 'matched', matchId: match.id }} className="block w-28 shrink-0 overflow-hidden rounded-2xl bg-[#eee5fb]" label={`Open ${match.profile.displayName}'s full profile`}><ChogArtwork chog={match.profile.chog} fit="natural"/></ProfileOpenButton>
+          <ProfileOpenButton profile={match.profile} options={{ source: 'matched', matchId: match.id }} className="block aspect-square h-28 w-28 shrink-0 overflow-hidden rounded-2xl bg-[#eee5fb]" label={`Open ${match.profile.displayName}'s full profile`}><ChogArtwork chog={match.profile.chog} fit="contain"/></ProfileOpenButton>
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-2"><div className="min-w-0"><ProfileOpenButton profile={match.profile} options={{ source: 'matched', matchId: match.id }} className="block text-left" label={`Open ${match.profile.displayName}'s full profile`}><h2 className="display break-words text-lg font-extrabold text-[#24133f]">{match.profile.displayName}{match.profile.age !== null ? `, ${match.profile.age}` : ''}</h2><p className="mt-1 break-all text-xs text-[#82778c]">@{match.profile.username}</p></ProfileOpenButton></div><span className="shrink-0 rounded-full bg-[#f2ecff] px-2.5 py-1 text-[10px] font-bold text-[#6246b0]">{match.compatibility}%</span></div>
             <p className="mt-2 text-[11px] font-semibold text-[#705b83]">Chog #{match.profile.chog.tokenId} · {match.profile.chog.tier || 'Tier unlisted'}</p>
             <p className="mt-2 text-[10px] text-[#887c90]">Matched {new Date(match.createdAt).toLocaleDateString()}</p>
             <Link href={`/messages?match=${encodeURIComponent(match.id)}`} className="button-primary mt-3 inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-xs font-bold" data-testid={`link-message-${match.id}`}><MessageCircle size={15}/>Message</Link>
-            <MatchActions matchId={match.id} username={match.profile.username} onDone={refreshSocialLists}/>
+          <MatchActions matchId={match.id} username={match.profile.username} onDone={() => void refreshSocialLists()}/>
           </div>
         </motion.article>)}</AnimatePresence></div> : <EmptyState mark="cm" title="Your first match is out there." detail="When someone you like likes you back, you’ll find your mutual connection here." action={<Link href="/discover" className="button-primary inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-bold" data-testid="link-discover-from-matches">Meet people <ArrowRight size={15}/></Link>} />}
       </QueryState>
@@ -860,7 +863,10 @@ export function MatchesPage() {
                 exit={{ opacity: 0, y: -6 }}
                 transition={{ duration: 0.18 }}
               >
-                <ExMatchCard item={item} onRematched={refreshSocialLists} />
+                <ExMatchCard
+                  item={item}
+                  onRematched={() => refreshSocialLists(`Rematched with @${item.profile.username}. They are back in Matches, and your conversation history is preserved.`)}
+                />
               </motion.div>,
             )}</AnimatePresence></div>
           : <EmptyState title="No Ex Matches." detail="People from a previous Match will appear here after either person ends the relationship. Only the person who ended it can Rematch." />}
@@ -892,7 +898,7 @@ function IncomingLikeCard({ item, onHandled }: { item: LikeInboxItem; onHandled:
 
   return <article className="surface rounded-[24px] p-4" data-testid={`card-incoming-like-${item.id}`}>
     <div className="flex items-start gap-3">
-      <ProfileOpenButton profile={item.profile} options={{ source: 'incoming' }} className="block w-28 shrink-0 overflow-hidden rounded-2xl bg-[#eee5fb]" label={`Open ${item.profile.displayName}'s full profile`}><ChogArtwork chog={item.profile.chog} fit="natural"/></ProfileOpenButton>
+      <ProfileOpenButton profile={item.profile} options={{ source: 'incoming' }} className="block aspect-square h-28 w-28 shrink-0 overflow-hidden rounded-2xl bg-[#eee5fb]" label={`Open ${item.profile.displayName}'s full profile`}><ChogArtwork chog={item.profile.chog} fit="contain"/></ProfileOpenButton>
       <div className="min-w-0 flex-1">
         <ProfileOpenButton profile={item.profile} options={{ source: 'incoming' }} className="block text-left" label={`Open ${item.profile.displayName}'s full profile`}><h3 className="break-words text-sm font-bold text-[#35264b]">{item.profile.displayName}{item.profile.age !== null ? `, ${item.profile.age}` : ''}</h3><p className="mt-1 break-all text-xs text-[#887c90]">@{item.profile.username}</p></ProfileOpenButton>
         <p className="mt-2 text-[10px] font-semibold text-[#705b83]">Chog #{item.profile.chog.tokenId} · {item.profile.chog.tier || 'Tier unlisted'}</p>
@@ -952,7 +958,7 @@ function MatchActions({ matchId, username, onDone }: { matchId: string; username
   return <button onClick={()=>{if(window.confirm(`Unmatch with @${username}? The active match will end, but your conversation history will remain in Messages.`)) unmatch.mutate({matchId},{onSuccess:onDone});}} disabled={unmatch.isPending} className="mt-4 text-xs font-semibold text-[#998e9e] underline-offset-4 hover:text-[#9a4a4a] hover:underline disabled:opacity-50" data-testid={`button-unmatch-${matchId}`}>{unmatch.isPending ? 'Removing…' : 'Unmatch'}</button>;
 }
 
-function ExMatchCard({ item, onRematched }: { item: Match; onRematched: () => void }) {
+function ExMatchCard({ item, onRematched }: { item: Match; onRematched: () => Promise<void> }) {
   const profileOptions = {
     source: 'ex-match' as const,
     matchId: item.id,
@@ -962,8 +968,8 @@ function ExMatchCard({ item, onRematched }: { item: Match; onRematched: () => vo
     className="surface flex gap-4 rounded-[26px] p-4 sm:p-5"
     data-testid={`card-ex-match-${item.id}`}
   >
-    <ProfileOpenButton profile={item.profile} options={profileOptions} className="block w-28 shrink-0 self-start overflow-hidden rounded-2xl bg-[#eee5fb]" label={`Open ${item.profile.displayName}'s full profile`}>
-      <ChogArtwork chog={item.profile.chog} fit="natural"/>
+    <ProfileOpenButton profile={item.profile} options={profileOptions} className="block aspect-square h-28 w-28 shrink-0 self-start overflow-hidden rounded-2xl bg-[#eee5fb]" label={`Open ${item.profile.displayName}'s full profile`}>
+      <ChogArtwork chog={item.profile.chog} fit="contain"/>
     </ProfileOpenButton>
     <div className="min-w-0 flex-1">
       <ProfileOpenButton profile={item.profile} options={profileOptions} className="block text-left" label={`Open ${item.profile.displayName}'s full profile`}>
@@ -981,7 +987,7 @@ function ExMatchCard({ item, onRematched }: { item: Match; onRematched: () => vo
   </article>;
 }
 
-function RematchAction({ matchId, onRematched }: { matchId: string; onRematched: () => void }) {
+function RematchAction({ matchId, onRematched }: { matchId: string; onRematched: () => Promise<void> }) {
   const rematch = useRematchProfile();
   const [notice, setNotice] = useState('');
 
@@ -989,7 +995,7 @@ function RematchAction({ matchId, onRematched }: { matchId: string; onRematched:
     setNotice('');
     try {
       await rematch.mutateAsync({ matchId });
-      onRematched();
+      await onRematched();
     } catch (error) {
       setNotice(getApiErrorMessage(error, 'The rematch could not be completed.'));
     }
@@ -1003,7 +1009,7 @@ function RematchAction({ matchId, onRematched }: { matchId: string; onRematched:
       className="button-primary mt-4 inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-xs font-bold disabled:opacity-50"
       data-testid={`button-rematch-${matchId}`}
     >
-      {rematch.isPending ? 'Restoring…' : 'Rematch'}
+      {rematch.isPending ? 'Rematching…' : 'Rematch'}
     </button>
     {notice && <p className="mt-2 text-xs leading-5 text-[#a34646]" role="alert">{notice}</p>}
   </>;

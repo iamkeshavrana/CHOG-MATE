@@ -364,13 +364,15 @@ export default function HomePage() {
                   >
                     <div className="home-sale-art relative aspect-[1.28] overflow-hidden">
                       {sale.imageUrl ? (
-                        <img
-                          src={sale.imageUrl}
-                          alt={`Chog #${sale.tokenId}`}
-                          loading="lazy"
-                          decoding="async"
-                          className="home-sale-image"
-                        />
+                        <div className="home-sale-image-frame">
+                          <img
+                            src={sale.imageUrl}
+                            alt={`Chog #${sale.tokenId}`}
+                            loading="lazy"
+                            decoding="async"
+                            className="home-sale-image"
+                          />
+                        </div>
                       ) : (
                         <div className="grid h-full place-items-center text-[#8e8097]">
                           <ImageOff size={24} />
