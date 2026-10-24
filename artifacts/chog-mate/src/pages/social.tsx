@@ -595,11 +595,7 @@ export function DiscoverPage() {
   const currentCard = restoredCard ?? profiles[profileIndex];
   const actionPending = swipe.isPending || Boolean(swipeDirection) || Boolean(superLikeTarget);
   return <AppShell><div className="page-enter discover-page">
-     <header className="discover-heading">
-       <Eyebrow>The good kind of scrolling</Eyebrow>
-       <h1 className="display text-[34px] font-extrabold leading-none text-[#24133f] sm:text-[40px]" data-testid="heading-page">Find your people.</h1>
-       <p className="discover-description mt-1 text-[11px] leading-4 text-[#74697b]">Browse real Chog holders without signing in. Complete your profile to get compatibility scores and interact.</p>
-     </header>
+     <h1 className="sr-only" data-testid="heading-page">Discover Chogs</h1>
     {toast && <div className="mx-auto mb-4 max-w-[620px] rounded-2xl border border-[#ded4f5] bg-white px-4 py-3 text-sm text-[#514177]" role="status" data-testid="status-swipe">{toast}<button className="float-right font-bold" onClick={()=>setToast('')} aria-label="Dismiss notification"><X size={16}/></button></div>}
      {me.isError && !isUnauthorized(me.error) && <p className="mx-auto mb-4 max-w-[620px] rounded-2xl border border-[#ead8ce] bg-[#fff8f1] px-4 py-3 text-sm text-[#755247]" role="status">Your account status could not be loaded. Public profiles are still available; sign-in may be unavailable.</p>}
       <div className="discover-results">
