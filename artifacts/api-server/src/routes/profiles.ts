@@ -497,7 +497,9 @@ router.get("/discover", async (req, res): Promise<void> => {
       for (const row of matchesB.data ?? []) excluded.add(row.user_a);
     }
 
-    const pageSize = Math.min(150, limit * 5);
+    // Advance only over candidates considered for this response; a wider
+    // batch can skip eligible profiles that do not fit in the returned page.
+    const pageSize = limit;
     const searchTerm = parsed.data.search?.trim();
     let candidateUserIds: string[];
     let hasMoreCandidates: boolean;
@@ -514,12 +516,14 @@ router.get("/discover", async (req, res): Promise<void> => {
         .eq("profile_visible", true)
         .order("updated_at", { ascending: false })
           .order("user_id", { ascending: true })
-        .range(offset, offset + pageSize - 1);
+          .range(offset, offset + pageSize);
       if (candidatesError) {
         throw new SocialDataError("CHOG MATE database setup is incomplete.", candidatesError);
       }
-      candidateUserIds = (candidates ?? []).map((row) => row.user_id);
-      hasMoreCandidates = (candidates?.length ?? 0) === pageSize;
+      candidateUserIds = (candidates ?? [])
+        .slice(0, pageSize)
+        .map((row) => row.user_id);
+      hasMoreCandidates = (candidates?.length ?? 0) > pageSize;
     }
     const ids = candidateUserIds.filter((id) => !excluded.has(id));
     const bundles = await loadProfileBundles(ids);
