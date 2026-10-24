@@ -6,15 +6,15 @@ import { Link } from 'wouter';
 import {
   getGetAuthSessionQueryKey,
   getDiscoverProfilesQueryKey, getGetConversationsQueryKey, getGetExMatchesQueryKey,
-  getGetMatchesQueryKey, getGetMessagesQueryKey,
+  getGetMatchesQueryKey, getGetMessagesQueryKey, getGetUserProfileQueryKey,
   getGetMeQueryKey, getGetLikeInboxQueryKey, getGetSentLikesQueryKey,
   useBlockProfile, useDiscoverProfiles, useGetConversations, useGetExMatches,
-  useGetMatches, useGetMessages, useGetAuthSession, useGetLikeInbox, useGetMe,
+  useGetMatches, useGetMessages, useGetAuthSession, useGetLikeInbox, useGetMe, useGetUserProfile,
   useGetSentLikes, useRematchProfile, useReportProfile, useUnlikeProfile,
   useRequestMessageAttachmentUploadUrl, useSendMessage, useSwipeProfile, useUnmatchProfile,
 } from '@workspace/api-client-react';
 import { type Conversation, type DiscoverProfilesParams, type LikeInboxItem, type Match, type Profile, ReportInputReason } from '@workspace/api-client-react';
-import { formatUnits, type Hex } from 'viem';
+import { formatUnits, getAddress, isAddress, type Hex } from 'viem';
 import { useConnection, usePublicClient, useReadContract, useWriteContract } from 'wagmi';
 import { AppShell, ChogArtwork, EmptyState, Eyebrow, PageTitle, ProfileAvatar, ProfileOpenButton, QueryState } from '@/components/shared';
 import { useProfileViewer } from '@/components/profile-viewer-context';
@@ -180,6 +180,23 @@ function SuperLikeDialog({
   const [phase, setPhase] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const recipientProfile = useGetUserProfile(profile?.userId ?? '', {
+    query: {
+      queryKey: getGetUserProfileQueryKey(profile?.userId ?? ''),
+      enabled: Boolean(profile),
+      staleTime: 0,
+      refetchOnMount: 'always',
+      refetchOnWindowFocus: true,
+      retry: false,
+    },
+  });
+  const recipientWallet =
+    profile &&
+    recipientProfile.data?.userId === profile.userId &&
+    recipientProfile.data.walletVerified &&
+    isAddress(recipientProfile.data.walletAddress)
+      ? getAddress(recipientProfile.data.walletAddress)
+      : null;
   const walletMatchesSession = Boolean(
     connection.address &&
     walletAddress &&
@@ -241,6 +258,20 @@ function SuperLikeDialog({
   async function confirmSuperLike() {
     setError('');
     if (!profile) return;
+    setPhase('Verifying the selected holder’s current wallet…');
+    const freshRecipient = await recipientProfile.refetch();
+    const verifiedRecipient =
+      !freshRecipient.isError &&
+      freshRecipient.data?.userId === profile.userId &&
+      freshRecipient.data.walletVerified &&
+      isAddress(freshRecipient.data.walletAddress)
+        ? getAddress(freshRecipient.data.walletAddress)
+        : null;
+    setPhase('');
+    if (!verifiedRecipient) {
+      setError('We could not verify this holder’s current wallet. No transaction was sent.');
+      return;
+    }
     if (transactionHash) {
       await recordConfirmedTransfer(transactionHash);
       return;
@@ -268,7 +299,7 @@ function SuperLikeDialog({
         address: appConfig.chogTokenAddress,
         abi: chogTokenAbi,
         functionName: 'transfer',
-        args: [profile.walletAddress as `0x${string}`, amount],
+        args: [verifiedRecipient, amount],
         chainId: monadNetwork.id,
       });
       setTransactionHash(hash);
@@ -315,7 +346,7 @@ function SuperLikeDialog({
           </DialogTitle>
           <DialogDescription className="text-sm leading-6 text-[#82778c]">
             Transfer 100 $CHOG to {profile ? `@${profile.username}` : 'this holder'} on Monad.
-            This is a real, irreversible transfer of 100 $CHOG. It does not create a mutual Match.
+            This immediately creates a Match. The transfer is real and irreversible.
           </DialogDescription>
         </DialogHeader>
         <div className="rounded-2xl border border-[#eadfe0] bg-white/70 px-4 py-3 text-sm text-[#594d64]">
@@ -323,7 +354,9 @@ function SuperLikeDialog({
             <span>Live balance</span>
             <strong className="tabular-nums">{balanceText === null ? (balance.isLoading || decimals.isLoading ? 'Loading…' : 'Unavailable') : `${balanceText} $CHOG`}</strong>
           </p>
-          {profile && <p className="mt-2 break-all text-[10px] leading-4 text-[#978a9b]">Recipient · {profile.walletAddress}</p>}
+          {profile && <p className="mt-2 break-all text-[10px] leading-4 text-[#7053a4]" data-testid="text-super-like-recipient">
+            Recipient · {recipientProfile.isFetching ? 'Verifying current wallet…' : recipientWallet ?? 'Wallet not verified'}
+          </p>}
         </div>
         {shortfallText !== null && balanceText !== null && (
           <p className="rounded-xl bg-[#fff0ee] px-3 py-2 text-xs leading-5 text-[#a34646]" role="status" data-testid="status-super-like-insufficient-balance">
@@ -342,7 +375,7 @@ function SuperLikeDialog({
         <button
           type="button"
           onClick={() => void confirmSuperLike()}
-          disabled={walletPending || saving || !profile || (amount !== null && insufficient) || phase.includes('sent')}
+          disabled={walletPending || saving || recipientProfile.isFetching || !profile || (amount !== null && insufficient) || phase.includes('sent')}
           className="button-primary w-full rounded-full px-5 py-3 text-sm font-bold disabled:opacity-50"
           data-testid="button-confirm-super-like"
         >
@@ -547,7 +580,7 @@ export function DiscoverPage() {
       result.matched
         ? "It's a match. Open Matches to start a conversation."
         : selected === 'super_like'
-          ? 'Super Like sent. 100 $CHOG was transferred; this does not create a Match.'
+          ? 'Super Like sent. 100 $CHOG was transferred.'
           : selected === 'like'
             ? 'Like sent. If they like you back, you’ll match.'
             : 'Profile passed.',
