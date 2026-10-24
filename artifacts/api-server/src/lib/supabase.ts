@@ -1,4 +1,3 @@
-import { createHmac } from "node:crypto";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import WebSocket from "ws";
 
@@ -46,18 +45,7 @@ export function getSupabasePublic(): SupabaseClient {
   );
 }
 
-export function getWalletAuthCredentials(walletAddress: string): {
-  email: string;
-  password: string;
-} {
-  const secret = requiredEnv("SESSION_SECRET");
+export function getWalletAuthEmail(walletAddress: string): string {
   const normalized = walletAddress.toLowerCase().replace(/^0x/, "");
-  const password = createHmac("sha256", secret)
-    .update(`chog-mate-wallet:${normalized}`)
-    .digest("hex");
-
-  return {
-    email: `wallet-${normalized}@wallet.chogmate.invalid`,
-    password,
-  };
+  return `wallet-${normalized}@wallet.chogmate.invalid`;
 }

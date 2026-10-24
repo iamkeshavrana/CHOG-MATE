@@ -5,7 +5,7 @@ import {
 } from "node:crypto";
 import type { Request, Response } from "express";
 import { recoverMessageAddress, getAddress, isAddress } from "viem";
-import { getSupabaseAdmin, getSupabasePublic, getWalletAuthCredentials } from "./supabase";
+import { getSupabaseAdmin, getSupabasePublic, getWalletAuthEmail } from "./supabase";
 
 const COOKIE_NAME = "chog_session";
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7;
@@ -100,29 +100,26 @@ export async function createWalletAuthSession(
   expiresIn: number;
 }> {
   const normalized = getAddress(walletAddress);
-  const credentials = getWalletAuthCredentials(normalized);
+  const email = getWalletAuthEmail(normalized);
   const admin = getSupabaseAdmin();
-  const { data: created, error: createError } = await admin.auth.admin.createUser({
-    email: credentials.email,
-    password: credentials.password,
-    email_confirm: true,
-    user_metadata: { wallet_address: normalized.toLowerCase() },
-  });
+  const { data: generated, error: generateError } =
+    await admin.auth.admin.generateLink({
+      type: "magiclink",
+      email,
+      options: { data: { wallet_address: normalized.toLowerCase() } },
+    });
+  if (generateError) {
+    throw generateError;
+  }
 
   const publicClient = getSupabasePublic();
-  const signInResult = await publicClient.auth.signInWithPassword(credentials);
-  const expectedUserId = created.user?.id;
-
-  const { data: signedIn, error: signInError } = signInResult;
+  const { data: signedIn, error: signInError } =
+    await publicClient.auth.verifyOtp({
+      token_hash: generated.properties.hashed_token,
+      type: "magiclink",
+    });
   if (signInError || !signedIn.user || !signedIn.session) {
-    throw (
-      signInError ??
-      createError ??
-      new Error("Wallet account could not be established")
-    );
-  }
-  if (expectedUserId && expectedUserId !== signedIn.user.id) {
-    throw new Error("Wallet account identity did not match");
+    throw signInError ?? new Error("Wallet account could not be established");
   }
 
   return {
