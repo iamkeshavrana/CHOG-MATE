@@ -17,7 +17,7 @@ cursor?: string;
  */
 limit?: number;
 /**
- * Search visible profiles by name, username, or active Chog token ID
+ * Search visible profiles by name, username, bio, interests, hobbies, languages, looking-for preferences, or active Chog token ID
  * @minLength 1
  * @maxLength 100
  */

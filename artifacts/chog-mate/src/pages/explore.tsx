@@ -203,7 +203,7 @@ export function ExplorePage() {
         <label className="explore-search">
           <Search size={19} aria-hidden="true" />
           <span className="sr-only">Search people by name, username, or Chog token ID</span>
-          <input value={searchInput} onChange={event => setSearchInput(event.target.value)} placeholder="Search Chog Mates…" maxLength={100} data-testid="input-explore-search" />
+          <input value={searchInput} onChange={event => setSearchInput(event.target.value)} placeholder="Search names, bios, interests…" aria-label="Search by name, username, bio, interests, hobbies, languages, or looking-for preferences" maxLength={100} data-testid="input-explore-search" />
           {searchInput && <button type="button" onClick={() => setSearchInput('')} aria-label="Clear search" data-testid="button-clear-search"><X size={16} /></button>}
           <span className="explore-search-shortcut">/</span>
         </label>
@@ -262,7 +262,7 @@ export function ExplorePage() {
           </div>
           <div className="explore-result-meta">
             {activeFilterCount > 0 && <span>{activeFilterCount} filters on</span>}
-            {!discovery.isLoading && <span>{profiles.length} profiles</span>}
+            {!discovery.isLoading && <span>{profiles.length} profiles{discovery.data?.nextCursor ? ' loaded · more available' : ''}</span>}
           </div>
         </div>
         {notice && <div className="explore-notice" role="status" data-testid="status-explore-action"><span>{notice}</span><button type="button" onClick={() => setNotice('')} aria-label="Dismiss message"><X size={15} /></button></div>}
@@ -271,7 +271,8 @@ export function ExplorePage() {
           {Array.from({ length: 6 }, (_, index) => <div className="explore-skeleton-card" key={index}><div className="explore-skeleton-art skeleton" /><div className="explore-skeleton-copy"><i className="skeleton" /><i className="skeleton" /><i className="skeleton" /></div></div>)}
         </div>}
         {discovery.isError && profiles.length === 0 && <div className="explore-state explore-state-error" role="alert" data-testid="error-explore-profiles"><span className="explore-state-mark">!</span><h3>Couldn’t reach the community.</h3><p>Your discovery filters are still here. Try loading profiles again.</p><button type="button" onClick={() => void discovery.refetch()} data-testid="button-retry-explore">Try again</button></div>}
-        {!discovery.isLoading && !discovery.isError && profiles.length === 0 && <div className="explore-state" data-testid="empty-explore-profiles"><span className="explore-state-mark"><Compass size={23} /></span><h3>{hasSearch ? 'No one found this time.' : 'Your next connection is still out there.'}</h3><p>{hasSearch ? 'Try a name, username, or active Chog token ID.' : 'Try another direction or loosen your filters to see more holders.'}</p><button type="button" onClick={clearFilters} data-testid="button-reset-explore-empty">Reset discovery</button></div>}
+        {!discovery.isLoading && !discovery.isError && profiles.length === 0 && discovery.data?.nextCursor && <div className="explore-state" role="status" data-testid="explore-more-results"><span className="explore-state-mark"><Compass size={23} /></span><h3>More results are available.</h3><p>There were no eligible profiles in this page. Load the next page to continue checking.</p></div>}
+        {!discovery.isLoading && !discovery.isError && profiles.length === 0 && !discovery.data?.nextCursor && <div className="explore-state" data-testid="empty-explore-profiles"><span className="explore-state-mark"><Compass size={23} /></span><h3>{hasSearch ? 'No one found this time.' : 'Your next connection is still out there.'}</h3><p>{hasSearch ? 'Try a name, username, bio, interest, hobby, language, or looking-for preference.' : 'Try another direction or loosen your filters to see more holders.'}</p><button type="button" onClick={clearFilters} data-testid="button-reset-explore-empty">Reset discovery</button></div>}
         {profiles.length > 0 && <div className="explore-profile-grid" data-testid="grid-explore-profiles">
           {profiles.map(profile => <article key={profile.userId} className="explore-profile-card" data-testid={`card-explore-profile-${profile.userId}`}>
             <button type="button" className="explore-profile-open" onClick={() => openProfile(profile, { source: 'explore', onLike: () => likeProfile(profile) })} aria-label={`Open ${profile.displayName}'s profile`} data-testid={`button-open-explore-profile-${profile.userId}`}>

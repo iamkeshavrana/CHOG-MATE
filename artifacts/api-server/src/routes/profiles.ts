@@ -513,6 +513,7 @@ router.get("/discover", async (req, res): Promise<void> => {
         .select("user_id")
         .eq("profile_visible", true)
         .order("updated_at", { ascending: false })
+          .order("user_id", { ascending: true })
         .range(offset, offset + pageSize - 1);
       if (candidatesError) {
         throw new SocialDataError("CHOG MATE database setup is incomplete.", candidatesError);
@@ -670,7 +671,7 @@ function parseCursor(cursor?: string): number {
   if (!cursor) return 0;
   const parsed = Number.parseInt(cursor, 10);
   if (!Number.isSafeInteger(parsed) || parsed < 0) return 0;
-  return Math.min(parsed, 10_000_000);
+  return Math.min(parsed, Number.MAX_SAFE_INTEGER - 1000);
 }
 
 function matchesExploreFilters(

@@ -355,7 +355,7 @@ paths:
             default: 12
         - name: search
           in: query
-          description: Search visible profiles by name, username, or active Chog token ID
+          description: Search visible profiles by name, username, bio, interests, hobbies, languages, looking-for preferences, or active Chog token ID
           schema:
             type: string
             minLength: 1
@@ -525,6 +525,42 @@ paths:
       responses:
         "204":
           description: Match restored
+        "403":
+          description: The signed-in user did not end this match
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [error]
+                properties:
+                  error: { type: string }
+        "404":
+          description: The match is not available to the signed-in user
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [error]
+                properties:
+                  error: { type: string }
+        "409":
+          description: The match is already active, blocked, or no longer eligible
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [error]
+                properties:
+                  error: { type: string }
+        "503":
+          description: Match data is temporarily unavailable
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [error]
+                properties:
+                  error: { type: string }
   /conversations:
     get:
       operationId: getConversations
@@ -1087,7 +1123,7 @@ components:
         rematchAvailable: { type: boolean }
     Conversation:
       type: object
-      required: [id, profile, compatibility, createdAt, status]
+      required: [id, profile, compatibility, createdAt, status, lastMessagePreview, lastMessageType, lastMessageAt]
       properties:
         id: { type: string, format: uuid }
         profile: { $ref: "#/components/schemas/Profile" }
@@ -1096,6 +1132,9 @@ components:
         lastActivity: { type: ["string", "null"], format: date-time }
         unreadCount: { type: integer, minimum: 0 }
         status: { type: string, enum: [active, unmatched] }
+        lastMessagePreview: { type: ["string", "null"] }
+        lastMessageType: { type: ["string", "null"], enum: [text, voice, image, file, null] }
+        lastMessageAt: { type: ["string", "null"], format: date-time }
     Message:
       type: object
       required: [id, matchId, senderId, content, createdAt, messageType, attachmentUrl, attachmentName, attachmentContentType, attachmentSize]

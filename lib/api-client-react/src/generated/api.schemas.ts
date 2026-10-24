@@ -392,6 +392,19 @@ export const ConversationStatus = {
   unmatched: 'unmatched',
 } as const;
 
+/**
+ * @nullable
+ */
+export type ConversationLastMessageType = typeof ConversationLastMessageType[keyof typeof ConversationLastMessageType] | null;
+
+
+export const ConversationLastMessageType = {
+  text: 'text',
+  voice: 'voice',
+  image: 'image',
+  file: 'file',
+} as const;
+
 export interface Conversation {
   id: string;
   profile: Profile;
@@ -406,6 +419,12 @@ export interface Conversation {
   /** @minimum 0 */
   unreadCount?: number;
   status: ConversationStatus;
+  /** @nullable */
+  lastMessagePreview: string | null;
+  /** @nullable */
+  lastMessageType: ConversationLastMessageType;
+  /** @nullable */
+  lastMessageAt: string | null;
 }
 
 export type MessageMessageType = typeof MessageMessageType[keyof typeof MessageMessageType];
@@ -702,7 +721,7 @@ cursor?: string;
  */
 limit?: number;
 /**
- * Search visible profiles by name, username, or active Chog token ID
+ * Search visible profiles by name, username, bio, interests, hobbies, languages, looking-for preferences, or active Chog token ID
  * @minLength 1
  * @maxLength 100
  */
@@ -773,4 +792,20 @@ export const DiscoverProfilesGender = {
   Trans: 'Trans',
   Alien: 'Alien',
 } as const;
+
+export type RematchProfile403 = {
+  error: string;
+};
+
+export type RematchProfile404 = {
+  error: string;
+};
+
+export type RematchProfile409 = {
+  error: string;
+};
+
+export type RematchProfile503 = {
+  error: string;
+};
 

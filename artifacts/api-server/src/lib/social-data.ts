@@ -194,6 +194,7 @@ export async function loadProfileBundle(
 
 export async function loadProfileBundles(
   userIds: string[],
+  options: { includePrivate?: boolean } = {},
 ): Promise<Map<string, ProfileBundle>> {
   const results = new Map<string, ProfileBundle>();
   if (userIds.length === 0) return results;
@@ -242,7 +243,12 @@ export async function loadProfileBundles(
     const profile = profileMap.get(userId);
     const user = userMap.get(userId);
     const choices = chogMap.get(userId) ?? [];
-    if (!profile || !user || !profile.profile_visible || choices.length === 0) continue;
+    if (
+      !profile ||
+      !user ||
+      (!options.includePrivate && !profile.profile_visible) ||
+      choices.length === 0
+    ) continue;
     const chog =
       choices.find((item) => item.token_id === profile.active_chog_token_id) ?? choices[0];
     results.set(userId, {

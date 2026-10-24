@@ -5,6 +5,7 @@
  * CHOG MATE wallet, NFT, profile, discovery, and social API
  * OpenAPI spec version: 0.1.0
  */
+import type { ConversationLastMessageType } from './conversationLastMessageType';
 import type { ConversationStatus } from './conversationStatus';
 import type { Profile } from './profile';
 
@@ -22,4 +23,10 @@ export interface Conversation {
   /** @minimum 0 */
   unreadCount?: number;
   status: ConversationStatus;
+  /** @nullable */
+  lastMessagePreview: string | null;
+  /** @nullable */
+  lastMessageType: ConversationLastMessageType;
+  /** @nullable */
+  lastMessageAt: Date | null;
 }

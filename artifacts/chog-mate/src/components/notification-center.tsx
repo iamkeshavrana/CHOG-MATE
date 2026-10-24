@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Bell, CheckCheck, Gift, Heart, MessageCircle, Sparkles, Video, X } from "lucide-react";
 import { Link } from "wouter";
+import {
+  getGetConversationsQueryKey,
+  getGetExMatchesQueryKey,
+  getGetLikeInboxQueryKey,
+  getGetMatchesQueryKey,
+  getGetSentLikesQueryKey,
+} from "@workspace/api-client-react";
 import { supabase } from "@/lib/supabase";
 import { createNotificationChannelLifecycle } from "@/lib/notification-channel-lifecycle";
 import { useProfileViewer } from "@/components/profile-viewer-context";
@@ -17,6 +25,7 @@ type NotificationRow = {
 
 export function NotificationCenter() {
   const { openProfileById } = useProfileViewer();
+  const queryClient = useQueryClient();
   const [userId, setUserId] = useState<string | null>(null);
   const [items, setItems] = useState<NotificationRow[]>([]);
   const [actorUsernames, setActorUsernames] = useState<Record<string, string>>({});
@@ -87,6 +96,19 @@ export function NotificationCenter() {
             [inserted, ...current.filter((item) => item.id !== inserted.id)].slice(0, 30),
           );
           void loadActorUsernames(nextUserId, [inserted]);
+          if (inserted.type === "like" || inserted.type === "super_like") {
+            void queryClient.invalidateQueries({ queryKey: getGetLikeInboxQueryKey() });
+          } else if (inserted.type === "match") {
+            void Promise.all([
+              queryClient.invalidateQueries({ queryKey: getGetLikeInboxQueryKey() }),
+              queryClient.invalidateQueries({ queryKey: getGetMatchesQueryKey() }),
+              queryClient.invalidateQueries({ queryKey: getGetSentLikesQueryKey() }),
+              queryClient.invalidateQueries({ queryKey: getGetConversationsQueryKey() }),
+              queryClient.invalidateQueries({ queryKey: getGetExMatchesQueryKey() }),
+            ]);
+          } else if (inserted.type === "message") {
+            void queryClient.invalidateQueries({ queryKey: getGetConversationsQueryKey() });
+          }
         } else if (change.eventType === "UPDATE") {
           const updated = change.new;
           setItems((current) =>
@@ -128,7 +150,7 @@ export function NotificationCenter() {
         console.error("Unable to remove the notification channel", error);
       });
     };
-  }, []);
+  }, [queryClient]);
 
   async function markRead(item: NotificationRow) {
     const client = supabase;

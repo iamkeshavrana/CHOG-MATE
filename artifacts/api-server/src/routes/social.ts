@@ -309,7 +309,7 @@ router.get("/likes/inbox", async (req, res): Promise<void> => {
     }
 
     const senderIds = [...bySender.keys()];
-    const bundles = await loadProfileBundles(senderIds);
+    const bundles = await loadProfileBundles(senderIds, { includePrivate: true });
     const inbox = [];
     for (const [senderId, like] of bySender) {
       const bundle = bundles.get(senderId);
@@ -401,7 +401,9 @@ router.get("/likes/sent", async (req, res): Promise<void> => {
       }
     }
 
-    const bundles = await loadProfileBundles([...byRecipient.keys()]);
+    const bundles = await loadProfileBundles([...byRecipient.keys()], {
+      includePrivate: true,
+    });
     const outgoing = [];
     for (const [recipientId, like] of byRecipient) {
       const bundle = bundles.get(recipientId);
@@ -589,9 +591,40 @@ router.get("/conversations", async (req, res): Promise<void> => {
     const rows = [...((asA.data ?? []) as MatchRow[]), ...((asB.data ?? []) as MatchRow[])]
       .filter((row) => !excluded.has(row.user_a === session.userId ? row.user_b : row.user_a));
     rows.sort((a, b) => (b.last_activity ?? b.created_at).localeCompare(a.last_activity ?? a.created_at));
-    res.json(GetConversationsResponse.parse(
-      await buildMatchItems(rows, session.userId),
-    ));
+    const conversations = await buildMatchItems(rows, session.userId);
+    const withPreviews = await Promise.all(
+      conversations.map(async (conversation) => {
+        const matchId = conversation.id;
+        if (typeof matchId !== "string") {
+          return {
+            ...conversation,
+            lastMessagePreview: null,
+            lastMessageType: null,
+            lastMessageAt: null,
+          };
+        }
+
+        const { data: latestMessage, error: latestMessageError } = await admin
+          .from("messages")
+          .select("content,message_type,created_at")
+          .eq("match_id", matchId)
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (latestMessageError) {
+          throw new SocialDataError("CHOG MATE messages are not ready yet.");
+        }
+
+        return {
+          ...conversation,
+          lastMessagePreview: latestMessage?.content ?? null,
+          lastMessageType: latestMessage?.message_type ?? null,
+          lastMessageAt: latestMessage?.created_at ?? null,
+        };
+      }),
+    );
+    res.json(GetConversationsResponse.parse(withPreviews));
   } catch (error) {
     sendSocialError(req, res, error);
   }
@@ -608,14 +641,69 @@ router.post("/matches/:matchId/rematch", async (req, res): Promise<void> => {
 
   try {
     await requireEligibleProfile(session);
-    const { data, error } = await getSupabaseAdmin().rpc("rematch_match", {
+    const admin = getSupabaseAdmin();
+    const { data: match, error: matchError } = await admin
+      .from("matches")
+      .select("id,user_a,user_b,status,unmatched_by")
+      .eq("id", parsed.data.matchId)
+      .maybeSingle();
+    if (matchError) throw new SocialDataError("The match could not be restored.");
+    if (!match || (match.user_a !== session.userId && match.user_b !== session.userId)) {
+      res.status(404).json({ error: "That Ex Match is not available." });
+      return;
+    }
+    if (match.status === "active") {
+      res.status(409).json({
+        error: "This Match has already been restored. Refresh your connections.",
+      });
+      return;
+    }
+    if (match.status !== "unmatched") {
+      res.status(409).json({
+        error: "This Ex Match is no longer eligible for Rematch.",
+      });
+      return;
+    }
+    if (match.unmatched_by !== session.userId) {
+      res.status(403).json({
+        error: "Only the person who ended this Match can restore it.",
+      });
+      return;
+    }
+
+    const otherUserId = match.user_a === session.userId ? match.user_b : match.user_a;
+    const [blockedByMe, blockedMe] = await Promise.all([
+      admin
+        .from("blocks")
+        .select("id")
+        .eq("blocker_id", session.userId)
+        .eq("blocked_user_id", otherUserId)
+        .maybeSingle(),
+      admin
+        .from("blocks")
+        .select("id")
+        .eq("blocker_id", otherUserId)
+        .eq("blocked_user_id", session.userId)
+        .maybeSingle(),
+    ]);
+    if (blockedByMe.error || blockedMe.error) {
+      throw new SocialDataError("The match could not be restored.");
+    }
+    if (blockedByMe.data || blockedMe.data) {
+      res.status(409).json({
+        error: "Rematch is unavailable while a block is active.",
+      });
+      return;
+    }
+
+    const { data, error } = await admin.rpc("rematch_match", {
       p_match_id: parsed.data.matchId,
       p_user_id: session.userId,
     });
     if (error) throw new SocialDataError("The match could not be restored.");
     if (data !== true) {
       res.status(409).json({
-        error: "Rematch is unavailable. Only the person who ended the match can restore it, and blocked users cannot rematch.",
+        error: "This Ex Match changed before it could be restored. Refresh your connections and try again.",
       });
       return;
     }
@@ -1105,7 +1193,7 @@ async function buildMatchItems(
 ): Promise<Record<string, unknown>[]> {
   if (rows.length === 0) return [];
   const otherIds = rows.map((row) => (row.user_a === userId ? row.user_b : row.user_a));
-  const bundles = await loadProfileBundles(otherIds);
+  const bundles = await loadProfileBundles(otherIds, { includePrivate: true });
   const admin = getSupabaseAdmin();
   const items: Record<string, unknown>[] = [];
 

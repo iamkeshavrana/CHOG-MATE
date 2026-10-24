@@ -8,28 +8,28 @@ interface DiscoverSearchProfileRow {
   active_chog_token_id: string | null;
 }
 
-type DiscoverSearchColumn = "name" | "display_name" | "username";
+interface SearchableProfileRow extends DiscoverSearchProfileRow {
+  name: string | null;
+  display_name: string | null;
+  username: string | null;
+  bio: string | null;
+  looking_for_other: string | null;
+  interests: string[] | null;
+  hobbies: string[] | null;
+  languages: string[] | null;
+  looking_for: string[] | null;
+}
+
 type SupabaseAdmin = ReturnType<typeof getSupabaseAdmin>;
 
 const SEARCH_BATCH_SIZE = 1000;
-const SEARCHABLE_PROFILE_COLUMNS: DiscoverSearchColumn[] = [
-  "name",
-  "display_name",
-  "username",
-];
 
 export async function findDiscoverSearchCandidates(
   admin: SupabaseAdmin,
   searchTerm: string,
 ): Promise<DiscoverSearchProfileRow[]> {
-  const pattern = `%${escapeLikePattern(searchTerm)}%`;
-  const profileMatches = await Promise.all(
-    SEARCHABLE_PROFILE_COLUMNS.map((column) =>
-      loadVisibleProfilesMatching(admin, column, pattern),
-    ),
-  );
   const candidates = new Map<string, DiscoverSearchProfileRow>();
-  for (const profile of profileMatches.flat()) {
+  for (const profile of await loadVisibleProfilesMatching(admin, searchTerm)) {
     candidates.set(profile.user_id, profile);
   }
 
@@ -70,23 +70,43 @@ export async function findDiscoverSearchCandidates(
 
 async function loadVisibleProfilesMatching(
   admin: SupabaseAdmin,
-  column: DiscoverSearchColumn,
-  pattern: string,
-): Promise<DiscoverSearchProfileRow[]> {
-  const rows: DiscoverSearchProfileRow[] = [];
+  searchTerm: string,
+): Promise<SearchableProfileRow[]> {
+  const rows: SearchableProfileRow[] = [];
+  const normalizedTerm = searchTerm.toLocaleLowerCase();
   for (let offset = 0; ; offset += SEARCH_BATCH_SIZE) {
     const { data, error } = await admin
       .from("profiles")
-      .select("user_id,updated_at,active_chog_token_id")
+      .select(
+        "user_id,updated_at,active_chog_token_id,name,display_name,username,bio,looking_for_other,interests,hobbies,languages,looking_for",
+      )
       .eq("profile_visible", true)
-      .ilike(column, pattern)
       .order("updated_at", { ascending: false })
       .order("user_id", { ascending: true })
       .range(offset, offset + SEARCH_BATCH_SIZE - 1);
     if (error) {
       throw new SocialDataError("CHOG MATE database setup is incomplete.", error);
     }
-    rows.push(...((data ?? []) as DiscoverSearchProfileRow[]));
+    for (const profile of (data ?? []) as SearchableProfileRow[]) {
+      const searchableValues = [
+        profile.name,
+        profile.display_name,
+        profile.username,
+        profile.bio,
+        profile.looking_for_other,
+        ...(profile.interests ?? []),
+        ...(profile.hobbies ?? []),
+        ...(profile.languages ?? []),
+        ...(profile.looking_for ?? []),
+      ];
+      if (
+        searchableValues.some((value) =>
+          value?.toLocaleLowerCase().includes(normalizedTerm),
+        )
+      ) {
+        rows.push(profile);
+      }
+    }
     if ((data?.length ?? 0) < SEARCH_BATCH_SIZE) break;
   }
   return rows;

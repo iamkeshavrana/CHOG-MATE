@@ -1,7 +1,7 @@
 import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowRight, BadgeCheck, FileText, Heart, Image as ImageIcon, MessageCircle, Mic, MoreHorizontal, Paperclip, Phone, Send, Sparkles, Undo2, Video, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BadgeCheck, FileText, Heart, Image as ImageIcon, MessageCircle, Mic, MoreHorizontal, Paperclip, Phone, Send, Sparkles, Undo2, Video, X } from 'lucide-react';
 import { Link } from 'wouter';
 import {
   getGetAuthSessionQueryKey,
@@ -13,7 +13,7 @@ import {
   useGetSentLikes, useRematchProfile, useReportProfile, useUnlikeProfile,
   useRequestMessageAttachmentUploadUrl, useSendMessage, useSwipeProfile, useUnmatchProfile,
 } from '@workspace/api-client-react';
-import { type DiscoverProfilesParams, type LikeInboxItem, type Match, type Profile, ReportInputReason } from '@workspace/api-client-react';
+import { type Conversation, type DiscoverProfilesParams, type LikeInboxItem, type Match, type Profile, ReportInputReason } from '@workspace/api-client-react';
 import { formatUnits, type Hex } from 'viem';
 import { useConnection, usePublicClient, useReadContract, useWriteContract } from 'wagmi';
 import { AppShell, ChogArtwork, EmptyState, Eyebrow, PageTitle, ProfileAvatar, ProfileOpenButton, QueryState } from '@/components/shared';
@@ -700,7 +700,13 @@ export function MatchesPage() {
     query: { enabled: Boolean(me.data), queryKey: getGetExMatchesQueryKey() },
   });
   const inbox = useGetLikeInbox({
-    query: { enabled: Boolean(me.data), queryKey: getGetLikeInboxQueryKey() },
+    query: {
+      enabled: Boolean(me.data),
+      queryKey: getGetLikeInboxQueryKey(),
+      staleTime: 0,
+      refetchOnMount: 'always',
+      refetchOnWindowFocus: true,
+    },
   });
   const sent = useGetSentLikes({
     query: { enabled: Boolean(me.data), queryKey: getGetSentLikesQueryKey() },
@@ -725,6 +731,13 @@ export function MatchesPage() {
     window.addEventListener('hashchange', syncSectionFromHash);
     return () => window.removeEventListener('hashchange', syncSectionFromHash);
   }, []);
+  useEffect(() => {
+    if (!me.data) return;
+    if (section === 'liked-you') void qc.invalidateQueries({ queryKey: getGetLikeInboxQueryKey() });
+    else if (section === 'liked-by-you') void qc.invalidateQueries({ queryKey: getGetSentLikesQueryKey() });
+    else if (section === 'ex-match') void qc.invalidateQueries({ queryKey: getGetExMatchesQueryKey() });
+    else if (section === 'matches') void qc.invalidateQueries({ queryKey: getGetMatchesQueryKey() });
+  }, [section, me.data, qc]);
   function chooseSection(next: 'matches' | 'ex-match' | 'liked-you' | 'liked-by-you') {
     setSection(next);
     const hash = next === 'liked-you'
@@ -977,8 +990,8 @@ function RematchAction({ matchId, onRematched }: { matchId: string; onRematched:
     try {
       await rematch.mutateAsync({ matchId });
       onRematched();
-    } catch {
-      setNotice("Rematch isn't available. The other person may have blocked you.");
+    } catch (error) {
+      setNotice(getApiErrorMessage(error, 'The rematch could not be completed.'));
     }
   }
 
@@ -999,18 +1012,34 @@ function RematchAction({ matchId, onRematched }: { matchId: string; onRematched:
 export function MessagesPage() {
   const callControls = useCallControls();
   const [selectedMatch, setSelectedMatch] = useState(()=>typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('match') || '' : '');
+  const [mobileViewport, setMobileViewport] = useState(() =>
+    typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches,
+  );
+  const [chatViewportHeight, setChatViewportHeight] = useState<number | null>(null);
   const currentProfile = useGetMe({ query: { queryKey: getGetMeQueryKey(), retry: false } });
   const { data: conversations, isLoading: conversationsLoading, isError: conversationsError, refetch: retryConversations } = useGetConversations({
-    query: { enabled: Boolean(currentProfile.data), queryKey: getGetConversationsQueryKey() },
+    query: {
+      enabled: Boolean(currentProfile.data),
+      queryKey: getGetConversationsQueryKey(),
+      staleTime: 0,
+      refetchOnMount: 'always',
+      refetchOnWindowFocus: true,
+    },
   });
-  const match = conversations?.find(item=>item.id === selectedMatch) || conversations?.[0];
+  const match = selectedMatch
+    ? conversations?.find(item => item.id === selectedMatch)
+    : mobileViewport
+      ? undefined
+      : conversations?.[0];
   const matchId = match?.id || '';
+  const chatOpen = Boolean(match && (!mobileViewport || selectedMatch === match.id));
+  const mobileChatOpen = mobileViewport && chatOpen && selectedMatch === match?.id;
   const conversationCanSend = Boolean(match);
   const messageKey = getGetMessagesQueryKey(matchId);
-  const { data: messages, isLoading, isError, refetch } = useGetMessages(matchId, { query: { enabled:!!matchId && Boolean(currentProfile.data), queryKey:messageKey } });
+  const { data: messages, isLoading, isError, refetch } = useGetMessages(matchId, { query: { enabled:chatOpen && Boolean(matchId) && Boolean(currentProfile.data), queryKey:messageKey } });
   const callHistory = useQuery({
     queryKey: ['call-history', matchId],
-    enabled: Boolean(matchId && currentProfile.data && supabase),
+    enabled: Boolean(chatOpen && matchId && currentProfile.data && supabase),
     queryFn: async () => {
       const client = supabase;
       if (!client) return [];
@@ -1038,6 +1067,7 @@ export function MessagesPage() {
   const recorderRef = useRef<MediaRecorder | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const messageChannelCleanupRef = useRef<Promise<unknown>>(Promise.resolve());
   const imageInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const voiceDraftUrl = useMemo(
@@ -1054,6 +1084,37 @@ export function MessagesPage() {
   useEffect(() => () => {
     if (imageDraftUrl) URL.revokeObjectURL(imageDraftUrl);
   }, [imageDraftUrl]);
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 767px)');
+    const syncViewport = () => setMobileViewport(mediaQuery.matches);
+    mediaQuery.addEventListener('change', syncViewport);
+    syncViewport();
+    return () => mediaQuery.removeEventListener('change', syncViewport);
+  }, []);
+  useEffect(() => {
+    if (!selectedMatch || !conversations || conversations.some(item => item.id === selectedMatch)) return;
+    setSelectedMatch('');
+    updateMessageMatchQuery('');
+  }, [conversations, selectedMatch]);
+  useEffect(() => {
+    if (!mobileChatOpen) {
+      setChatViewportHeight(null);
+      return;
+    }
+    const visualViewport = window.visualViewport;
+    const updateHeight = () => setChatViewportHeight(
+      Math.round(visualViewport?.height ?? window.innerHeight),
+    );
+    updateHeight();
+    visualViewport?.addEventListener('resize', updateHeight);
+    visualViewport?.addEventListener('scroll', updateHeight);
+    window.addEventListener('resize', updateHeight);
+    return () => {
+      visualViewport?.removeEventListener('resize', updateHeight);
+      visualViewport?.removeEventListener('scroll', updateHeight);
+      window.removeEventListener('resize', updateHeight);
+    };
+  }, [mobileChatOpen]);
   useEffect(() => {
     setVoiceDraft(null);
     setImageDraft(null);
@@ -1073,22 +1134,37 @@ export function MessagesPage() {
   }, [recording]);
   useEffect(() => {
     const client = supabase;
-    if (!matchId || !client) return;
-    const channel = client
-      .channel(`match-messages:${matchId}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages', filter: `match_id=eq.${matchId}` },
-        () => {
-          void qc.invalidateQueries({ queryKey: getGetMessagesQueryKey(matchId) });
-          void qc.invalidateQueries({ queryKey: getGetMatchesQueryKey() });
-        },
-      )
-      .subscribe();
+    if (!chatOpen || !matchId || !client) return;
+    let disposed = false;
+    let channel: ReturnType<typeof client.channel> | null = null;
+    void messageChannelCleanupRef.current.then(() => {
+      if (disposed) return;
+      channel = client
+        .channel(`match-messages:${matchId}`)
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'messages', filter: `match_id=eq.${matchId}` },
+          () => {
+            if (disposed) return;
+            void qc.invalidateQueries({ queryKey: getGetMessagesQueryKey(matchId) });
+            void qc.invalidateQueries({ queryKey: getGetMatchesQueryKey() });
+            void qc.invalidateQueries({ queryKey: getGetConversationsQueryKey() });
+          },
+        )
+        .subscribe();
+    }).catch(error => {
+      if (!disposed) console.error('Unable to subscribe to this conversation', error);
+    });
     return () => {
-      void client.removeChannel(channel);
+      disposed = true;
+      if (channel) {
+        const channelToRemove = channel;
+        messageChannelCleanupRef.current = messageChannelCleanupRef.current
+          .catch(() => undefined)
+          .then(() => client.removeChannel(channelToRemove));
+      }
     };
-  }, [matchId, qc]);
+  }, [chatOpen, matchId, qc]);
   useEffect(() => {
     const client = supabase;
     if (!matchId || !client) return;
@@ -1152,6 +1228,7 @@ export function MessagesPage() {
       if (messageType === 'image') setImageDraft(null);
       await qc.invalidateQueries({ queryKey: messageKey });
       await qc.invalidateQueries({ queryKey: getGetMatchesQueryKey() });
+      await qc.invalidateQueries({ queryKey: getGetConversationsQueryKey() });
     } catch (error) {
       setMediaError(error instanceof Error ? error.message : 'The attachment could not be sent.');
     } finally {
@@ -1241,9 +1318,13 @@ export function MessagesPage() {
       await send.mutateAsync({ matchId, data:{content:content.trim()} });
       setContent('');
       await qc.invalidateQueries({queryKey:messageKey});
+      await qc.invalidateQueries({queryKey:getGetConversationsQueryKey()});
     } catch { /* The inline mutation error below remains visible. */ }
   }
-  function choose(id:string) { setSelectedMatch(id); }
+  function choose(id:string) {
+    setSelectedMatch(id);
+    updateMessageMatchQuery(id);
+  }
   const [walletDialogOpen, setWalletDialogOpen] = useState(true);
   if (currentProfile.isLoading) return <AppShell><div className="skeleton h-96 rounded-[28px]"/></AppShell>;
   if (currentProfile.isError && !isUnauthorized(currentProfile.error)) return <AppShell><QueryState loading={false} error retry={()=>void currentProfile.refetch()}><div/></QueryState></AppShell>;
@@ -1251,29 +1332,89 @@ export function MessagesPage() {
   if (conversationsLoading) return <AppShell><div className="skeleton h-96 rounded-[28px]"/></AppShell>;
   if (conversationsError) return <AppShell><QueryState loading={false} error retry={()=>void retryConversations()}><div/></QueryState></AppShell>;
   if (!conversations?.length) return <AppShell><PageTitle eyebrow="A good conversation starts here" title="Messages."/><EmptyState title="No chats just yet." detail="A conversation opens after a mutual match. Your messages will be waiting here." action={<Link href="/discover" className="button-primary rounded-full px-5 py-3 text-sm font-bold" data-testid="link-discover-from-messages">Discover holders</Link>}/></AppShell>;
-  return <AppShell><div className="page-enter">
-    <PageTitle eyebrow="Your conversations" title="Messages." description="A little hello can go a long way." />
-    <div className="surface grid min-h-[570px] overflow-hidden rounded-[28px] md:grid-cols-[300px_1fr]">
-        <aside className="border-b border-[#24133f12] bg-[#eee7fb] md:border-b-0 md:border-r"><div className="px-5 py-4"><Eyebrow>Conversation history</Eyebrow><h2 className="display text-xl font-extrabold text-[#24133f]">Your people</h2></div><div className="flex gap-2 overflow-x-auto px-3 pb-4 md:block md:space-y-1 md:px-2">{conversations.map(item=>{
-          const profileOptions = item.status === 'unmatched'
-            ? { source: 'ex-match' as const, matchId: item.id }
-            : { source: 'matched' as const, matchId: item.id };
-          return <div key={item.id} className={`flex min-w-[200px] items-center gap-3 rounded-2xl p-3 transition md:w-full ${matchId===item.id?'bg-[#eee8ff]':'hover:bg-[#f6f1e9]'}`} data-testid={`conversation-${item.id}`}>
-            <ProfileAvatar profile={item.profile} size="sm" options={profileOptions}/>
-            <button type="button" onClick={()=>choose(item.id)} className="min-w-0 flex-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9b7ad8]" data-testid={`button-conversation-${item.id}`}>
-              <span className="block truncate text-sm font-bold text-[#35264b]">{item.profile.displayName}</span>
-              <span className="block truncate text-xs text-[#8b8091]">@{item.profile.username}{item.status === 'unmatched' ? ' · Unmatched' : ''}</span>
-            </button>
-            {(item.unreadCount||0)>0 && <span className="grid h-5 min-w-5 place-items-center rounded-full bg-[#7047ff] px-1 text-[10px] font-bold text-white">{item.unreadCount}</span>}
-          </div>;
-        })}</div></aside>
-      <section className="flex min-h-[460px] flex-col">
-          {match && <header className="flex flex-wrap items-center gap-3 border-b border-[#24133f12] px-5 py-4"><ProfileAvatar profile={match.profile} size="sm" options={match.status === 'unmatched' ? { source: 'ex-match', matchId: match.id } : { source: 'matched', matchId: match.id }}/><ProfileOpenButton profile={match.profile} options={match.status === 'unmatched' ? { source: 'ex-match', matchId: match.id } : { source: 'matched', matchId: match.id }} className="min-w-0 flex-1 text-left" label={`Open ${match.profile.displayName}'s full profile`}><p className="truncate font-bold text-[#35264b]">{match.profile.displayName}</p><p className="truncate text-xs text-[#887c90]">@{match.profile.username} · Chog holder</p></ProfileOpenButton><div className="flex items-center gap-2">
-           <button type="button" onClick={()=>void callControls.startCall(match.id,'audio',match.profile)} disabled={match.status!=='active'||callControls.busy||Boolean(callControls.activeCall)} title={match.status==='active'?'Start an audio call':'Calls require an active match'} className="inline-flex items-center gap-2 rounded-full border border-[#e9e0d3] px-3 py-2 text-xs font-semibold text-[#6246b0] transition hover:bg-[#f7f2ff] disabled:cursor-not-allowed disabled:opacity-50" data-testid="button-audio-call"><Phone size={15}/>Audio</button>
-           <button type="button" onClick={()=>void callControls.startCall(match.id,'video',match.profile)} disabled={match.status!=='active'||callControls.busy||Boolean(callControls.activeCall)} title={match.status==='active'?'Start a video call':'Calls require an active match'} className="inline-flex items-center gap-2 rounded-full border border-[#e9e0d3] px-3 py-2 text-xs font-semibold text-[#6246b0] transition hover:bg-[#f7f2ff] disabled:cursor-not-allowed disabled:opacity-50" data-testid="button-video-call"><Video size={15}/>Video</button>
-         </div></header>}
+  return <AppShell><div
+    className={`page-enter messages-page ${mobileChatOpen ? 'mobile-chat-open' : ''}`}
+    style={mobileChatOpen && chatViewportHeight ? { height: `${chatViewportHeight}px` } : undefined}
+  >
+     <div className="messages-page-title"><PageTitle eyebrow="Your conversations" title="Messages." description="A little hello can go a long way." /></div>
+     <div className="surface messages-layout grid min-h-[570px] overflow-hidden rounded-[28px] md:grid-cols-[300px_1fr]">
+       <aside className="messages-contacts border-b border-[#24133f12] bg-[#eee7fb] md:border-b-0 md:border-r" aria-label="Conversations">
+         <div className="messages-contacts-heading px-5 py-4"><Eyebrow>Conversation history</Eyebrow><h2 className="display text-xl font-extrabold text-[#24133f]">Your people</h2></div>
+         <div className="messages-contact-list space-y-1 px-2 pb-3">
+           {conversations.map(item => {
+             const selected = matchId === item.id;
+             return <button
+               key={item.id}
+               type="button"
+               onClick={() => choose(item.id)}
+               aria-current={selected ? 'true' : undefined}
+               aria-label={`Open conversation with ${item.profile.displayName}`}
+               className={`messages-contact-row ${selected ? 'is-selected' : ''}`}
+               data-testid={`conversation-${item.id}`}
+             >
+               <span className="messages-contact-art"><ChogArtwork chog={item.profile.chog} fit="contain" className="rounded-full"/></span>
+               <span className="messages-contact-copy">
+                 <span className="messages-contact-title">
+                   <span className={`messages-contact-name ${(item.unreadCount ?? 0) > 0 ? 'has-unread' : ''}`}>{item.profile.displayName}</span>
+                   {item.lastMessageAt && <time className="messages-contact-time" dateTime={item.lastMessageAt}>{formatConversationTime(item.lastMessageAt)}</time>}
+                 </span>
+                 <span className="messages-contact-username">@{item.profile.username}{item.status === 'unmatched' ? ' · Unmatched' : ''}</span>
+                 <span className={`messages-contact-preview ${(item.unreadCount ?? 0) > 0 ? 'has-unread' : ''}`}>{getConversationPreview(item)}</span>
+               </span>
+               {(item.unreadCount ?? 0) > 0 && <span className="messages-unread-count" aria-label={`${item.unreadCount} unread messages`}>{item.unreadCount}</span>}
+             </button>;
+           })}
+         </div>
+       </aside>
+       <section className="messages-chat flex min-h-[460px] flex-col">
+           {match && <header className="messages-chat-header flex flex-wrap items-center gap-3 border-b border-[#24133f12] px-5 py-4">
+             <button
+               type="button"
+               onClick={() => choose('')}
+               className="messages-back-button"
+               aria-label="Back to conversations"
+               data-testid="button-back-to-conversations"
+             ><ArrowLeft size={19}/></button>
+             <ProfileOpenButton
+               profile={match.profile}
+               options={match.status === 'unmatched' ? { source: 'ex-match', matchId: match.id } : { source: 'matched', matchId: match.id }}
+               className="messages-chat-identity min-w-0 flex-1 text-left"
+               label={`Open ${match.profile.displayName}'s full profile`}
+             >
+               <span className="messages-chat-art"><ChogArtwork chog={match.profile.chog} fit="contain" className="rounded-full"/></span>
+               <span className="messages-chat-person">
+                 <span className="messages-chat-name">{match.profile.displayName}</span>
+                 <span className="messages-chat-username">@{match.profile.username} · Chog holder</span>
+               </span>
+             </ProfileOpenButton>
+             <div className="messages-chat-actions flex items-center gap-2">
+               <button
+                 type="button"
+                 onClick={() => void callControls.startCall(match.id, 'audio', match.profile)}
+                 disabled={match.status !== 'active' || callControls.busy || Boolean(callControls.activeCall)}
+                 title={match.status === 'active' ? 'Start an audio call' : 'Calls require an active match'}
+                 aria-label="Start audio call"
+                 className="messages-call-button inline-flex items-center gap-2 rounded-full border border-[#e9e0d3] px-3 py-2 text-xs font-semibold text-[#6246b0] transition hover:bg-[#f7f2ff] disabled:cursor-not-allowed disabled:opacity-50"
+                 data-testid="button-audio-call"
+               ><Phone size={15}/><span className="messages-call-label">Audio</span></button>
+               <button
+                 type="button"
+                 onClick={() => void callControls.startCall(match.id, 'video', match.profile)}
+                 disabled={match.status !== 'active' || callControls.busy || Boolean(callControls.activeCall)}
+                 title={match.status === 'active' ? 'Start a video call' : 'Calls require an active match'}
+                 aria-label="Start video call"
+                 className="messages-call-button inline-flex items-center gap-2 rounded-full border border-[#e9e0d3] px-3 py-2 text-xs font-semibold text-[#6246b0] transition hover:bg-[#f7f2ff] disabled:cursor-not-allowed disabled:opacity-50"
+                 data-testid="button-video-call"
+               ><Video size={15}/><span className="messages-call-label">Video</span></button>
+               <ReportControl
+                 profile={match.profile}
+                 canInteract={Boolean(currentProfile.data)}
+                 onAuthRequired={() => setWalletDialogOpen(true)}
+               />
+             </div>
+           </header>}
          {match?.status === 'unmatched' && <p className="border-b border-[#24133f12] bg-[#fffaf0] px-5 py-3 text-xs leading-5 text-[#806b47]" role="status">You are no longer matched, but this conversation remains available until either person blocks the other.</p>}
-        <div className="flex flex-1 flex-col gap-3 overflow-y-auto bg-[radial-gradient(ellipse_at_top,#f7f2ff_0,transparent_68%)] p-5">
+         <div className="messages-chat-transcript flex flex-1 flex-col gap-3 overflow-y-auto bg-[radial-gradient(ellipse_at_top,#f7f2ff_0,transparent_68%)] p-5">
            {callHistory.data?.length ? (
              <section className="mb-1 space-y-2" aria-label="Call history" data-testid="call-history">
                <h3 className="text-[10px] font-bold uppercase tracking-[.16em] text-[#8b8091]">Recent calls</h3>
@@ -1322,7 +1463,7 @@ export function MessagesPage() {
           {send.isError && <p className="text-right text-xs text-[#a34646]" role="alert" data-testid="status-send-error">Message not sent. Please try again.</p>}
           {mediaError && <p className="text-right text-xs text-[#a34646]" role="alert" data-testid="status-media-error">{mediaError}</p>}
         </div>
-        <form onSubmit={submit} className="border-t border-[#24133f12] p-4">
+         <form onSubmit={submit} className="messages-chat-composer border-t border-[#24133f12] p-4">
            {imageDraft && imageDraftUrl && <div className="mb-3 flex items-center gap-3 rounded-2xl bg-[#f5f0ff] p-3"><img src={imageDraftUrl} alt="Image preview before sending" className="h-16 w-16 shrink-0 rounded-xl object-cover"/><span className="min-w-0 flex-1 truncate text-xs font-semibold text-[#594d64]">{imageDraft.name}</span><button type="button" onClick={()=>setImageDraft(null)} className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-[#7357a7]" aria-label="Discard image"><X size={17}/></button><button type="button" onClick={()=>void sendMedia(imageDraft,'image')} disabled={mediaBusy||!conversationCanSend} className="button-primary rounded-xl px-4 py-2 text-xs font-bold disabled:opacity-50">{mediaBusy?'Sending…':'Send image'}</button></div>}
            {voiceDraft && voiceDraftUrl && <div className="mb-3 flex items-center gap-2 rounded-2xl bg-[#f5f0ff] p-3"><audio src={voiceDraftUrl} controls className="min-w-0 flex-1" aria-label="Voice message preview"/><button type="button" onClick={()=>setVoiceDraft(null)} className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-[#7357a7]" aria-label="Discard voice message"><X size={17}/></button><button type="button" onClick={()=>void sendMedia(voiceDraft,'voice')} disabled={mediaBusy||!conversationCanSend} className="button-primary rounded-xl px-4 py-2 text-xs font-bold disabled:opacity-50">{mediaBusy?'Sending…':'Send voice'}</button></div>}
           <div className="flex gap-2">
@@ -1349,6 +1490,45 @@ function formatCallHistoryDuration(seconds: number): string {
   const minutes = Math.floor(seconds / 60).toString().padStart(2, '0');
   const remainder = (seconds % 60).toString().padStart(2, '0');
   return `${minutes}:${remainder}`;
+}
+
+function updateMessageMatchQuery(matchId: string): void {
+  if (typeof window === 'undefined') return;
+  const url = new URL(window.location.href);
+  if (matchId) url.searchParams.set('match', matchId);
+  else url.searchParams.delete('match');
+  window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
+}
+
+function getConversationPreview(conversation: Conversation): string {
+  if (!conversation.lastMessageType) return 'No messages yet';
+  if (conversation.lastMessageType === 'voice') return 'Voice message';
+  if (conversation.lastMessageType === 'image') return 'Photo';
+  if (conversation.lastMessageType === 'file') return 'File';
+  return conversation.lastMessagePreview?.trim().slice(0, 120) || 'Message';
+}
+
+function formatConversationTime(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const now = new Date();
+  const sameDay = date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate();
+  return new Intl.DateTimeFormat(undefined, sameDay
+    ? { hour: 'numeric', minute: '2-digit' }
+    : { month: 'short', day: 'numeric' }).format(date);
+}
+
+function getApiErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error && 'data' in error) {
+    const data = (error as Error & { data?: unknown }).data;
+    if (data && typeof data === 'object' && 'error' in data) {
+      const message = (data as { error?: unknown }).error;
+      if (typeof message === 'string' && message.trim()) return message;
+    }
+  }
+  return error instanceof Error ? error.message : fallback;
 }
 
 function isUnauthorized(error: unknown): boolean {

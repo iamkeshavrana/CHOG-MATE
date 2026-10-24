@@ -515,7 +515,7 @@ export const DiscoverProfilesQueryParams = zod.object({
   "mode": zod.enum(['discover', 'date', 'friends', 'network', 'collab', 'gaming', 'startup', 'creative', 'hackathon', 'other']).optional(),
   "cursor": zod.coerce.string().optional(),
   "limit": zod.coerce.number().int().min(1).max(discoverProfilesQueryLimitMax).default(discoverProfilesQueryLimitDefault),
-  "search": zod.coerce.string().min(1).max(discoverProfilesQuerySearchMax).optional().describe('Search visible profiles by name, username, or active Chog token ID'),
+  "search": zod.coerce.string().min(1).max(discoverProfilesQuerySearchMax).optional().describe('Search visible profiles by name, username, bio, interests, hobbies, languages, looking-for preferences, or active Chog token ID'),
   "gender": zod.enum(['Male', 'Female', 'Gay', 'Trans', 'Alien']).optional(),
   "minAge": zod.coerce.number().int().min(discoverProfilesQueryMinAgeMin).max(discoverProfilesQueryMinAgeMax).optional(),
   "maxAge": zod.coerce.number().int().min(discoverProfilesQueryMaxAgeMin).max(discoverProfilesQueryMaxAgeMax).optional(),
@@ -989,7 +989,10 @@ export const GetConversationsResponseItem = zod.object({
   "createdAt": zod.coerce.date(),
   "lastActivity": zod.coerce.date().nullish(),
   "unreadCount": zod.number().int().min(getConversationsResponseUnreadCountMin).optional(),
-  "status": zod.enum(['active', 'unmatched'])
+  "status": zod.enum(['active', 'unmatched']),
+  "lastMessagePreview": zod.string().nullable(),
+  "lastMessageType": zod.union([zod.literal('text'),zod.literal('voice'),zod.literal('image'),zod.literal('file'),zod.literal(null)]).nullable(),
+  "lastMessageAt": zod.coerce.date().nullable()
 })
 export const GetConversationsResponse = zod.array(GetConversationsResponseItem)
 

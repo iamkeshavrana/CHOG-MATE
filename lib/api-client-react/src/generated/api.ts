@@ -52,6 +52,10 @@ import type {
   NftOwnership,
   Profile,
   ProfileInput,
+  RematchProfile403,
+  RematchProfile404,
+  RematchProfile409,
+  RematchProfile503,
   ReportInput,
   SessionUser,
   SwipeInput,
@@ -1897,7 +1901,7 @@ export const rematchProfile = async (matchId: string, options?: Parameters<typeo
 
 export const getRematchProfileMutationKey = () => ['rematchProfile'] as const;
 
-export const getRematchProfileMutationOptions = <TError = ErrorType<unknown>,
+export const getRematchProfileMutationOptions = <TError = ErrorType<RematchProfile403 | RematchProfile404 | RematchProfile409 | RematchProfile503>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rematchProfile>>, TError,RematchProfileMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof rematchProfile>>, TError,RematchProfileMutationVariables, TContext> => {
 
@@ -1926,13 +1930,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type RematchProfileMutationResult = NonNullable<Awaited<ReturnType<typeof rematchProfile>>>
 
-    export type RematchProfileMutationError = ErrorType<unknown>
+    export type RematchProfileMutationError = ErrorType<RematchProfile403 | RematchProfile404 | RematchProfile409 | RematchProfile503>
     export type RematchProfileMutationVariables = {matchId: string}
 
     /**
  * @summary Restore a match previously ended by the signed-in user
  */
-export const useRematchProfile = <TError = ErrorType<unknown>,
+export const useRematchProfile = <TError = ErrorType<RematchProfile403 | RematchProfile404 | RematchProfile409 | RematchProfile503>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rematchProfile>>, TError,RematchProfileMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof rematchProfile>>,
