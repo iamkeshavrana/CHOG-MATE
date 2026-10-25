@@ -1,0 +1,88 @@
+.discover-actions-updated .discover-previous-button,
+.discover-actions-updated .discover-action-button {
+  width: clamp(48px,12vw,58px);
+  min-width: clamp(48px,12vw,58px);
+  height: clamp(48px,12vw,58px);
+  border: 1px solid rgba(134,97,156,.16);
+  border-radius: 50%;
+  background: rgba(255,255,255,.84);
+  box-shadow: 0 7px 18px rgba(75,43,99,.1), inset 0 1px 0 rgba(255,255,255,.94);
+  transition: color .2s, background .2s, border-color .2s, box-shadow .2s, transform .24s ease, opacity .2s ease;
+}
+
+.discover-actions-updated .discover-previous-button {
+  display: grid;
+  border-color: rgba(134,97,156,.2);
+  background: rgba(255,255,255,.82);
+  color: #866297;
+}
+
+.discover-actions-updated .discover-previous-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: rgba(134,97,156,.34);
+  background: #fff;
+  color: #68467e;
+  box-shadow: 0 10px 22px rgba(75,43,99,.14), inset 0 1px 0 rgba(255,255,255,.96);
+}
+
+.discover-actions-updated .discover-action-button:hover:not(:disabled) {
+  transform: translateY(-2px) scale(1.05);
+}
+
+.discover-actions-updated .discover-action-button:active:not(:disabled) {
+  transform: scale(1.02);
+}
+
+.discover-actions-updated .discover-action-pass {
+  border-color: rgba(220,82,88,.2);
+  background: #fff1ef;
+  color: #d84952;
+}
+
+.discover-actions-updated .discover-action-pass:hover:not(:disabled) {
+  border-color: rgba(220,82,88,.4);
+  background: #ffe5e2;
+  box-shadow: 0 10px 22px rgba(210,70,78,.18), inset 0 1px 0 rgba(255,255,255,.9);
+}
+
+.discover-actions-updated .discover-action-super-like {
+  border-color: rgba(139,82,193,.2);
+  background: #f5edff;
+  color: #8b52c1;
+}
+
+.discover-actions-updated .discover-action-super-like:hover:not(:disabled) {
+  border-color: rgba(139,82,193,.38);
+  background: #eee1ff;
+  box-shadow: 0 10px 22px rgba(122,72,166,.17), inset 0 1px 0 rgba(255,255,255,.9);
+}
+
+.discover-actions-updated .discover-action-like {
+  border-color: rgba(219,76,149,.2);
+  background: #ffedf5;
+  color: #db4c95;
+}
+
+.discover-actions-updated .discover-action-like:hover:not(:disabled) {
+  border-color: rgba(219,76,149,.38);
+  background: #ffe0ed;
+  box-shadow: 0 10px 22px rgba(204,64,132,.17), inset 0 1px 0 rgba(255,255,255,.9);
+}
+
+@media (max-width:767px) {
+  .discover-actions-updated .discover-previous-button,
+  .discover-actions-updated .discover-action-button {
+    width: 50px;
+    min-width: 50px;
+    height: 50px;
+  }
+}
+
+@media (max-height:700px) {
+  .discover-actions-updated .discover-previous-button,
+  .discover-actions-updated .discover-action-button {
+    width: 46px;
+    min-width: 46px;
+    height: 46px;
+  }
+}

@@ -540,7 +540,6 @@ export function DiscoverPage() {
       setPreviousCards(cards => [...cards, profile].slice(-maxPreviousCards));
       setRestoredCard(null);
       setSwipeDirection(null);
-      setToast('Profile passed.');
       return;
     }
 
@@ -562,7 +561,6 @@ export function DiscoverPage() {
         setProfileIndex(index => index + 1);
       }
       setSwipeDirection(null);
-      setToast('This profile was already handled. Moving on.');
       return;
     }
     if (selected === 'pass') {
@@ -577,15 +575,6 @@ export function DiscoverPage() {
       setProfileIndex(index => index + 1);
     }
     setSwipeDirection(null);
-    setToast(
-      result.matched
-        ? "It's a match. Open Matches to start a conversation."
-        : selected === 'super_like'
-          ? 'Super Like sent. 100 $CHOG was transferred.'
-          : selected === 'like'
-            ? 'Like sent. If they like you back, you’ll match.'
-            : 'Profile passed.',
-    );
     void qc.invalidateQueries({ queryKey: getGetMatchesQueryKey() });
     void qc.invalidateQueries({ queryKey: getGetLikeInboxQueryKey() });
   }
@@ -603,11 +592,11 @@ export function DiscoverPage() {
     }
     const profile = restoredCard ?? profiles[profileIndex];
     if (!profile) return;
+    setToast('');
     if (selected === 'super_like') {
       setSuperLikeTarget(profile);
       return;
     }
-    setToast('');
     setSwipeDirection(selected === 'like' ? 'right' : 'left');
     beginSwipeFeedback(selected);
     void recordSwipe(profile, selected).catch(error => {
@@ -675,7 +664,7 @@ export function DiscoverPage() {
           title="Previous"
           data-testid="button-discover-previous"
         >
-          <Undo2 size={19} aria-hidden="true" />
+          <Undo2 size={22} aria-hidden="true" />
         </button>
         <button
           type="button"
