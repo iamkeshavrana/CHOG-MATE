@@ -18,6 +18,7 @@ import { ProfileViewerProvider } from '@/components/profile-viewer-provider';
 import { WalletConnectionDialog } from '@/components/wallet-connection-dialog';
 import { CallProvider } from '@/components/call-provider';
 import { FluidBackground } from '@/components/fluid-background';
+import { ChogIntro } from '@/components/chog-intro';
 import { supabase } from '@/lib/supabase';
 import {
   Route,
@@ -152,6 +153,7 @@ function App() {
         <FluidBackground />
         <SessionLifecycle />
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
+          <ChogIntro />
           <ProfileViewerProvider>
             <CallProvider>
               <Router />
