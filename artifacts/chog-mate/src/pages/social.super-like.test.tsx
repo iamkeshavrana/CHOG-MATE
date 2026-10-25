@@ -108,6 +108,7 @@ function recipientResponse(overrides: Record<string, unknown> = {}) {
 describe("Super Like recipient verification", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.localStorage.clear();
     mocks.refetchRecipient.mockResolvedValue({
       data: recipientResponse(),
       isError: false,
@@ -268,10 +269,29 @@ describe("Super Like recipient verification", () => {
     fireEvent.click(screen.getByTestId("button-confirm-super-like"));
 
     expect((await screen.findByRole("alert")).textContent).toContain(
-      "has not confirmed the Match yet",
+      "could not finish saving the Super Match",
     );
     expect(screen.queryByTestId("status-super-match")).toBeNull();
     expect(screen.getByTestId("button-confirm-super-like").textContent).toContain(
+      "Retry saving Super Like",
+    );
+    expect(mocks.writeContractAsync).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows the backend recovery reason without allowing a second payment", async () => {
+    const onConfirmed = vi.fn().mockRejectedValue(
+      Object.assign(new Error("save failed"), {
+        data: { error: "The Super Match is not active yet." },
+      }),
+    );
+    renderDialog(onConfirmed);
+
+    fireEvent.click(screen.getByTestId("button-confirm-super-like"));
+
+    expect((await screen.findByRole("alert")).textContent).toContain(
+      "The Super Match is not active yet.",
+    );
+    expect((screen.getByTestId("button-confirm-super-like") as HTMLButtonElement).textContent).toContain(
       "Retry saving Super Like",
     );
     expect(mocks.writeContractAsync).toHaveBeenCalledTimes(1);

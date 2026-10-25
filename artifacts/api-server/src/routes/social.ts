@@ -37,6 +37,7 @@ import {
   profileToApi,
   SocialDataError,
 } from "../lib/social-data";
+import { ensureSuperLikeMatchActive } from "../lib/super-like-match";
 import { isConfirmedSuperLikeMatchResult } from "../lib/super-like-result";
 import { getSupabaseAdmin } from "../lib/supabase";
 import { requireWalletSession, type WalletSession } from "../lib/wallet-auth";
@@ -217,11 +218,29 @@ router.post("/swipes", async (req, res): Promise<void> => {
         .eq("id", result.matchId)
         .single();
       if (matchError || !matchRow) throw new SocialDataError("The new match could not be loaded.");
-      const row = matchRow as MatchRow;
-      if (parsed.data.action === "super_like" && row.status !== "active") {
-        throw new SocialDataError(
-          "The transfer is confirmed, but the Super Match is not active yet. Retry saving the same transaction; do not send another payment.",
+      let row = matchRow as MatchRow;
+      if (parsed.data.action === "super_like") {
+        const recovery = await ensureSuperLikeMatchActive(
+          admin,
+          row,
+          session.userId,
+          targetId,
         );
+        row = recovery.match;
+        if (recovery.reactivated) {
+          const { error: notificationError } = await admin
+            .from("notifications")
+            .insert([
+              { user_id: targetId, actor_id: session.userId, type: "match", related_id: row.id },
+              { user_id: session.userId, actor_id: targetId, type: "match", related_id: row.id },
+            ]);
+          if (notificationError) {
+            req.log.warn(
+              { errorType: notificationError.name ?? "DatabaseError" },
+              "Super Match was reactivated, but match notifications could not be created",
+            );
+          }
+        }
       }
       const matchProfile = row.user_a === session.userId ? target : current;
       match = {

@@ -167,6 +167,16 @@ type SuperLikeConfirmationResult = {
   matchId: string | null;
 };
 
+function getSuperLikeSaveErrorDetail(error: unknown): string {
+  if (!error || typeof error !== 'object') return '';
+  const data = (error as { data?: unknown }).data;
+  if (!data || typeof data !== 'object') return '';
+  const message = (data as { error?: unknown }).error;
+  if (typeof message !== 'string') return '';
+  const detail = message.trim().slice(0, 220);
+  return detail ? ` ${detail}` : '';
+}
+
 function isWalletRequestRejected(error: unknown): boolean {
   let current: unknown = error;
   for (let depth = 0; depth < 5; depth += 1) {
@@ -351,9 +361,11 @@ export function SuperLikeDialog({
       setSuperMatchId(result.matchId);
       setPhase('Super Like sent.');
       clearRecoveryDraft();
-    } catch {
+    } catch (caught) {
       setPhase('');
-      setError('The transfer is confirmed, but CHOG MATE has not confirmed the Match yet. Retry with this same transaction; do not send another payment.');
+      setError(
+        `The transfer is confirmed, but CHOG MATE could not finish saving the Super Match. Retry with this same transaction; do not send another payment.${getSuperLikeSaveErrorDetail(caught)}`,
+      );
     } finally {
       setSaving(false);
     }
