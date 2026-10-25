@@ -37,6 +37,7 @@ import {
   profileToApi,
   SocialDataError,
 } from "../lib/social-data";
+import { isConfirmedSuperLikeMatchResult } from "../lib/super-like-result";
 import { getSupabaseAdmin } from "../lib/supabase";
 import { requireWalletSession, type WalletSession } from "../lib/wallet-auth";
 
@@ -197,6 +198,15 @@ router.post("/swipes", async (req, res): Promise<void> => {
     });
     if (error) throw new SocialDataError("CHOG MATE matching is not ready yet.");
 
+    if (
+      parsed.data.action === "super_like" &&
+      !isConfirmedSuperLikeMatchResult(data)
+    ) {
+      throw new SocialDataError(
+        "The transfer is confirmed, but the Super Match is not active yet. Retry saving the same transaction; do not send another payment.",
+      );
+    }
+
     const result = data as { matched?: boolean; matchId?: string | null } | null;
     const matched = Boolean(result?.matched && result.matchId);
     let match: unknown = null;
@@ -208,6 +218,11 @@ router.post("/swipes", async (req, res): Promise<void> => {
         .single();
       if (matchError || !matchRow) throw new SocialDataError("The new match could not be loaded.");
       const row = matchRow as MatchRow;
+      if (parsed.data.action === "super_like" && row.status !== "active") {
+        throw new SocialDataError(
+          "The transfer is confirmed, but the Super Match is not active yet. Retry saving the same transaction; do not send another payment.",
+        );
+      }
       const matchProfile = row.user_a === session.userId ? target : current;
       match = {
         id: row.id,

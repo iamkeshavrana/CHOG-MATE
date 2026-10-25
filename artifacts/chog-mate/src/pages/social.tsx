@@ -162,6 +162,11 @@ const chogTokenAbi = [
   },
 ] as const;
 
+type SuperLikeConfirmationResult = {
+  matched: boolean;
+  matchId: string | null;
+};
+
 function isWalletRequestRejected(error: unknown): boolean {
   let current: unknown = error;
   for (let depth = 0; depth < 5; depth += 1) {
@@ -194,13 +199,22 @@ export function SuperLikeDialog({
   profile: Profile | null;
   walletAddress: string | null;
   onOpenChange: (open: boolean) => void;
-  onConfirmed: (transactionHash: Hex) => Promise<void>;
+  onConfirmed: (transactionHash: Hex) => Promise<SuperLikeConfirmationResult>;
 }) {
   const connection = useConnection();
   const publicClient = usePublicClient({ chainId: monadNetwork.id });
   const { writeContractAsync, isPending: walletPending } = useWriteContract();
+  const recoveryStorageKey = useMemo(
+    () =>
+      profile && walletAddress
+        ? `chog-mate:super-like-recovery:${walletAddress.toLowerCase()}:${profile.userId}`
+        : null,
+    [profile?.userId, walletAddress],
+  );
   const [transactionHash, setTransactionHash] = useState<Hex | null>(null);
+  const [superMatchId, setSuperMatchId] = useState<string | null>(null);
   const [submissionOutcomeUnknown, setSubmissionOutcomeUnknown] = useState(false);
+  const [recoveryDraftSaved, setRecoveryDraftSaved] = useState(false);
   const [recoveryHash, setRecoveryHash] = useState('');
   const [phase, setPhase] = useState('');
   const [error, setError] = useState('');
@@ -260,23 +274,86 @@ export function SuperLikeDialog({
 
   useEffect(() => {
     setTransactionHash(null);
+    setSuperMatchId(null);
     setSubmissionOutcomeUnknown(false);
+    setRecoveryDraftSaved(false);
     setRecoveryHash('');
     setPhase('');
     setError('');
     setSaving(false);
-  }, [profile?.userId]);
+    if (!recoveryStorageKey || typeof window === 'undefined') return;
+    try {
+      const raw = window.localStorage.getItem(recoveryStorageKey);
+      if (!raw) return;
+      const draft = JSON.parse(raw) as {
+        transactionHash?: unknown;
+        submissionOutcomeUnknown?: unknown;
+      };
+      const validHash =
+        typeof draft.transactionHash === 'string' &&
+        /^0x[a-fA-F0-9]{64}$/.test(draft.transactionHash);
+      const outcomeUnknown = draft.submissionOutcomeUnknown === true;
+      if (!validHash && !outcomeUnknown) {
+        window.localStorage.removeItem(recoveryStorageKey);
+        return;
+      }
+      if (validHash) setTransactionHash(draft.transactionHash as Hex);
+      setSubmissionOutcomeUnknown(outcomeUnknown);
+      setRecoveryDraftSaved(true);
+      setError(
+        validHash
+          ? 'A previous transfer is waiting to be saved. Retry with this same transaction; do not send another payment.'
+          : 'A previous wallet submission may have succeeded. Check wallet activity before retrying.',
+      );
+    } catch {
+      setRecoveryDraftSaved(false);
+    }
+  }, [profile?.userId, recoveryStorageKey]);
+
+  function persistRecoveryDraft(hash: Hex | null, outcomeUnknown: boolean) {
+    if (!recoveryStorageKey || typeof window === 'undefined') return false;
+    try {
+      window.localStorage.setItem(
+        recoveryStorageKey,
+        JSON.stringify({
+          transactionHash: hash,
+          submissionOutcomeUnknown: outcomeUnknown,
+        }),
+      );
+      setRecoveryDraftSaved(true);
+      return true;
+    } catch {
+      setRecoveryDraftSaved(false);
+      return false;
+    }
+  }
+
+  function clearRecoveryDraft() {
+    if (recoveryStorageKey && typeof window !== 'undefined') {
+      try {
+        window.localStorage.removeItem(recoveryStorageKey);
+      } catch {
+        // A stale recovery draft is safe because retries use the same transaction hash.
+      }
+    }
+    setRecoveryDraftSaved(false);
+  }
 
   async function recordConfirmedTransfer(hash: Hex) {
     setSaving(true);
     setError('');
     setPhase('Saving the confirmed Super Like…');
     try {
-      await onConfirmed(hash);
+      const result = await onConfirmed(hash);
+      if (!result.matched || !result.matchId) {
+        throw new Error('The matching service did not confirm an active Super Match.');
+      }
+      setSuperMatchId(result.matchId);
       setPhase('Super Like sent.');
+      clearRecoveryDraft();
     } catch {
       setPhase('');
-      setError('The transaction could not be saved. Check that it succeeded on MonadScan, then retry saving this same transaction. Do not send another payment.');
+      setError('The transfer is confirmed, but CHOG MATE has not confirmed the Match yet. Retry with this same transaction; do not send another payment.');
     } finally {
       setSaving(false);
     }
@@ -292,6 +369,9 @@ export function SuperLikeDialog({
     const hash = normalizedHash as Hex;
     setTransactionHash(hash);
     setSubmissionOutcomeUnknown(false);
+    if (!persistRecoveryDraft(hash, false)) {
+      setError('Keep this window open until the confirmed transfer is saved; this device could not store its recovery details.');
+    }
     await recordConfirmedTransfer(hash);
   }
 
@@ -345,6 +425,9 @@ export function SuperLikeDialog({
         chainId: monadNetwork.id,
       });
       setTransactionHash(submittedHash);
+      if (!persistRecoveryDraft(submittedHash, false)) {
+        setError('Keep this window open until the confirmed transfer is saved; this device could not store its recovery details.');
+      }
       setPhase('Waiting for Monad confirmation…');
       const receipt = await publicClient.waitForTransactionReceipt({
         hash: submittedHash,
@@ -352,7 +435,9 @@ export function SuperLikeDialog({
       });
       if (receipt.status !== 'success') {
         setPhase('');
-        setError('The $CHOG transfer failed on Monad. No Super Like was saved.');
+        setTransactionHash(null);
+        clearRecoveryDraft();
+        setError('The $CHOG transfer failed on Monad. No Super Like was saved; you can try a new transaction.');
         return;
       }
       void balance.refetch().catch(() => undefined);
@@ -361,12 +446,17 @@ export function SuperLikeDialog({
       setPhase('');
       if (submittedHash) {
         setTransactionHash(submittedHash);
+        persistRecoveryDraft(submittedHash, false);
         setError('The transfer was submitted, but its confirmation could not be checked. Open the transaction link and retry saving this same hash; do not send another payment.');
       } else if (isWalletRequestRejected(caught)) {
         setError('The wallet request was rejected. No $CHOG transfer was sent.');
       } else {
         setSubmissionOutcomeUnknown(true);
-        setError('The wallet or RPC returned an error before CHOG MATE received a transaction hash. The transfer may still have been submitted. Check your wallet activity or MonadScan before trying again. If it succeeded, paste its transaction hash below. Do not send another transfer.');
+        if (persistRecoveryDraft(null, true)) {
+          setError('The wallet or RPC returned an error before CHOG MATE received a transaction hash. The transfer may still have been submitted. Check your wallet activity or MonadScan before trying again. If it succeeded, paste its transaction hash below. Do not send another transfer.');
+        } else {
+          setError('The transfer may have been submitted. Keep this window open and check your wallet activity before trying again; recovery details could not be saved on this device.');
+        }
       }
     }
   }
@@ -375,8 +465,13 @@ export function SuperLikeDialog({
     <Dialog
       open={Boolean(profile)}
       onOpenChange={(nextOpen) => {
-        if (!nextOpen && (transactionHash || submissionOutcomeUnknown) && !phase.includes('sent')) {
-          setError('Resolve or save the existing transaction before closing this window, to avoid sending twice.');
+        if (
+          !nextOpen &&
+          (transactionHash || submissionOutcomeUnknown) &&
+          !phase.includes('sent') &&
+          !recoveryDraftSaved
+        ) {
+          setError('Keep this window open until the transfer recovery details can be saved on this device.');
           return;
         }
         if (!nextOpen) onOpenChange(false);
@@ -418,6 +513,37 @@ export function SuperLikeDialog({
           </a>
         )}
         {error && <p className="rounded-xl bg-[#fff0ee] px-3 py-2 text-xs leading-5 text-[#a34646]" role="alert">{error}</p>}
+        {superMatchId && phase.includes('sent') && (
+          <section
+            className="space-y-3 rounded-2xl border border-[#e4d7fa] bg-[#f6f0ff] p-4 text-center"
+            role="status"
+            data-testid="status-super-match"
+          >
+            <h3 className="display text-xl font-extrabold text-[#6246b0]">IT&apos;S A SUPER MATCH! 💜</h3>
+            <p className="text-sm font-semibold text-[#594d64]">100 $CHOG sent successfully.</p>
+            <p className="text-sm leading-5 text-[#82778c]">
+              You matched with @{profile?.username}. You can message each other now.
+            </p>
+            <div className="grid gap-2">
+              <Link
+                href={`/messages?match=${encodeURIComponent(superMatchId)}`}
+                onClick={() => onOpenChange(false)}
+                className="button-primary rounded-full px-4 py-2.5 text-xs font-bold"
+                data-testid="link-super-match-conversation"
+              >
+                Open conversation
+              </Link>
+              <Link
+                href="/matches"
+                onClick={() => onOpenChange(false)}
+                className="rounded-full border border-[#e5dcef] px-4 py-2.5 text-xs font-bold text-[#635178] transition hover:bg-white"
+                data-testid="link-super-match-list"
+              >
+                View match
+              </Link>
+            </div>
+          </section>
+        )}
         {submissionOutcomeUnknown && (
           <div className="space-y-2 rounded-xl border border-[#eadfe0] bg-white/70 p-3">
             {walletAddress && isAddress(walletAddress) && (
@@ -458,6 +584,7 @@ export function SuperLikeDialog({
             <button
               type="button"
               onClick={() => {
+                clearRecoveryDraft();
                 setSubmissionOutcomeUnknown(false);
                 setRecoveryHash('');
                 setError('You can retry only after confirming in your wallet history that no $CHOG transfer was sent.');
@@ -468,6 +595,16 @@ export function SuperLikeDialog({
               I checked my wallet; no transfer was sent
             </button>
           </div>
+        )}
+        {(transactionHash || submissionOutcomeUnknown) && !phase.includes('sent') && recoveryDraftSaved && (
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            className="w-full rounded-full px-3 py-1.5 text-[11px] font-semibold text-[#81758a] underline underline-offset-2"
+            data-testid="button-super-like-continue-later"
+          >
+            Continue later
+          </button>
         )}
         <button
           type="button"
@@ -670,6 +807,10 @@ export function DiscoverPage() {
     if (selected === 'like' || selected === 'super_like') {
       await qc.invalidateQueries({ queryKey: getGetSentLikesQueryKey() });
     }
+    if (selected === 'super_like') {
+      void qc.invalidateQueries({ queryKey: getGetConversationsQueryKey() });
+    }
+    return result;
   }
 
   function action(selected: 'pass'|'like'|'super_like') {
@@ -818,7 +959,11 @@ export function DiscoverPage() {
       onOpenChange={open=>{if(!open)setSuperLikeTarget(null);}}
       onConfirmed={async transactionHash => {
         if (!superLikeTarget) throw new Error('The selected profile is no longer available.');
-        await recordSwipe(superLikeTarget, 'super_like', transactionHash);
+        const result = await recordSwipe(superLikeTarget, 'super_like', transactionHash);
+        return {
+          matched: Boolean(result?.matched && result.match?.id),
+          matchId: result?.match?.id ?? null,
+        };
       }}
     />
     <WalletConnectionDialog open={walletDialogOpen} onOpenChange={setWalletDialogOpen} returnTo="/discover"/>

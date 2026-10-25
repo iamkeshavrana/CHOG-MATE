@@ -112,6 +112,7 @@ export async function verifySuperLikeTransfer(
   transactionHash: string,
   expectedSender: string,
   expectedRecipient: string,
+  client: typeof publicClient = publicClient,
 ): Promise<void> {
   if (!/^0x[a-fA-F0-9]{64}$/.test(transactionHash)) {
     throw new TokenTransferVerificationError("Enter a valid transaction hash.", 400);
@@ -125,8 +126,8 @@ export async function verifySuperLikeTransfer(
   let receipt;
   try {
     [transaction, receipt] = await Promise.all([
-      publicClient.getTransaction({ hash }),
-      publicClient.getTransactionReceipt({ hash }),
+      client.getTransaction({ hash }),
+      client.getTransactionReceipt({ hash }),
     ]);
   } catch {
     throw new TokenTransferVerificationError(
@@ -151,7 +152,7 @@ export async function verifySuperLikeTransfer(
     );
   }
 
-  const decimals = await publicClient.readContract({
+  const decimals = await client.readContract({
     address: CHOG_TOKEN_ADDRESS,
     abi: erc20Abi,
     functionName: "decimals",

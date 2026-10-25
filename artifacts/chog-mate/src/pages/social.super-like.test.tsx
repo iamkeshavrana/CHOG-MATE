@@ -7,6 +7,7 @@ const TARGET_USER_ID = "11111111-1111-4111-8111-111111111111";
 const OTHER_USER_ID = "22222222-2222-4222-8222-222222222222";
 const SENDER = "0x1111111111111111111111111111111111111111";
 const RECIPIENT = "0x2222222222222222222222222222222222222222";
+const MATCH_ID = "a8b0d143-7722-4bd9-b100-095f94cd9123";
 const TRANSACTION_HASH = `0x${"a".repeat(64)}` as `0x${string}`;
 
 const mocks = vi.hoisted(() => ({
@@ -81,7 +82,9 @@ const profile = {
   username: "selected-holder",
 } as Parameters<typeof SuperLikeDialog>[0]["profile"];
 
-function renderDialog(onConfirmed = vi.fn()) {
+function renderDialog(
+  onConfirmed = vi.fn().mockResolvedValue({ matched: true, matchId: MATCH_ID }),
+) {
   const rendered = render(
     <SuperLikeDialog
       profile={profile}
@@ -146,6 +149,19 @@ describe("Super Like recipient verification", () => {
         args: [getAddress(RECIPIENT), 100n * 10n ** 18n],
       }),
     );
+    expect(await screen.findByTestId("status-super-match")).toBeTruthy();
+    expect(screen.getByTestId("status-super-match").textContent).toContain(
+      "IT'S A SUPER MATCH! 💜",
+    );
+    expect(screen.getByTestId("status-super-match").textContent).toContain(
+      "100 $CHOG sent successfully.",
+    );
+    expect(
+      screen.getByTestId("link-super-match-conversation").getAttribute("href"),
+    ).toBe(`/messages?match=${MATCH_ID}`);
+    expect(
+      screen.getByTestId("link-super-match-list").getAttribute("href"),
+    ).toBe("/matches");
   });
 
   it.each([
@@ -181,7 +197,7 @@ describe("Super Like recipient verification", () => {
   });
 
   it("offers transaction-hash recovery after an ambiguous wallet RPC error without resending", async () => {
-    const onConfirmed = vi.fn().mockResolvedValue(undefined);
+    const onConfirmed = vi.fn().mockResolvedValue({ matched: true, matchId: MATCH_ID });
     mocks.writeContractAsync.mockRejectedValue(
       new Error("An unknown RPC error occurred. Request Arguments: private transaction data"),
     );
@@ -194,6 +210,7 @@ describe("Super Like recipient verification", () => {
     );
     expect(screen.getByRole("alert").textContent).not.toContain("private transaction data");
     expect((screen.getByTestId("button-confirm-super-like") as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByTestId("button-super-like-continue-later")).toBeTruthy();
 
     fireEvent.change(screen.getByTestId("input-super-like-recovery-hash"), {
       target: { value: TRANSACTION_HASH },
@@ -227,7 +244,7 @@ describe("Super Like recipient verification", () => {
     mocks.waitForTransactionReceipt.mockRejectedValue(
       new Error("receipt RPC unavailable"),
     );
-    const onConfirmed = vi.fn().mockResolvedValue(undefined);
+    const onConfirmed = vi.fn().mockResolvedValue({ matched: true, matchId: MATCH_ID });
     renderDialog(onConfirmed);
 
     fireEvent.click(screen.getByTestId("button-confirm-super-like"));
@@ -241,6 +258,42 @@ describe("Super Like recipient verification", () => {
     fireEvent.click(screen.getByTestId("button-confirm-super-like"));
 
     await waitFor(() => expect(onConfirmed).toHaveBeenCalledWith(TRANSACTION_HASH));
+    expect(mocks.writeContractAsync).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not show payment success until the backend confirms an active match", async () => {
+    const onConfirmed = vi.fn().mockResolvedValue({ matched: false, matchId: null });
+    renderDialog(onConfirmed);
+
+    fireEvent.click(screen.getByTestId("button-confirm-super-like"));
+
+    expect((await screen.findByRole("alert")).textContent).toContain(
+      "has not confirmed the Match yet",
+    );
+    expect(screen.queryByTestId("status-super-match")).toBeNull();
+    expect(screen.getByTestId("button-confirm-super-like").textContent).toContain(
+      "Retry saving Super Like",
+    );
+    expect(mocks.writeContractAsync).toHaveBeenCalledTimes(1);
+  });
+
+  it("retries a failed database save with the same hash and never sends a second payment", async () => {
+    const onConfirmed = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("temporary database error"))
+      .mockResolvedValueOnce({ matched: true, matchId: MATCH_ID });
+    renderDialog(onConfirmed);
+
+    fireEvent.click(screen.getByTestId("button-confirm-super-like"));
+
+    expect((await screen.findByRole("alert")).textContent).toContain(
+      "Retry with this same transaction",
+    );
+    fireEvent.click(screen.getByTestId("button-confirm-super-like"));
+
+    expect(await screen.findByTestId("status-super-match")).toBeTruthy();
+    expect(onConfirmed).toHaveBeenNthCalledWith(1, TRANSACTION_HASH);
+    expect(onConfirmed).toHaveBeenNthCalledWith(2, TRANSACTION_HASH);
     expect(mocks.writeContractAsync).toHaveBeenCalledTimes(1);
   });
 });
