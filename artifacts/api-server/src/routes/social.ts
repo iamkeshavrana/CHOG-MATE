@@ -31,6 +31,7 @@ import {
   TokenTransferVerificationError,
   verifySuperLikeTransfer,
 } from "../lib/chog-token";
+import { toSwipeMatchResponse } from "../lib/swipe-response";
 import {
   loadProfileBundle,
   loadProfileBundles,
@@ -268,16 +269,16 @@ router.post("/swipes", async (req, res): Promise<void> => {
         }
       }
       const matchProfile = row.user_a === session.userId ? target : current;
-      match = {
-        id: row.id,
-        profile: profileToApi(matchProfile),
-        compatibility: row.compatibility_score,
-        createdAt: row.created_at,
-        lastActivity: row.last_activity,
-        unreadCount: 0,
-      };
+      match = toSwipeMatchResponse(
+        row,
+        profileToApi(matchProfile),
+        session.userId,
+      );
     }
 
+    if (parsed.data.action === "super_like") {
+      superLikeRecoveryStep = "validating the saved swipe response";
+    }
     res.json(
       SwipeProfileResponse.parse({
         recorded: Boolean((data as { recorded?: boolean } | null)?.recorded ?? true),
