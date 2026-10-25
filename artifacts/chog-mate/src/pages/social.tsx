@@ -8,12 +8,13 @@ import {
   getDiscoverProfilesQueryKey, getGetConversationsQueryKey, getGetExMatchesQueryKey,
   getGetMatchesQueryKey, getGetMessagesQueryKey, getGetUserProfileQueryKey,
   getGetMeQueryKey, getGetLikeInboxQueryKey, getGetSentLikesQueryKey,
+  getGetGiftHistoryQueryKey,
   useBlockProfile, useDiscoverProfiles, useGetConversations, useGetExMatches,
-  useGetMatches, useGetMessages, useGetAuthSession, useGetLikeInbox, useGetMe, useGetUserProfile,
+  useGetMatches, useGetMessages, useGetGiftHistory, useGetAuthSession, useGetLikeInbox, useGetMe, useGetUserProfile,
   useGetSentLikes, useRematchProfile, useReportProfile, useUnlikeProfile,
   useRequestMessageAttachmentUploadUrl, useSendMessage, useSwipeProfile, useUndoPass, useUnmatchProfile,
 } from '@workspace/api-client-react';
-import { type Conversation, type DiscoverProfilesParams, type LikeInboxItem, type Match, type Profile, ReportInputReason } from '@workspace/api-client-react';
+import { type Conversation, type DiscoverProfilesParams, type GiftRecord, type LikeInboxItem, type Match, type Message, type Profile, ReportInputReason } from '@workspace/api-client-react';
 import { formatUnits, getAddress, isAddress, type Hex } from 'viem';
 import { useConnection, usePublicClient, useReadContract, useWriteContract } from 'wagmi';
 import { AppShell, ChogArtwork, EmptyState, Eyebrow, PageTitle, ProfileAvatar, ProfileOpenButton, QueryState } from '@/components/shared';
@@ -24,7 +25,8 @@ import { appConfig } from '@/lib/config';
 import { monadNetwork } from '@/lib/appkit';
 import { supabase } from '@/lib/supabase';
 import { useCallControls } from '@/components/call-provider';
-import { GiftFlowDialog, GiftHistory } from './gift-flow';
+import { GiftChatEvent, GiftFlowDialog } from './gift-flow';
+import { buildConversationTimeline } from '@/lib/conversation-timeline';
 
 function ReportControl({
   profile,
@@ -1024,7 +1026,7 @@ export function MatchesPage() {
   });
   const [walletDialogOpen, setWalletDialogOpen] = useState(true);
   const [socialNotice, setSocialNotice] = useState('');
-  const [giftMatch, setGiftMatch] = useState<Match | null>(null);
+  const [giftMatch, setGiftMatch] = useState<Pick<Match, "id" | "status" | "profile"> | null>(null);
   const [section, setSection] = useState<'matches' | 'ex-match' | 'liked-you' | 'liked-by-you'>(() =>
     typeof window !== 'undefined' && window.location.hash === '#likes'
       ? 'liked-you'
@@ -1399,10 +1401,25 @@ export function MessagesPage() {
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [voiceDraft, setVoiceDraft] = useState<File | null>(null);
   const [imageDraft, setImageDraft] = useState<File | null>(null);
+  const [giftMatch, setGiftMatch] = useState<Pick<Match, "id" | "status" | "profile"> | null>(null);
   const send = useSendMessage();
   const requestUpload = useRequestMessageAttachmentUploadUrl();
   const qc = useQueryClient();
   const currentUserId = currentProfile.data?.profile?.userId;
+  const giftHistory = useGetGiftHistory(matchId, {
+    query: {
+      enabled: Boolean(chatOpen && matchId && currentProfile.data),
+      queryKey: getGetGiftHistoryQueryKey(matchId),
+      staleTime: 0,
+      refetchOnMount: 'always',
+      refetchOnWindowFocus: true,
+      retry: false,
+    },
+  });
+  const conversationTimeline = buildConversationTimeline(
+    (messages ?? []) as Message[],
+    (giftHistory.data ?? []) as GiftRecord[],
+  );
   const recorderRef = useRef<MediaRecorder | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -1727,6 +1744,13 @@ export function MessagesPage() {
                </span>
              </ProfileOpenButton>
              <div className="messages-chat-actions flex items-center gap-2">
+                {match.status === 'active' && <button
+                  type="button"
+                  onClick={() => setGiftMatch(match)}
+                  className="messages-call-button inline-flex items-center gap-2 rounded-full border border-[#e9e0d3] px-3 py-2 text-xs font-semibold text-[#6246b0] transition hover:bg-[#f7f2ff]"
+                  aria-label={`Send a $CHOG gift to ${match.profile.displayName}`}
+                  data-testid={`button-chat-gift-${match.id}`}
+                ><Gift size={15}/><span className="messages-call-label">Gift</span></button>}
                <button
                  type="button"
                  onClick={() => void callControls.startCall(match.id, 'audio', match.profile)}
@@ -1754,7 +1778,6 @@ export function MessagesPage() {
            </header>}
          {match?.status === 'unmatched' && <p className="border-b border-[#24133f12] bg-[#fffaf0] px-5 py-3 text-xs leading-5 text-[#806b47]" role="status">You are no longer matched, but this conversation remains available until either person blocks the other.</p>}
          <div className="messages-chat-transcript flex flex-1 flex-col gap-3 overflow-y-auto bg-[radial-gradient(ellipse_at_top,#f7f2ff_0,transparent_68%)] p-5">
-           {match && <GiftHistory matchId={match.id} currentUserId={currentUserId}/>}
            {callHistory.data?.length ? (
              <section className="mb-1 space-y-2" aria-label="Call history" data-testid="call-history">
                <h3 className="text-[10px] font-bold uppercase tracking-[.16em] text-[#8b8091]">Recent calls</h3>
@@ -1786,20 +1809,25 @@ export function MessagesPage() {
            ) : callHistory.isError ? (
              <p className="text-xs text-[#a34646]" role="status">Call history is temporarily unavailable.</p>
            ) : null}
-          <QueryState loading={isLoading} error={isError} retry={()=>void refetch()}>{messages?.length ? messages.map(message=>{
-            const mine=message.senderId===currentUserId;
-            return <div key={message.id} className={`max-w-[82%] rounded-[20px] px-4 py-3 text-sm leading-5 ${mine?'ml-auto rounded-br-md bg-[#7047ff] text-white':'mr-auto rounded-bl-md border border-[#eee5d9] bg-white text-[#51445f]'}`} data-testid={`message-${message.id}`}>
-              {message.messageType === 'image' && message.attachmentUrl
-                ? <a href={message.attachmentUrl} target="_blank" rel="noreferrer"><img src={message.attachmentUrl} alt={message.attachmentName || 'Chat attachment'} className="max-h-72 max-w-full rounded-xl object-contain" loading="lazy"/></a>
-                : message.messageType === 'voice' && message.attachmentUrl
-                  ? <audio src={message.attachmentUrl} controls className="max-w-full" aria-label="Voice message"/>
-                  : message.messageType === 'file' && message.attachmentUrl
-                    ? <a href={message.attachmentUrl} target="_blank" rel="noreferrer" className={`flex items-center gap-2 underline underline-offset-2 ${mine?'text-white':'text-[#7047ff]'}`}><FileText size={17}/><span className="break-all">{message.attachmentName || 'Download file'}</span></a>
-                    : <p>{message.content}</p>}
-              {message.messageType !== 'text' && !message.attachmentUrl && <p className="text-xs opacity-80">Attachment unavailable</p>}
-              <time className={`mt-1 block text-[10px] ${mine?'text-white/70':'text-[#9b8fa0]'}`}>{new Date(message.createdAt).toLocaleString()}</time>
-            </div>;
-          }) : <div className="m-auto max-w-sm py-10 text-center"><div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-2xl bg-[#eee8ff] text-[#7047ff]"><MessageCircle size={20}/></div><h3 className="display text-xl font-extrabold text-[#35264b]">Start with a hello.</h3><p className="mt-2 text-sm leading-5 text-[#8b8091]">This is the beginning of your conversation with {match?.profile.displayName}.</p></div>}</QueryState>
+           <QueryState loading={isLoading} error={isError} retry={()=>void refetch()}>
+             {giftHistory.isError && <p className="mx-auto max-w-sm rounded-xl border border-[#eadfe0] bg-white/80 px-3 py-2 text-center text-[11px] text-[#806b8d]" role="status">Gift history could not be loaded. <button type="button" className="font-bold underline" onClick={()=>void giftHistory.refetch()}>Retry</button></p>}
+             {conversationTimeline.length ? conversationTimeline.map(event => {
+               if (event.type === 'gift') return <GiftChatEvent key={`gift-${event.id}`} gift={event.gift} currentUserId={currentUserId}/>;
+               const message = event.message;
+               const mine=message.senderId===currentUserId;
+               return <div key={`message-${message.id}`} className={`max-w-[82%] rounded-[20px] px-4 py-3 text-sm leading-5 ${mine?'ml-auto rounded-br-md bg-[#7047ff] text-white':'mr-auto rounded-bl-md border border-[#eee5d9] bg-white text-[#51445f]'}`} data-testid={`message-${message.id}`}>
+                 {message.messageType === 'image' && message.attachmentUrl
+                   ? <a href={message.attachmentUrl} target="_blank" rel="noreferrer"><img src={message.attachmentUrl} alt={message.attachmentName || 'Chat attachment'} className="max-h-72 max-w-full rounded-xl object-contain" loading="lazy"/></a>
+                   : message.messageType === 'voice' && message.attachmentUrl
+                     ? <audio src={message.attachmentUrl} controls className="max-w-full" aria-label="Voice message"/>
+                     : message.messageType === 'file' && message.attachmentUrl
+                       ? <a href={message.attachmentUrl} target="_blank" rel="noreferrer" className={`flex items-center gap-2 underline underline-offset-2 ${mine?'text-white':'text-[#7047ff]'}`}><FileText size={17}/><span className="break-all">{message.attachmentName || 'Download file'}</span></a>
+                       : <p>{message.content}</p>}
+                 {message.messageType !== 'text' && !message.attachmentUrl && <p className="text-xs opacity-80">Attachment unavailable</p>}
+                 <time className={`mt-1 block text-[10px] ${mine?'text-white/70':'text-[#9b8fa0]'}`}>{new Date(message.createdAt).toLocaleString()}</time>
+               </div>;
+             }) : giftHistory.isLoading ? <div className="skeleton m-auto h-16 w-64 rounded-2xl" aria-label="Loading gift history"/> : <div className="m-auto max-w-sm py-10 text-center"><div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-2xl bg-[#eee8ff] text-[#7047ff]"><MessageCircle size={20}/></div><h3 className="display text-xl font-extrabold text-[#35264b]">Start with a hello.</h3><p className="mt-2 text-sm leading-5 text-[#8b8091]">This is the beginning of your conversation with {match?.profile.displayName}.</p></div>}
+           </QueryState>
           {send.isError && <p className="text-right text-xs text-[#a34646]" role="alert" data-testid="status-send-error">Message not sent. Please try again.</p>}
           {mediaError && <p className="text-right text-xs text-[#a34646]" role="alert" data-testid="status-media-error">{mediaError}</p>}
         </div>
@@ -1823,7 +1851,8 @@ export function MessagesPage() {
         </form>
       </section>
     </div>
-  </div></AppShell>;
+      <GiftFlowDialog match={giftMatch} senderWallet={currentProfile.data.walletAddress} open={Boolean(giftMatch)} onOpenChange={open => { if (!open) setGiftMatch(null); }}/>
+   </div></AppShell>;
 }
 
 function formatCallHistoryDuration(seconds: number): string {

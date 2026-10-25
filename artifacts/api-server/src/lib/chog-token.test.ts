@@ -27,16 +27,21 @@ const transferEventAbi = [
   },
 ] as const;
 
-function transferLog(to: string, amount = TRANSFER_AMOUNT) {
+function transferLog(
+  to: string,
+  amount = TRANSFER_AMOUNT,
+  from = SENDER,
+  tokenAddress = CHOG_TOKEN_ADDRESS,
+) {
   const [eventSignature] = encodeEventTopics({
     abi: transferEventAbi,
     eventName: "Transfer",
   });
   return {
-    address: CHOG_TOKEN_ADDRESS,
+    address: tokenAddress,
     topics: [
       eventSignature,
-      encodeAbiParameters([{ type: "address" }], [SENDER as Address]),
+      encodeAbiParameters([{ type: "address" }], [from as Address]),
       encodeAbiParameters([{ type: "address" }], [to as Address]),
     ],
     data: encodeAbiParameters([{ type: "uint256" }], [amount]),
@@ -242,6 +247,65 @@ describe("$CHOG gift on-chain verification", () => {
     });
     await expect(
       verifyChogTransfer(TRANSACTION_HASH, SENDER, RECIPIENT, "3", wrongRecipient),
+    ).rejects.toMatchObject({ status: 422 });
+  });
+
+  it("rejects a transfer event from another sender or token contract", async () => {
+    const amount = parseUnits("4", CHOG_DECIMALS);
+    const wrongSender = verifierClient({
+      getTransactionReceipt: vi.fn().mockResolvedValue({
+        status: "success",
+        logs: [transferLog(RECIPIENT, amount, OTHER_RECIPIENT)],
+      }),
+    });
+    const wrongToken = verifierClient({
+      getTransactionReceipt: vi.fn().mockResolvedValue({
+        status: "success",
+        logs: [transferLog(RECIPIENT, amount, SENDER, OTHER_RECIPIENT)],
+      }),
+    });
+
+    await expect(
+      verifyChogTransfer(TRANSACTION_HASH, SENDER, RECIPIENT, "4", wrongSender),
+    ).rejects.toMatchObject({ status: 422 });
+    await expect(
+      verifyChogTransfer(TRANSACTION_HASH, SENDER, RECIPIENT, "4", wrongToken),
+    ).rejects.toMatchObject({ status: 422 });
+  });
+
+  it("rejects a gift transaction submitted on another network", async () => {
+    await expect(
+      verifyChogTransfer(
+        TRANSACTION_HASH,
+        SENDER,
+        RECIPIENT,
+        "1",
+        verifierClient({
+          getTransaction: vi.fn().mockResolvedValue({
+            chainId: 1,
+            from: SENDER,
+            to: CHOG_TOKEN_ADDRESS,
+          }),
+        }),
+      ),
+    ).rejects.toMatchObject({ status: 422 });
+  });
+
+  it("rejects a gift transaction submitted by a different wallet", async () => {
+    await expect(
+      verifyChogTransfer(
+        TRANSACTION_HASH,
+        SENDER,
+        RECIPIENT,
+        "1",
+        verifierClient({
+          getTransaction: vi.fn().mockResolvedValue({
+            chainId: 143,
+            from: OTHER_RECIPIENT,
+            to: CHOG_TOKEN_ADDRESS,
+          }),
+        }),
+      ),
     ).rejects.toMatchObject({ status: 422 });
   });
 

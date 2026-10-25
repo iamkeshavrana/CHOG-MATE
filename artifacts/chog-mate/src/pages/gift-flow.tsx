@@ -4,7 +4,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   getGetGiftHistoryQueryKey,
   getGetUserProfileQueryKey,
-  useGetGiftHistory,
   useGetUserProfile,
   useSendGift,
   type GiftRecord,
@@ -15,6 +14,8 @@ import { useConnection, usePublicClient, useReadContract, useWriteContract } fro
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { appConfig } from "@/lib/config";
 import { monadNetwork } from "@/lib/appkit";
+import { canStartGiftTransfer } from "@/lib/gift-recovery";
+import { giftEventDescription } from "@/lib/conversation-timeline";
 
 const tokenAbi = [
   { type: "function", name: "balanceOf", stateMutability: "view", inputs: [{ name: "account", type: "address" }], outputs: [{ name: "", type: "uint256" }] },
@@ -23,7 +24,7 @@ const tokenAbi = [
   { type: "event", name: "Transfer", anonymous: false, inputs: [{ indexed: true, name: "from", type: "address" }, { indexed: true, name: "to", type: "address" }, { indexed: false, name: "value", type: "uint256" }] },
 ] as const;
 
-type Recovery = { amount: string; transactionHash: Hex | null; unknown: boolean; confirmedNoTransfer?: boolean };
+type Recovery = { amount: string; transactionHash: Hex | null; unknown: boolean };
 const hashPattern = /^0x[a-fA-F0-9]{64}$/;
 
 function exactAmount(value: string, decimals: number): bigint | null {
@@ -38,8 +39,31 @@ function shortWallet(value: string) {
   return `${value.slice(0, 6)}…${value.slice(-4)}`;
 }
 
+function isWalletRequestRejected(error: unknown): boolean {
+  let current: unknown = error;
+  for (let depth = 0; depth < 5; depth += 1) {
+    if (!current || typeof current !== "object") return false;
+    const details = current as {
+      cause?: unknown;
+      code?: unknown;
+      message?: unknown;
+      name?: unknown;
+    };
+    if (
+      details.code === 4001 ||
+      details.name === "UserRejectedRequestError" ||
+      (typeof details.message === "string" &&
+        /user (rejected|denied)|request rejected by user/i.test(details.message))
+    ) {
+      return true;
+    }
+    current = details.cause;
+  }
+  return false;
+}
+
 export function GiftFlowDialog({ match, senderWallet, open, onOpenChange }: {
-  match: Match | null;
+  match: Pick<Match, "id" | "status" | "profile"> | null;
   senderWallet: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -52,10 +76,10 @@ export function GiftFlowDialog({ match, senderWallet, open, onOpenChange }: {
   const [amountText, setAmountText] = useState("");
   const [stage, setStage] = useState("");
   const [error, setError] = useState("");
+  const [preparingTransfer, setPreparingTransfer] = useState(false);
   const [knownHash, setKnownHash] = useState<Hex | null>(null);
   const [unknownSubmission, setUnknownSubmission] = useState(false);
   const [recoveryHash, setRecoveryHash] = useState("");
-  const [noTransferChecked, setNoTransferChecked] = useState(false);
   const [savedGift, setSavedGift] = useState<GiftRecord | null>(null);
   const [animationPlayed, setAnimationPlayed] = useState(false);
   const [animationFailed, setAnimationFailed] = useState(false);
@@ -64,8 +88,13 @@ export function GiftFlowDialog({ match, senderWallet, open, onOpenChange }: {
   const freshProfile = useGetUserProfile(match?.profile.userId ?? "", {
     query: { queryKey: getGetUserProfileQueryKey(match?.profile.userId ?? ""), enabled: Boolean(open && match), staleTime: 0, refetchOnMount: "always", refetchOnWindowFocus: true, retry: false },
   });
-  const recipientWallet = freshProfile.data?.userId === match?.profile.userId && freshProfile.data.walletVerified && isAddress(freshProfile.data.walletAddress)
-    ? getAddress(freshProfile.data.walletAddress) : null;
+  const freshRecipientProfile = freshProfile.data;
+  const recipientWallet = freshRecipientProfile &&
+    freshRecipientProfile.userId === match?.profile.userId &&
+    freshRecipientProfile.walletVerified &&
+    isAddress(freshRecipientProfile.walletAddress)
+    ? getAddress(freshRecipientProfile.walletAddress)
+    : null;
   const sessionMatches = Boolean(connection.isConnected && connection.address && senderWallet && connection.address.toLowerCase() === senderWallet.toLowerCase());
   const onMonad = connection.chainId === monadNetwork.id;
   const canRead = sessionMatches && onMonad;
@@ -74,15 +103,16 @@ export function GiftFlowDialog({ match, senderWallet, open, onOpenChange }: {
   const amount = decimals.data === undefined ? null : exactAmount(amountText, decimals.data);
   const balanceText = balance.data !== undefined && decimals.data !== undefined ? formatUnits(balance.data, decimals.data) : null;
   const precisionInvalid = Boolean(amountText && decimals.data !== undefined && /^\d+(?:\.\d*)?$/.test(amountText.trim()) && (amountText.trim().split(".")[1] ?? "").length > decimals.data);
+  const canStartTransfer = canStartGiftTransfer(knownHash, unknownSubmission);
 
   useEffect(() => {
     setAmountText("");
     setStage("");
     setError("");
+    setPreparingTransfer(false);
     setKnownHash(null);
     setUnknownSubmission(false);
     setRecoveryHash("");
-    setNoTransferChecked(false);
     setSavedGift(null);
     setAnimationPlayed(false);
     setAnimationFailed(false);
@@ -97,13 +127,19 @@ export function GiftFlowDialog({ match, senderWallet, open, onOpenChange }: {
       setUnknownSubmission(draft.unknown === true && !draft.transactionHash);
       setError(draft.transactionHash
         ? "A confirmed transfer is waiting to be saved. Retry this same transaction only."
-        : "A wallet submission may have succeeded. Recover its hash or confirm no transfer before sending again.");
+        : "A wallet submission may have succeeded. Do not send again until you recover its transaction hash.");
     } catch { /* Keep the flow usable if local storage is unavailable. */ }
   }, [key]);
 
-  function persist(next: Recovery) {
-    if (!key) return;
-    try { window.localStorage.setItem(key, JSON.stringify(next)); } catch { setError("Recovery details could not be stored on this device. Keep this page open."); }
+  function persist(next: Recovery): boolean {
+    if (!key) return false;
+    try {
+      window.localStorage.setItem(key, JSON.stringify(next));
+      return true;
+    } catch {
+      setError("Recovery details could not be stored on this device. Keep this page open.");
+      return false;
+    }
   }
   function clearRecovery() {
     if (key) { try { window.localStorage.removeItem(key); } catch { /* A stale draft can only retry its known hash. */ } }
@@ -139,8 +175,9 @@ export function GiftFlowDialog({ match, senderWallet, open, onOpenChange }: {
       setStage("Checking the Monad receipt…");
       const receipt = await client.waitForTransactionReceipt({ hash: knownHash, confirmations: 1 });
       if (receipt.status !== "success") {
+        clearRecovery();
         setStage("");
-        setError("This transaction did not succeed on Monad. No gift was saved.");
+        setError("This transaction failed on Monad. No gift was saved; you can start a new transfer.");
         return;
       }
       await saveConfirmed(knownHash, amountText);
@@ -151,8 +188,8 @@ export function GiftFlowDialog({ match, senderWallet, open, onOpenChange }: {
   }
   async function recoverExisting() {
     const hash = recoveryHash.trim() as Hex;
-    if (!hashPattern.test(hash) || !client || !recipientWallet || !connection.address || amount === null || amount <= 0n) {
-      setError("Enter a valid transaction hash, amount, and freshly verified recipient before recovery.");
+    if (!hashPattern.test(hash) || !client || !recipientWallet || !sessionMatches || amount === null || amount <= 0n) {
+      setError("Connect your verified wallet and enter a valid transaction hash and amount before recovery.");
       return;
     }
     try {
@@ -183,23 +220,44 @@ export function GiftFlowDialog({ match, senderWallet, open, onOpenChange }: {
   }
   async function sendGift() {
     setError("");
+    if (!canStartTransfer) {
+      setError("Resolve the previous wallet submission first. Recover its transaction hash before sending another transfer.");
+      return;
+    }
     if (!match || match.status !== "active") { setError("Gifts are available only for an active match."); return; }
     if (!sessionMatches) { setError("Connect the wallet verified for your CHOG MATE profile."); return; }
     if (!onMonad) { setError("Switch your wallet to Monad before sending."); return; }
-    if (unknownSubmission && !noTransferChecked) { setError("Recover the pending transaction or confirm you checked wallet activity and no transfer was sent."); return; }
     if (!decimals.data || decimals.isError || balance.data === undefined || balance.isError) { setError("The live token precision or balance is unavailable. No transfer was sent."); return; }
     if (amount === null || amount <= 0n) { setError("Enter a nonzero amount using the token’s supported decimal precision."); return; }
     if (balance.data < amount) { setError("Your available $CHOG balance is lower than this amount."); return; }
+    setPreparingTransfer(true);
     setStage("Verifying the match’s current wallet…");
     const refreshed = await freshProfile.refetch().catch(() => null);
-    const recipient = refreshed && !refreshed.isError && refreshed.data?.userId === match.profile.userId && refreshed.data.walletVerified && isAddress(refreshed.data.walletAddress)
-      ? getAddress(refreshed.data.walletAddress) : null;
-    if (!recipient) { setStage(""); setError("The match’s current verified wallet could not be confirmed. No transfer was sent."); return; }
+    const refreshedProfile = refreshed && !refreshed.isError ? refreshed.data : undefined;
+    const recipient = refreshedProfile &&
+      refreshedProfile.userId === match.profile.userId &&
+      refreshedProfile.walletVerified &&
+      isAddress(refreshedProfile.walletAddress)
+      ? getAddress(refreshedProfile.walletAddress)
+      : null;
+    if (!recipient) {
+      setPreparingTransfer(false);
+      setStage("");
+      setError("The match’s current verified wallet could not be confirmed. No transfer was sent.");
+      return;
+    }
     let hash: Hex | null = null;
     try {
+      if (!persist({ amount: amountText, transactionHash: null, unknown: true })) {
+        setStage("");
+        setError("This device cannot save gift recovery details, so no transfer was sent.");
+        return;
+      }
+      setUnknownSubmission(true);
       setStage("Confirm the transfer in your wallet…");
       hash = await writeContractAsync({ address: appConfig.chogTokenAddress, abi: tokenAbi, functionName: "transfer", args: [recipient, amount], chainId: monadNetwork.id });
       setKnownHash(hash);
+      setUnknownSubmission(false);
       persist({ amount: amountText, transactionHash: hash, unknown: false });
       setStage("Waiting for Monad confirmation…");
       if (!client) throw new Error("Receipt client unavailable");
@@ -220,20 +278,28 @@ export function GiftFlowDialog({ match, senderWallet, open, onOpenChange }: {
         persist({ amount: amountText, transactionHash: hash, unknown: false });
         setError("Transfer submitted, but confirmation could not be checked. Retry this same hash; do not send again.");
       } else {
-        const rejected = Boolean(cause && typeof cause === "object" && ("code" in cause && cause.code === 4001 || "name" in cause && cause.name === "UserRejectedRequestError"));
-        if (rejected) setError("Wallet request rejected. No transfer was sent.");
+        const rejected = isWalletRequestRejected(cause);
+        if (rejected) {
+          clearRecovery();
+          setError("Wallet request rejected. No transfer was sent.");
+        }
         else {
           setUnknownSubmission(true);
-          setNoTransferChecked(false);
-          persist({ amount: amountText, transactionHash: null, unknown: true });
-          setError("Wallet outcome is unknown. Check wallet activity and recover the hash, or explicitly confirm no transfer was sent before trying again.");
+          setError("Wallet outcome is unknown. Do not send another transfer. Recover the transaction hash here before continuing.");
         }
       }
+    } finally {
+      setPreparingTransfer(false);
     }
   }
 
   const savedAnimationSrc = import.meta.env.VITE_GIFT_ANIMATION_URL?.trim() || "https://media1.tenor.com/m/ZsVXpYhoKiQAAAAd/waweonline-wawe.gif";
-  return <Dialog open={open} onOpenChange={next => { if (!next && (knownHash || unknownSubmission) && !savedGift) { setError("Recovery is preserved. Close only if you can return to this match later."); } else onOpenChange(next); }}>
+  return <Dialog open={open} onOpenChange={next => {
+    if (!next && (knownHash || unknownSubmission) && !savedGift) {
+      setError("Recovery is saved on this device. Reopen this match to continue; do not send another transfer.");
+    }
+    onOpenChange(next);
+  }}>
     <DialogContent className="surface max-h-[90dvh] max-w-md overflow-y-auto rounded-[28px] border-[#e8dfd5] bg-[#fffaf6]">
       <DialogHeader>
         <div className="mb-2 grid h-12 w-12 place-items-center rounded-2xl bg-[#f3eaf6] text-[#70438d]"><Gift size={22}/></div>
@@ -262,18 +328,25 @@ export function GiftFlowDialog({ match, senderWallet, open, onOpenChange }: {
         <a className="mt-2 inline-flex items-center gap-1 break-all text-[#70438d] underline" href={`https://monadscan.com/tx/${knownHash}`} target="_blank" rel="noreferrer">View on MonadScan <ExternalLink size={12}/></a>
         <button type="button" onClick={() => void retryKnown()} disabled={saveGift.isPending || !client} className="button-soft mt-3 w-full rounded-full px-4 py-2.5 text-xs font-bold disabled:opacity-50" data-testid="button-retry-gift-save">Check receipt and retry save</button>
       </div>}
-      {unknownSubmission && <div className="space-y-3 rounded-xl border border-[#e7ddec] bg-white p-3">
-        <p className="text-xs leading-5 text-[#594d64]">No new transfer is available until you recover the hash or confirm wallet activity shows no transfer.</p>
-        <label htmlFor="gift-recovery-hash" className="block text-xs font-semibold text-[#594d64]">Recover transaction hash</label>
-        <input id="gift-recovery-hash" value={recoveryHash} onChange={event => setRecoveryHash(event.target.value)} placeholder="0x…" autoCapitalize="none" spellCheck={false} className="field text-xs" data-testid="input-gift-recovery-hash"/>
-        <button type="button" onClick={() => void recoverExisting()} disabled={!client || freshProfile.isFetching} className="button-soft w-full rounded-full px-4 py-2.5 text-xs font-bold" data-testid="button-recover-gift">Verify and save recovered gift</button>
-        <label className="flex items-start gap-2 text-[11px] leading-5 text-[#746779]"><input type="checkbox" checked={noTransferChecked} onChange={event => { setNoTransferChecked(event.target.checked); persist({ amount: amountText, transactionHash: null, unknown: true, confirmedNoTransfer: event.target.checked }); }} className="mt-1 accent-[#70438d]"/> I checked my wallet and Monad activity; no transfer was sent.</label>
+      {unknownSubmission && <div className="rounded-xl border border-[#e7ddec] bg-white p-3 text-xs leading-5 text-[#594d64]" role="status">
+        The wallet did not return a transaction hash. Do not send another transfer until you recover the original transaction.
       </div>}
+      {!knownHash && !savedGift && <details open={unknownSubmission} className="rounded-xl border border-[#e7ddec] bg-white p-3">
+        <summary className="cursor-pointer text-xs font-semibold text-[#594d64]" data-testid="summary-recover-gift">
+          {unknownSubmission ? "Recover the pending transaction" : "Already sent a gift? Recover its transaction"}
+        </summary>
+        <div className="mt-3 space-y-3">
+          <label htmlFor="gift-recovery-hash" className="block text-xs font-semibold text-[#594d64]">Transaction hash</label>
+          <input id="gift-recovery-hash" value={recoveryHash} onChange={event => setRecoveryHash(event.target.value)} placeholder="0x…" autoCapitalize="none" spellCheck={false} className="field text-xs" data-testid="input-gift-recovery-hash"/>
+          <button type="button" onClick={() => void recoverExisting()} disabled={!client || freshProfile.isFetching || saveGift.isPending} className="button-soft w-full rounded-full px-4 py-2.5 text-xs font-bold disabled:opacity-50" data-testid="button-recover-gift">Verify and save recovered gift</button>
+        </div>
+      </details>}
       {savedGift && <div className="rounded-2xl border border-[#d9e6d5] bg-[#f3f8f0] p-4 text-center" role="status" data-testid="gift-success">
         {animationPlayed && !animationFailed ? <img src={savedAnimationSrc} alt="" className="mx-auto mb-2 h-20 w-20 object-contain" onError={() => setAnimationFailed(true)}/> : <div className="mx-auto mb-2 grid h-10 w-10 place-items-center rounded-full bg-white text-[#547a54]"><Check size={20}/></div>}
         <p className="font-semibold text-[#47664a]">Gift confirmed and saved</p><p className="mt-1 text-xs text-[#718273]">{savedGift.amount} $CHOG to {savedGift.recipientName}</p>
+        <a href={`https://monadscan.com/tx/${savedGift.transactionHash}`} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-[10px] font-semibold text-[#70438d] underline" data-testid="link-saved-gift-transaction">View confirmed transaction <ExternalLink size={11}/></a>
       </div>}
-      {!knownHash && !savedGift && <button type="button" onClick={() => void sendGift()} disabled={walletPending || saveGift.isPending || unknownSubmission && !noTransferChecked || !match || match.status !== "active"} className="button-primary w-full rounded-full px-5 py-3 text-sm font-bold disabled:opacity-50" data-testid="button-send-gift">
+      {!knownHash && !savedGift && <button type="button" onClick={() => void sendGift()} disabled={preparingTransfer || walletPending || saveGift.isPending || !canStartTransfer || !match || match.status !== "active"} className="button-primary w-full rounded-full px-5 py-3 text-sm font-bold disabled:opacity-50" data-testid="button-send-gift">
         {walletPending ? "Confirm in wallet…" : stage.includes("Waiting") ? "Waiting for Monad…" : "Send $CHOG"}
       </button>}
       <p className="flex items-center justify-center gap-1.5 text-[10px] text-[#8b8091]"><ShieldCheck size={13}/> Private between matches · confirmed on Monad</p>
@@ -281,21 +354,15 @@ export function GiftFlowDialog({ match, senderWallet, open, onOpenChange }: {
   </Dialog>;
 }
 
-export function GiftHistory({ matchId, currentUserId }: { matchId: string; currentUserId: string | undefined }) {
-  const history = useGetGiftHistory(matchId, { query: { queryKey: getGetGiftHistoryQueryKey(matchId), enabled: Boolean(matchId), staleTime: 0, refetchOnMount: "always", refetchOnWindowFocus: true } });
-  if (history.isLoading) return <div className="skeleton mx-auto my-2 h-16 w-64 rounded-2xl" aria-label="Loading gift history"/>;
-  if (history.isError) return <div className="mx-auto my-2 max-w-sm rounded-xl border border-[#eadfe0] bg-white/80 px-3 py-2 text-center text-[11px] text-[#806b8d]" role="status">Gift history could not be loaded. <button type="button" className="font-bold underline" onClick={() => void history.refetch()}>Retry</button></div>;
-  const confirmed = (history.data ?? []).filter(gift => gift.status === "confirmed");
-  return <div className="mx-auto flex w-full max-w-md flex-col gap-2 py-1" data-testid="gift-history">
-    {confirmed.map(gift => {
-      const outgoing = gift.senderId === currentUserId;
-      const from = outgoing ? gift.senderName : gift.recipientName;
-      const to = outgoing ? gift.recipientName : gift.senderName;
-      return <article key={gift.id} className={`rounded-2xl border px-4 py-3 ${outgoing ? "ml-auto border-[#e5d8eb] bg-[#f5edf7]" : "mr-auto border-[#eadfe0] bg-white/90"}`} data-testid={`gift-event-${gift.id}`}>
-        <p className="flex items-center gap-2 text-xs font-semibold text-[#594d64]"><Gift size={14} className="shrink-0 text-[#70438d]"/>{outgoing ? `You sent ${to} a gift` : `${from} sent you a gift`}</p>
-        <p className="mt-1 text-sm font-bold tabular-nums text-[#39284a]">{gift.amount} $CHOG <span className="ml-1 inline-flex items-center gap-1 text-[10px] font-medium text-[#658166]"><Check size={12}/> Confirmed</span></p>
-        <a href={`https://monadscan.com/tx/${gift.transactionHash}`} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-[#70438d] underline" data-testid={`link-gift-transaction-${gift.id}`}>View on Monad <ExternalLink size={11}/></a>
-      </article>;
-    })}
-  </div>;
+export function GiftChatEvent({ gift, currentUserId }: {
+  gift: GiftRecord;
+  currentUserId: string | undefined;
+}) {
+  const outgoing = gift.senderId === currentUserId;
+  return <article className={`max-w-[82%] rounded-2xl border px-4 py-3 ${outgoing ? "ml-auto border-[#e5d8eb] bg-[#f5edf7]" : "mr-auto border-[#eadfe0] bg-white/90"}`} data-testid={`gift-event-${gift.id}`}>
+    <p className="flex items-center gap-2 text-xs font-semibold text-[#594d64]"><Gift size={14} className="shrink-0 text-[#70438d]"/>{giftEventDescription(gift, currentUserId)}</p>
+    <p className="mt-1 text-sm font-bold tabular-nums text-[#39284a]">{gift.amount} $CHOG <span className="ml-1 inline-flex items-center gap-1 text-[10px] font-medium text-[#658166]"><Check size={12}/> Confirmed</span></p>
+    <a href={`https://monadscan.com/tx/${gift.transactionHash}`} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-[#70438d] underline" data-testid={`link-gift-transaction-${gift.id}`}>View on Monad <ExternalLink size={11}/></a>
+    <time className="mt-1 block text-[10px] text-[#9b8fa0]" dateTime={gift.createdAt}>{new Date(gift.createdAt).toLocaleString()}</time>
+  </article>;
 }

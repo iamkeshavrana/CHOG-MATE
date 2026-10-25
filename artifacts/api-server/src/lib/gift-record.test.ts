@@ -61,4 +61,11 @@ describe("gift record idempotency", () => {
     expect(isSameGift(giftRow, { ...expectedGift, amount: "12.6" })).toBe(false);
     expect(isSameGift({ ...giftRow, transaction_type: "super_like" }, expectedGift)).toBe(false);
   });
+
+  it("requires the exact wallets, token contract, and confirmed status on recovery", () => {
+    expect(isSameGift({ ...giftRow, sender_wallet: RECIPIENT }, expectedGift)).toBe(false);
+    expect(isSameGift({ ...giftRow, recipient_wallet: giftRow.sender_wallet }, expectedGift)).toBe(false);
+    expect(isSameGift({ ...giftRow, token_contract: "0x4444444444444444444444444444444444444444" }, expectedGift)).toBe(false);
+    expect(isSameGift({ ...giftRow, status: "pending" }, expectedGift)).toBe(false);
+  });
 });

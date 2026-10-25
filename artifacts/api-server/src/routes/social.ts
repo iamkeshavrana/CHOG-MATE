@@ -43,6 +43,7 @@ import {
   isSameGift,
   type GiftTransactionRow,
 } from "../lib/gift-record";
+import { isGiftMatchAuthorized } from "../lib/gift-authorization";
 import { toSwipeMatchResponse } from "../lib/swipe-response";
 import {
   loadProfileBundle,
@@ -1028,7 +1029,7 @@ router.post("/matches/:matchId/gifts", async (req, res): Promise<void> => {
         recipientId,
         senderWallet: sender.user.wallet_address,
         recipientWallet: recipient.user.wallet_address,
-            tokenAddress: CHOG_TOKEN_ADDRESS,
+        tokenAddress: CHOG_TOKEN_ADDRESS,
         amount: body.data.amount,
       })) {
         throw new TokenTransferVerificationError(
@@ -1040,7 +1041,7 @@ router.post("/matches/:matchId/gifts", async (req, res): Promise<void> => {
       return;
     }
 
-    if (match.status !== "active") {
+    if (!isGiftMatchAuthorized(match, session.userId)) {
       throw new EligibilityError("Gifts can only be sent to an active match.", 409);
     }
     const ownsChog = await isCurrentChogOwner(

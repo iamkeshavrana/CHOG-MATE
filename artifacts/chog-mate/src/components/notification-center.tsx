@@ -108,6 +108,15 @@ export function NotificationCenter() {
             ]);
           } else if (inserted.type === "message") {
             void queryClient.invalidateQueries({ queryKey: getGetConversationsQueryKey() });
+          } else if (inserted.type === "gift") {
+            void queryClient.invalidateQueries({
+              predicate: (query) => {
+                const key = query.queryKey[0];
+                return typeof key === "string" &&
+                  key.startsWith("/api/matches/") &&
+                  key.endsWith("/gifts");
+              },
+            });
           }
         } else if (change.eventType === "UPDATE") {
           const updated = change.new;
