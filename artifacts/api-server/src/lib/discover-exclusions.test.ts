@@ -1,25 +1,25 @@
 import { describe, expect, it } from "vitest";
-import { filterPreviouslyLikedDiscoverCandidates } from "./discover-exclusions";
+import { filterPreviouslyHandledDiscoverCandidates } from "./discover-exclusions";
 
-describe("filterPreviouslyLikedDiscoverCandidates", () => {
-  const candidates = ["liked-user", "new-user", "super-liked-user"];
-  const likedUsers = ["liked-user", "super-liked-user"];
+describe("filterPreviouslyHandledDiscoverCandidates", () => {
+  const candidates = ["liked-user", "new-user", "super-liked-user", "matched-user"];
+  const handledUsers = ["liked-user", "super-liked-user", "matched-user"];
 
-  it("removes previously liked profiles from Discover", () => {
+  it("removes previously liked and matched profiles from Discover", () => {
     expect(
-      filterPreviouslyLikedDiscoverCandidates("discover", candidates, likedUsers),
+      filterPreviouslyHandledDiscoverCandidates("discover", candidates, handledUsers),
     ).toEqual(["new-user"]);
   });
 
   it("defaults to Discover behavior when the mode is omitted", () => {
     expect(
-      filterPreviouslyLikedDiscoverCandidates(undefined, candidates, likedUsers),
+      filterPreviouslyHandledDiscoverCandidates(undefined, candidates, handledUsers),
     ).toEqual(["new-user"]);
   });
 
   it("keeps previously liked profiles in Explore modes", () => {
     expect(
-      filterPreviouslyLikedDiscoverCandidates("date", candidates, likedUsers),
+      filterPreviouslyHandledDiscoverCandidates("date", candidates, handledUsers),
     ).toEqual(candidates);
   });
 });

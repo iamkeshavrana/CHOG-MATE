@@ -422,10 +422,10 @@ paths:
     get:
       operationId: getSentLikes
       tags: [matching]
-      summary: List the signed-in user's outgoing Likes and Super Likes that have not become Matches
+      summary: List the signed-in user's outgoing Likes and Super Likes, including those that became Matches
       responses:
         "200":
-          description: Outgoing pending likes
+          description: Outgoing likes and Super Likes
           content:
             application/json:
               schema:
@@ -447,6 +447,21 @@ paths:
           description: Outgoing Like revoked
         "409":
           description: The users are already or previously matched
+  /passes/sent/{targetUserId}:
+    delete:
+      operationId: undoPass
+      tags: [matching]
+      summary: Undo the signed-in user's most recent Pass for one profile
+      parameters:
+        - name: targetUserId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "204":
+          description: Pass undone
+        "404":
+          description: No Pass exists for this profile
   /matches:
     get:
       operationId: getMatches
@@ -1072,6 +1087,7 @@ components:
         type: { type: string, enum: [like, super_like] }
         createdAt: { type: string, format: date-time }
         profile: { $ref: "#/components/schemas/Profile" }
+        matchStatus: { type: string, enum: [active, unmatched] }
     Match:
       type: object
       required: [id, profile, compatibility, createdAt, status, rematchAvailable]

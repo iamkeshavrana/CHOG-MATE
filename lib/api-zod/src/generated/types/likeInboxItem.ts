@@ -5,6 +5,7 @@
  * CHOG MATE wallet, NFT, profile, discovery, and social API
  * OpenAPI spec version: 0.1.0
  */
+import type { LikeInboxItemMatchStatus } from './likeInboxItemMatchStatus';
 import type { LikeInboxItemType } from './likeInboxItemType';
 import type { Profile } from './profile';
 
@@ -13,4 +14,5 @@ export interface LikeInboxItem {
   type: LikeInboxItemType;
   createdAt: Date;
   profile: Profile;
+  matchStatus?: LikeInboxItemMatchStatus;
 }

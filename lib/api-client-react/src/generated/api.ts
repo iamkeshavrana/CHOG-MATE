@@ -1488,7 +1488,7 @@ export const getGetSentLikesUrl = () => {
 }
 
 /**
- * @summary List the signed-in user's outgoing Likes and Super Likes that have not become Matches
+ * @summary List the signed-in user's outgoing Likes and Super Likes, including those that became Matches
  */
 export const getSentLikes = async ( options?: Parameters<typeof customFetch>[1]): Promise<LikeInboxItem[]> => {
 
@@ -1535,7 +1535,7 @@ export type GetSentLikesQueryError = ErrorType<unknown>
 
 
 /**
- * @summary List the signed-in user's outgoing Likes and Super Likes that have not become Matches
+ * @summary List the signed-in user's outgoing Likes and Super Likes, including those that became Matches
  */
 
 export function useGetSentLikes<TData = Awaited<ReturnType<typeof getSentLikes>>, TError = ErrorType<unknown>>(
@@ -1628,6 +1628,80 @@ export const useUnlikeProfile = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getUnlikeProfileMutationOptions(options));
+    }
+
+export const getUndoPassUrl = (targetUserId: string,) => {
+
+
+
+
+  return `/api/passes/sent/${targetUserId}`
+}
+
+/**
+ * @summary Undo the signed-in user's most recent Pass for one profile
+ */
+export const undoPass = async (targetUserId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getUndoPassUrl(targetUserId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getUndoPassMutationKey = () => ['undoPass'] as const;
+
+export const getUndoPassMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof undoPass>>, TError,UndoPassMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof undoPass>>, TError,UndoPassMutationVariables, TContext> => {
+
+const mutationKey = getUndoPassMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof undoPass>>, UndoPassMutationVariables> = (props) => {
+          const {targetUserId} = props ?? {};
+
+          return  undoPass(targetUserId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UndoPassMutationResult = NonNullable<Awaited<ReturnType<typeof undoPass>>>
+
+    export type UndoPassMutationError = ErrorType<void>
+    export type UndoPassMutationVariables = {targetUserId: string}
+
+    /**
+ * @summary Undo the signed-in user's most recent Pass for one profile
+ */
+export const useUndoPass = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof undoPass>>, TError,UndoPassMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof undoPass>>,
+        TError,
+        UndoPassMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUndoPassMutationOptions(options));
     }
 
 export const getGetMatchesUrl = () => {

@@ -684,13 +684,14 @@ export const GetLikeInboxResponseItem = zod.object({
 }),
   "compatibility": zod.number().int().min(getLikeInboxResponseProfileCompatibilityMin).max(getLikeInboxResponseProfileCompatibilityMax).nullish(),
   "whyYouMatch": zod.array(zod.string()).optional()
-})
+}),
+  "matchStatus": zod.enum(['active', 'unmatched']).optional()
 })
 export const GetLikeInboxResponse = zod.array(GetLikeInboxResponseItem)
 
 
 /**
- * @summary List the signed-in user's outgoing Likes and Super Likes that have not become Matches
+ * @summary List the signed-in user's outgoing Likes and Super Likes, including those that became Matches
  */
 export const getSentLikesResponseProfileAgeMin = 18;
 export const getSentLikesResponseProfileAgeMax = 120;
@@ -742,7 +743,8 @@ export const GetSentLikesResponseItem = zod.object({
 }),
   "compatibility": zod.number().int().min(getSentLikesResponseProfileCompatibilityMin).max(getSentLikesResponseProfileCompatibilityMax).nullish(),
   "whyYouMatch": zod.array(zod.string()).optional()
-})
+}),
+  "matchStatus": zod.enum(['active', 'unmatched']).optional()
 })
 export const GetSentLikesResponse = zod.array(GetSentLikesResponseItem)
 
@@ -755,6 +757,16 @@ export const UnlikeProfileParams = zod.object({
 })
 
 export const UnlikeProfileResponse = zod.void()
+
+
+/**
+ * @summary Undo the signed-in user's most recent Pass for one profile
+ */
+export const UndoPassParams = zod.object({
+  "targetUserId": zod.coerce.string().uuid()
+})
+
+export const UndoPassResponse = zod.void()
 
 
 /**

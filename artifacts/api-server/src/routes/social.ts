@@ -19,6 +19,7 @@ import {
   SendMessageResponse,
   SwipeProfileBody,
   SwipeProfileResponse,
+  UndoPassParams,
   UnlikeProfileParams,
   UnblockUserParams,
   UnmatchProfileParams,
@@ -353,8 +354,8 @@ router.get("/likes/sent", async (req, res): Promise<void> => {
         .not("transaction_hash", "is", null),
       admin.from("blocks").select("blocked_user_id").eq("blocker_id", session.userId),
       admin.from("blocks").select("blocker_id").eq("blocked_user_id", session.userId),
-      admin.from("matches").select("user_b").eq("user_a", session.userId).in("status", ["active", "unmatched"]),
-      admin.from("matches").select("user_a").eq("user_b", session.userId).in("status", ["active", "unmatched"]),
+      admin.from("matches").select("user_b,status").eq("user_a", session.userId).in("status", ["active", "unmatched"]),
+      admin.from("matches").select("user_a,status").eq("user_b", session.userId).in("status", ["active", "unmatched"]),
     ]);
     if ([sentLikes, sentSuperLikes, blocksFrom, blocksTo, matchesA, matchesB]
       .some((result) => result.error)) {
@@ -364,8 +365,9 @@ router.get("/likes/sent", async (req, res): Promise<void> => {
     const excluded = new Set<string>([session.userId]);
     for (const row of blocksFrom.data ?? []) excluded.add(row.blocked_user_id);
     for (const row of blocksTo.data ?? []) excluded.add(row.blocker_id);
-    for (const row of matchesA.data ?? []) excluded.add(row.user_b);
-    for (const row of matchesB.data ?? []) excluded.add(row.user_a);
+    const matchStatusByRecipient = new Map<string, "active" | "unmatched">();
+    for (const row of matchesA.data ?? []) matchStatusByRecipient.set(row.user_b, row.status);
+    for (const row of matchesB.data ?? []) matchStatusByRecipient.set(row.user_a, row.status);
 
     const byRecipient = new Map<string, {
       id: string;
@@ -412,6 +414,9 @@ router.get("/likes/sent", async (req, res): Promise<void> => {
         type: like.type,
         createdAt: like.createdAt,
         profile: profileToApi(bundle),
+        ...(matchStatusByRecipient.has(recipientId)
+          ? { matchStatus: matchStatusByRecipient.get(recipientId) }
+          : {}),
       });
     }
     outgoing.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
@@ -464,6 +469,35 @@ router.delete("/likes/sent/:targetUserId", async (req, res): Promise<void> => {
     ]);
     if (likeDelete.error || superLikeDelete.error) {
       throw new SocialDataError("The outgoing Like could not be removed.");
+    }
+    res.sendStatus(204);
+  } catch (error) {
+    sendSocialError(req, res, error);
+  }
+});
+
+router.delete("/passes/sent/:targetUserId", async (req, res): Promise<void> => {
+  const session = requireWalletSession(req, res);
+  if (!session) return;
+  const parsed = UndoPassParams.safeParse(req.params);
+  if (!parsed.success || parsed.data.targetUserId === session.userId) {
+    res.status(400).json({ error: "That Pass could not be undone." });
+    return;
+  }
+
+  try {
+    await requireEligibleProfile(session);
+    const { data, error } = await getSupabaseAdmin()
+      .from("passes")
+      .delete()
+      .eq("from_user_id", session.userId)
+      .eq("to_user_id", parsed.data.targetUserId)
+      .select("id")
+      .maybeSingle();
+    if (error) throw new SocialDataError("The previous Pass could not be undone.");
+    if (!data) {
+      res.status(404).json({ error: "There is no saved Pass to undo." });
+      return;
     }
     res.sendStatus(204);
   } catch (error) {

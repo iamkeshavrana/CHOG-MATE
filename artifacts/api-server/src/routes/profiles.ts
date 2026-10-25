@@ -19,7 +19,7 @@ import {
   calculateProfileCompleteness,
   calculateRecentActivity,
 } from "../lib/discovery-ranking";
-import { filterPreviouslyLikedDiscoverCandidates } from "../lib/discover-exclusions";
+import { filterPreviouslyHandledDiscoverCandidates } from "../lib/discover-exclusions";
 import { findDiscoverSearchCandidates } from "../lib/discover-search";
 import {
   CHOG_CONTRACT_ADDRESS,
@@ -448,9 +448,9 @@ router.get("/discover", async (req, res): Promise<void> => {
         .map((row) => row.user_id);
       hasMoreCandidates = (candidates?.length ?? 0) > pageSize;
     }
-    let previouslyLikedUserIds: string[] = [];
+    let previouslyHandledUserIds: string[] = [];
     if (session && (parsed.data.mode ?? "discover") === "discover") {
-      const [likes, superLikes] = await Promise.all([
+      const [likes, superLikes, matchesAsA, matchesAsB] = await Promise.all([
         admin
           .from("likes")
           .select("to_user_id")
@@ -459,19 +459,29 @@ router.get("/discover", async (req, res): Promise<void> => {
           .from("super_likes")
           .select("to_user_id")
           .eq("from_user_id", session.userId),
+        admin
+          .from("matches")
+          .select("user_b")
+          .eq("user_a", session.userId),
+        admin
+          .from("matches")
+          .select("user_a")
+          .eq("user_b", session.userId),
       ]);
-      if (likes.error || superLikes.error) {
+      if (likes.error || superLikes.error || matchesAsA.error || matchesAsB.error) {
         throw new SocialDataError("CHOG MATE likes are not ready yet.");
       }
-      previouslyLikedUserIds = [
+      previouslyHandledUserIds = [
         ...(likes.data ?? []).map((like) => like.to_user_id),
         ...(superLikes.data ?? []).map((like) => like.to_user_id),
+        ...(matchesAsA.data ?? []).map((match) => match.user_b),
+        ...(matchesAsB.data ?? []).map((match) => match.user_a),
       ];
     }
-    const eligibleCandidateUserIds = filterPreviouslyLikedDiscoverCandidates(
+    const eligibleCandidateUserIds = filterPreviouslyHandledDiscoverCandidates(
       parsed.data.mode,
       candidateUserIds,
-      previouslyLikedUserIds,
+      previouslyHandledUserIds,
     );
     const ids = eligibleCandidateUserIds.filter((id) => !excluded.has(id));
     const bundles = await loadProfileBundles(ids, { includePrivate: true });

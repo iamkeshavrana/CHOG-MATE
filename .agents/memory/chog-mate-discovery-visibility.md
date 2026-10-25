@@ -31,8 +31,8 @@ description: Product rule for how member identity and Chog NFT details appear in
 
 ## Previously liked profiles
 
-**Rule:** Do not show a profile again in Discover after the signed-in member has liked or Super Liked it. This must remain true after navigating away or reloading; Explore modes keep their existing prior-interaction behavior.
+**Rule:** Do not show a profile again in Discover after the signed-in member has liked or Super Liked it, or after a match exists between them. This must remain true after navigating away or reloading; Explore modes keep their existing prior-interaction behavior.
 
-**Why:** The user explicitly said previously liked users must not return in Discover and repeated this requirement when reporting duplicate profiles.
+**Why:** The user explicitly said previously liked and matched users must not return in Discover and repeated this requirement when reporting duplicate profiles.
 
-**How to apply:** Filter persisted outgoing Likes and Super Likes in the authenticated Discover results. Refresh “Liked By Me” after a Like is recorded, and avoid refetching the active deck in a way that skips its next card.
+**How to apply:** Filter persisted outgoing Likes, Super Likes, and match history from authenticated Discover results. Refresh “Liked By Me” after a Like is recorded, and avoid refetching the active deck in a way that skips its next card.

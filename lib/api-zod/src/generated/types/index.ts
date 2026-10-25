@@ -43,6 +43,7 @@ export * from './getLiveSalesParams';
 export * from './healthStatus';
 export * from './incomingCall';
 export * from './likeInboxItem';
+export * from './likeInboxItemMatchStatus';
 export * from './likeInboxItemType';
 export * from './liveSale';
 export * from './liveSales';

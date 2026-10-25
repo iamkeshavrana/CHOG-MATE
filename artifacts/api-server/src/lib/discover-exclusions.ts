@@ -1,12 +1,12 @@
-export function filterPreviouslyLikedDiscoverCandidates(
+export function filterPreviouslyHandledDiscoverCandidates(
   mode: string | undefined,
   candidateUserIds: readonly string[],
-  likedUserIds: readonly string[],
+  handledUserIds: readonly string[],
 ): string[] {
   if ((mode ?? "discover") !== "discover") {
     return [...candidateUserIds];
   }
 
-  const likedUsers = new Set(likedUserIds);
-  return candidateUserIds.filter((userId) => !likedUsers.has(userId));
+  const handledUsers = new Set(handledUserIds);
+  return candidateUserIds.filter((userId) => !handledUsers.has(userId));
 }

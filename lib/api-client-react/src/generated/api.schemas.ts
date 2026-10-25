@@ -367,11 +367,20 @@ export const LikeInboxItemType = {
   super_like: 'super_like',
 } as const;
 
+export type LikeInboxItemMatchStatus = typeof LikeInboxItemMatchStatus[keyof typeof LikeInboxItemMatchStatus];
+
+
+export const LikeInboxItemMatchStatus = {
+  active: 'active',
+  unmatched: 'unmatched',
+} as const;
+
 export interface LikeInboxItem {
   id: string;
   type: LikeInboxItemType;
   createdAt: string;
   profile: Profile;
+  matchStatus?: LikeInboxItemMatchStatus;
 }
 
 export type ConversationStatus = typeof ConversationStatus[keyof typeof ConversationStatus];

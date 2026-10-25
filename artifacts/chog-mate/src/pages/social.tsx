@@ -11,7 +11,7 @@ import {
   useBlockProfile, useDiscoverProfiles, useGetConversations, useGetExMatches,
   useGetMatches, useGetMessages, useGetAuthSession, useGetLikeInbox, useGetMe, useGetUserProfile,
   useGetSentLikes, useRematchProfile, useReportProfile, useUnlikeProfile,
-  useRequestMessageAttachmentUploadUrl, useSendMessage, useSwipeProfile, useUnmatchProfile,
+  useRequestMessageAttachmentUploadUrl, useSendMessage, useSwipeProfile, useUndoPass, useUnmatchProfile,
 } from '@workspace/api-client-react';
 import { type Conversation, type DiscoverProfilesParams, type LikeInboxItem, type Match, type Profile, ReportInputReason } from '@workspace/api-client-react';
 import { formatUnits, getAddress, isAddress, type Hex } from 'viem';
@@ -432,7 +432,7 @@ function formatTokenAmountAtLeast(value: bigint, decimals: number): string {
 export function DiscoverPage() {
   const { openProfile } = useProfileViewer();
   const maxPreviousCards = 8;
-  const swipeFeedbackDuration = 1180;
+  const swipeFeedbackDuration = 360;
   const [cursor, setCursor] = useState<string | undefined>();
   const [toast, setToast] = useState('');
   const [profileIndex, setProfileIndex] = useState(0);
@@ -474,6 +474,7 @@ export function DiscoverPage() {
   const key = getDiscoverProfilesQueryKey(params);
   const { data, isLoading, isError, refetch } = useDiscoverProfiles(params, { query: { queryKey:key, retry:false } });
   const profiles = data?.profiles || [];
+  const undoPass = useUndoPass();
   useEffect(() => {
     if (canInteract) setWalletDialogOpen(false);
   }, [canInteract]);
@@ -533,16 +534,6 @@ export function DiscoverPage() {
     transactionHash?: Hex,
   ) {
     const wasRestored = restoredCard?.userId === profile.userId;
-    if (selected === 'pass' && wasRestored) {
-      // The Pass is already persisted. Replaying it only advances this local
-      // session; posting the same action again would be rejected by the API.
-      await finishSwipeFeedback();
-      setPreviousCards(cards => [...cards, profile].slice(-maxPreviousCards));
-      setRestoredCard(null);
-      setSwipeDirection(null);
-      return;
-    }
-
     const result = await swipe.mutateAsync({
       data: {
         targetUserId: profile.userId,
@@ -611,18 +602,23 @@ export function DiscoverPage() {
       setToast(error instanceof Error ? error.message : 'Your action could not be saved. Please try again.');
     });
   }
-  function restorePreviousCard() {
-    if (swipe.isPending || swipeDirection || superLikeTarget) return;
+  async function restorePreviousCard() {
+    if (swipe.isPending || undoPass.isPending || swipeDirection || superLikeTarget) return;
     const previous = previousCards[previousCards.length - 1];
     if (!previous) return;
-    setPreviousCards(cards => cards.slice(0, -1));
-    setRestoredCard(previous);
     setToast('');
-    setSwipeDirection(null);
-    clearSwipeFeedback();
+    try {
+      await undoPass.mutateAsync({ targetUserId: previous.userId });
+      setPreviousCards(cards => cards.slice(0, -1));
+      setRestoredCard(previous);
+      setSwipeDirection(null);
+      clearSwipeFeedback();
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : 'The previous Pass could not be undone. Please try again.');
+    }
   }
   const currentCard = restoredCard ?? profiles[profileIndex];
-  const actionPending = swipe.isPending || Boolean(swipeDirection) || Boolean(superLikeTarget);
+  const actionPending = swipe.isPending || undoPass.isPending || Boolean(swipeDirection) || Boolean(superLikeTarget);
   return <AppShell><div className="page-enter discover-page">
      <h1 className="sr-only" data-testid="heading-page">Discover Chogs</h1>
     {toast && <div className="mx-auto mb-4 max-w-[620px] rounded-2xl border border-[#ded4f5] bg-white px-4 py-3 text-sm text-[#514177]" role="status" data-testid="status-swipe">{toast}<button className="float-right font-bold" onClick={()=>setToast('')} aria-label="Dismiss notification"><X size={16}/></button></div>}
@@ -640,7 +636,7 @@ export function DiscoverPage() {
              exit={swipeDirection
                ? { x: swipeDirection === 'right' ? '110%' : '-110%', opacity: 0, rotate: swipeDirection === 'right' ? 8 : -8 }
                : { opacity: 0, y: -8, scale: 0.98 }}
-              transition={{ duration: swipeDirection ? 1.02 : 0.3, ease: 'easeInOut' }}
+              transition={{ duration: swipeDirection ? 0.32 : 0.3, ease: 'easeInOut' }}
              data-testid={`discover-card-transition-${currentCard.userId}`}
            >
              <DiscoverCard
@@ -666,8 +662,8 @@ export function DiscoverPage() {
           className="discover-previous-button"
           onClick={restorePreviousCard}
           disabled={previousCards.length === 0 || Boolean(restoredCard) || actionPending}
-          aria-label="Restore the previous passed profile"
-          title="Previous"
+          aria-label="Undo the previous Pass"
+          title="Undo Pass"
           data-testid="button-discover-previous"
         >
           <Undo2 size={22} aria-hidden="true" />
@@ -866,11 +862,23 @@ export function MatchesPage() {
                 <div className="min-w-0 py-1">
                   <ProfileOpenButton profile={item.profile} options={{ source: 'liked-by-me' }} className="block text-left" label={`Open ${item.profile.displayName}'s full profile`}><h2 className="display break-words text-lg font-extrabold text-[#35264b]">{item.profile.displayName}{item.profile.age !== null ? `, ${item.profile.age}` : ''}</h2><p className="mt-1 break-all text-xs text-[#887c90]">@{item.profile.username}</p></ProfileOpenButton>
                   <p className="mt-2 text-[11px] font-semibold text-[#705b83]">Chog #{item.profile.chog.tokenId} · {item.profile.chog.tier || 'Tier unlisted'}</p>
-                  <p className="mt-2 text-[10px] font-semibold text-[#8a6cad]">{item.type === 'super_like' ? 'Super Liked By You · 100 $CHOG sent' : 'Liked By You'}</p>
-                  <UnlikeAction profile={item.profile} type={item.type} onDone={() => unlikeDone(item.type)} />
+                  <p className="mt-2 text-[10px] font-semibold text-[#8a6cad]">
+                    {item.matchStatus === 'active'
+                      ? 'Matched with you'
+                      : item.matchStatus === 'unmatched'
+                        ? 'Previously matched'
+                        : item.type === 'super_like'
+                          ? 'Super Liked By You · 100 $CHOG sent'
+                          : 'Liked By You'}
+                  </p>
+                  {item.matchStatus
+                    ? <Link href={item.matchStatus === 'active' ? '/matches' : '/matches#ex-match'} className="button-soft mt-3 inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-xs font-bold text-[#64586b]">
+                        {item.matchStatus === 'active' ? 'View match' : 'View match history'}
+                      </Link>
+                    : <UnlikeAction profile={item.profile} type={item.type} onDone={() => unlikeDone(item.type)} />}
                 </div>
               </motion.article>)}</AnimatePresence></div>
-            : <EmptyState title="You have not liked anyone yet." detail="Like a Chog holder in Discover and they will appear here until you match." action={<Link href="/discover" className="button-primary inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-bold" data-testid="link-discover-from-liked-by-you">Discover holders <ArrowRight size={15}/></Link>}/>}
+            : <EmptyState title="You have not liked anyone yet." detail="Like a Chog holder in Discover and they will appear here. Profiles that became matches link to your connections." action={<Link href="/discover" className="button-primary inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-bold" data-testid="link-discover-from-liked-by-you">Discover holders <ArrowRight size={15}/></Link>}/>}
     </section>}
     {section === 'matches' && <section id="panel-matches" role="tabpanel" aria-label="Your matches">
       <QueryState loading={isLoading} error={isError} retry={()=>void refetch()}>
