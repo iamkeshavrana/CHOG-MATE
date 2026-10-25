@@ -162,6 +162,29 @@ const chogTokenAbi = [
   },
 ] as const;
 
+function isWalletRequestRejected(error: unknown): boolean {
+  let current: unknown = error;
+  for (let depth = 0; depth < 5; depth += 1) {
+    if (!current || typeof current !== 'object') return false;
+    const details = current as {
+      cause?: unknown;
+      code?: unknown;
+      message?: unknown;
+      name?: unknown;
+    };
+    if (
+      details.code === 4001 ||
+      details.name === 'UserRejectedRequestError' ||
+      (typeof details.message === 'string' &&
+        /user (rejected|denied)|request rejected by user/i.test(details.message))
+    ) {
+      return true;
+    }
+    current = details.cause;
+  }
+  return false;
+}
+
 export function SuperLikeDialog({
   profile,
   walletAddress,
@@ -177,6 +200,8 @@ export function SuperLikeDialog({
   const publicClient = usePublicClient({ chainId: monadNetwork.id });
   const { writeContractAsync, isPending: walletPending } = useWriteContract();
   const [transactionHash, setTransactionHash] = useState<Hex | null>(null);
+  const [submissionOutcomeUnknown, setSubmissionOutcomeUnknown] = useState(false);
+  const [recoveryHash, setRecoveryHash] = useState('');
   const [phase, setPhase] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -235,6 +260,8 @@ export function SuperLikeDialog({
 
   useEffect(() => {
     setTransactionHash(null);
+    setSubmissionOutcomeUnknown(false);
+    setRecoveryHash('');
     setPhase('');
     setError('');
     setSaving(false);
@@ -249,10 +276,23 @@ export function SuperLikeDialog({
       setPhase('Super Like sent.');
     } catch {
       setPhase('');
-      setError('The transfer is confirmed, but the Super Like could not be saved. Retry saving this same transaction; do not send another payment.');
+      setError('The transaction could not be saved. Check that it succeeded on MonadScan, then retry saving this same transaction. Do not send another payment.');
     } finally {
       setSaving(false);
     }
+  }
+
+  async function saveExistingTransfer() {
+    const normalizedHash = recoveryHash.trim();
+    if (!/^0x[a-fA-F0-9]{64}$/.test(normalizedHash)) {
+      setError('Enter a valid Monad transaction hash.');
+      return;
+    }
+
+    const hash = normalizedHash as Hex;
+    setTransactionHash(hash);
+    setSubmissionOutcomeUnknown(false);
+    await recordConfirmedTransfer(hash);
   }
 
   async function confirmSuperLike() {
@@ -294,19 +334,20 @@ export function SuperLikeDialog({
       return;
     }
 
+    let submittedHash: Hex | null = null;
     try {
       setPhase('Confirm the transfer in your wallet…');
-      const hash = await writeContractAsync({
+      submittedHash = await writeContractAsync({
         address: appConfig.chogTokenAddress,
         abi: chogTokenAbi,
         functionName: 'transfer',
         args: [verifiedRecipient, amount],
         chainId: monadNetwork.id,
       });
-      setTransactionHash(hash);
+      setTransactionHash(submittedHash);
       setPhase('Waiting for Monad confirmation…');
       const receipt = await publicClient.waitForTransactionReceipt({
-        hash,
+        hash: submittedHash,
         confirmations: 1,
       });
       if (receipt.status !== 'success') {
@@ -314,14 +355,18 @@ export function SuperLikeDialog({
         setError('The $CHOG transfer failed on Monad. No Super Like was saved.');
         return;
       }
-      await balance.refetch();
-      await recordConfirmedTransfer(hash);
+      void balance.refetch().catch(() => undefined);
+      await recordConfirmedTransfer(submittedHash);
     } catch (caught) {
       setPhase('');
-      if (transactionHash) {
-        setError(caught instanceof Error ? caught.message : 'The transaction did not confirm. No Super Like was saved.');
+      if (submittedHash) {
+        setTransactionHash(submittedHash);
+        setError('The transfer was submitted, but its confirmation could not be checked. Open the transaction link and retry saving this same hash; do not send another payment.');
+      } else if (isWalletRequestRejected(caught)) {
+        setError('The wallet request was rejected. No $CHOG transfer was sent.');
       } else {
-        setError(caught instanceof Error ? caught.message : 'The wallet rejected or failed the transfer. No Super Like was saved.');
+        setSubmissionOutcomeUnknown(true);
+        setError('The wallet or RPC returned an error before CHOG MATE received a transaction hash. The transfer may still have been submitted. Check your wallet activity or MonadScan before trying again. If it succeeded, paste its transaction hash below. Do not send another transfer.');
       }
     }
   }
@@ -330,8 +375,8 @@ export function SuperLikeDialog({
     <Dialog
       open={Boolean(profile)}
       onOpenChange={(nextOpen) => {
-        if (!nextOpen && transactionHash && !phase.includes('sent')) {
-          setError('Save the confirmed transaction before closing this window.');
+        if (!nextOpen && (transactionHash || submissionOutcomeUnknown) && !phase.includes('sent')) {
+          setError('Resolve or save the existing transaction before closing this window, to avoid sending twice.');
           return;
         }
         if (!nextOpen) onOpenChange(false);
@@ -373,10 +418,61 @@ export function SuperLikeDialog({
           </a>
         )}
         {error && <p className="rounded-xl bg-[#fff0ee] px-3 py-2 text-xs leading-5 text-[#a34646]" role="alert">{error}</p>}
+        {submissionOutcomeUnknown && (
+          <div className="space-y-2 rounded-xl border border-[#eadfe0] bg-white/70 p-3">
+            {walletAddress && isAddress(walletAddress) && (
+              <a
+                href={`https://monadscan.com/address/${walletAddress}`}
+                target="_blank"
+                rel="noreferrer"
+                className="block text-xs font-semibold text-[#7047ff] underline"
+              >
+                Check this wallet’s activity on MonadScan
+              </a>
+            )}
+            <label htmlFor="super-like-recovery-hash" className="block text-xs font-semibold text-[#594d64]">
+              Already sent? Paste the transaction hash to save this Super Like
+            </label>
+            <input
+              id="super-like-recovery-hash"
+              type="text"
+              inputMode="text"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              value={recoveryHash}
+              onChange={event => setRecoveryHash(event.target.value)}
+              placeholder="0x…"
+              className="w-full rounded-xl border border-[#e5dcef] bg-white px-3 py-2 text-xs text-[#24133f] outline-none focus:border-[#8b52c1]"
+              data-testid="input-super-like-recovery-hash"
+            />
+            <button
+              type="button"
+              onClick={() => void saveExistingTransfer()}
+              disabled={saving || recipientProfile.isFetching || !profile}
+              className="w-full rounded-full border border-[#e5dcef] px-4 py-2.5 text-xs font-bold text-[#635178] transition hover:bg-[#f8f4ff] disabled:opacity-50"
+              data-testid="button-save-existing-super-like"
+            >
+              Save existing transaction
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setSubmissionOutcomeUnknown(false);
+                setRecoveryHash('');
+                setError('You can retry only after confirming in your wallet history that no $CHOG transfer was sent.');
+              }}
+              className="w-full px-3 py-1.5 text-[11px] font-semibold text-[#81758a] underline underline-offset-2"
+              data-testid="button-confirm-no-super-like-transfer"
+            >
+              I checked my wallet; no transfer was sent
+            </button>
+          </div>
+        )}
         <button
           type="button"
           onClick={() => void confirmSuperLike()}
-          disabled={walletPending || saving || recipientProfile.isFetching || !profile || (amount !== null && insufficient) || phase.includes('sent')}
+          disabled={walletPending || saving || recipientProfile.isFetching || !profile || (amount !== null && insufficient) || phase.includes('sent') || submissionOutcomeUnknown}
           className="button-primary w-full rounded-full px-5 py-3 text-sm font-bold disabled:opacity-50"
           data-testid="button-confirm-super-like"
         >
@@ -400,7 +496,7 @@ export function SuperLikeDialog({
             Done
           </button>
         )}
-        {!transactionHash && (
+        {!transactionHash && !submissionOutcomeUnknown && (
           <button
             type="button"
             onClick={() => onOpenChange(false)}

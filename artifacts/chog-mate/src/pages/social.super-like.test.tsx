@@ -15,6 +15,11 @@ const mocks = vi.hoisted(() => ({
   writeContractAsync: vi.fn(),
   waitForTransactionReceipt: vi.fn(),
   balanceRefetch: vi.fn(),
+  connection: {
+    address: "0x1111111111111111111111111111111111111111",
+    isConnected: true,
+    chainId: 143,
+  },
 }));
 
 afterEach(() => cleanup());
@@ -25,11 +30,7 @@ vi.mock("@workspace/api-client-react", () => ({
 }));
 
 vi.mock("wagmi", () => ({
-  useConnection: () => ({
-    address: SENDER,
-    isConnected: true,
-    chainId: 143,
-  }),
+  useConnection: () => mocks.connection,
   usePublicClient: () => ({
     waitForTransactionReceipt: mocks.waitForTransactionReceipt,
   }),
@@ -80,15 +81,16 @@ const profile = {
   username: "selected-holder",
 } as Parameters<typeof SuperLikeDialog>[0]["profile"];
 
-function renderDialog() {
-  return render(
+function renderDialog(onConfirmed = vi.fn()) {
+  const rendered = render(
     <SuperLikeDialog
       profile={profile}
       walletAddress={SENDER}
       onOpenChange={vi.fn()}
-      onConfirmed={vi.fn().mockResolvedValue(undefined)}
+      onConfirmed={onConfirmed}
     />,
   );
+  return { ...rendered, onConfirmed };
 }
 
 function recipientResponse(overrides: Record<string, unknown> = {}) {
@@ -176,5 +178,69 @@ describe("Super Like recipient verification", () => {
       "No transaction was sent.",
     );
     expect(mocks.writeContractAsync).not.toHaveBeenCalled();
+  });
+
+  it("offers transaction-hash recovery after an ambiguous wallet RPC error without resending", async () => {
+    const onConfirmed = vi.fn().mockResolvedValue(undefined);
+    mocks.writeContractAsync.mockRejectedValue(
+      new Error("An unknown RPC error occurred. Request Arguments: private transaction data"),
+    );
+    renderDialog(onConfirmed);
+
+    fireEvent.click(screen.getByTestId("button-confirm-super-like"));
+
+    expect((await screen.findByRole("alert")).textContent).toContain(
+      "The transfer may still have been submitted.",
+    );
+    expect(screen.getByRole("alert").textContent).not.toContain("private transaction data");
+    expect((screen.getByTestId("button-confirm-super-like") as HTMLButtonElement).disabled).toBe(true);
+
+    fireEvent.change(screen.getByTestId("input-super-like-recovery-hash"), {
+      target: { value: TRANSACTION_HASH },
+    });
+    fireEvent.click(screen.getByTestId("button-save-existing-super-like"));
+
+    await waitFor(() => expect(onConfirmed).toHaveBeenCalledWith(TRANSACTION_HASH));
+    expect(mocks.writeContractAsync).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("Super Like sent.")).toBeTruthy();
+  });
+
+  it("treats a wallet rejection as a definite cancellation, not an ambiguous submission", async () => {
+    mocks.writeContractAsync.mockRejectedValue(
+      Object.assign(new Error("User rejected the request."), {
+        name: "UserRejectedRequestError",
+        code: 4001,
+      }),
+    );
+    renderDialog();
+
+    fireEvent.click(screen.getByTestId("button-confirm-super-like"));
+
+    expect((await screen.findByRole("alert")).textContent).toContain(
+      "No $CHOG transfer was sent.",
+    );
+    expect(screen.queryByTestId("input-super-like-recovery-hash")).toBeNull();
+    expect((screen.getByTestId("button-confirm-super-like") as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("keeps the known transaction hash available if receipt checking fails", async () => {
+    mocks.waitForTransactionReceipt.mockRejectedValue(
+      new Error("receipt RPC unavailable"),
+    );
+    const onConfirmed = vi.fn().mockResolvedValue(undefined);
+    renderDialog(onConfirmed);
+
+    fireEvent.click(screen.getByTestId("button-confirm-super-like"));
+
+    expect((await screen.findByRole("alert")).textContent).toContain(
+      "confirmation could not be checked",
+    );
+    expect(screen.getByRole("link", { name: /View transaction/ }).getAttribute("href")).toBe(
+      `https://monadscan.com/tx/${TRANSACTION_HASH}`,
+    );
+    fireEvent.click(screen.getByTestId("button-confirm-super-like"));
+
+    await waitFor(() => expect(onConfirmed).toHaveBeenCalledWith(TRANSACTION_HASH));
+    expect(mocks.writeContractAsync).toHaveBeenCalledTimes(1);
   });
 });
