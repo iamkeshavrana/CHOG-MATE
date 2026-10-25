@@ -554,6 +554,9 @@ export function DiscoverPage() {
       if (selected === 'super_like') {
         throw new Error('This Super Like was already recorded. Retry saving this same transaction; do not send another payment.');
       }
+      if (selected === 'like') {
+        await qc.invalidateQueries({ queryKey: getGetSentLikesQueryKey() });
+      }
       await finishSwipeFeedback();
       if (wasRestored) {
         setRestoredCard(null);
@@ -577,6 +580,9 @@ export function DiscoverPage() {
     setSwipeDirection(null);
     void qc.invalidateQueries({ queryKey: getGetMatchesQueryKey() });
     void qc.invalidateQueries({ queryKey: getGetLikeInboxQueryKey() });
+    if (selected === 'like' || selected === 'super_like') {
+      await qc.invalidateQueries({ queryKey: getGetSentLikesQueryKey() });
+    }
   }
 
   function action(selected: 'pass'|'like'|'super_like') {
@@ -745,7 +751,13 @@ export function MatchesPage() {
     },
   });
   const sent = useGetSentLikes({
-    query: { enabled: Boolean(me.data), queryKey: getGetSentLikesQueryKey() },
+    query: {
+      enabled: Boolean(me.data),
+      queryKey: getGetSentLikesQueryKey(),
+      staleTime: 0,
+      refetchOnMount: 'always',
+      refetchOnWindowFocus: true,
+    },
   });
   const [walletDialogOpen, setWalletDialogOpen] = useState(true);
   const [socialNotice, setSocialNotice] = useState('');

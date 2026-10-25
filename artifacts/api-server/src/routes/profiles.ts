@@ -19,6 +19,7 @@ import {
   calculateProfileCompleteness,
   calculateRecentActivity,
 } from "../lib/discovery-ranking";
+import { filterPreviouslyLikedDiscoverCandidates } from "../lib/discover-exclusions";
 import { findDiscoverSearchCandidates } from "../lib/discover-search";
 import {
   CHOG_CONTRACT_ADDRESS,
@@ -447,7 +448,32 @@ router.get("/discover", async (req, res): Promise<void> => {
         .map((row) => row.user_id);
       hasMoreCandidates = (candidates?.length ?? 0) > pageSize;
     }
-    const ids = candidateUserIds.filter((id) => !excluded.has(id));
+    let previouslyLikedUserIds: string[] = [];
+    if (session && (parsed.data.mode ?? "discover") === "discover") {
+      const [likes, superLikes] = await Promise.all([
+        admin
+          .from("likes")
+          .select("to_user_id")
+          .eq("from_user_id", session.userId),
+        admin
+          .from("super_likes")
+          .select("to_user_id")
+          .eq("from_user_id", session.userId),
+      ]);
+      if (likes.error || superLikes.error) {
+        throw new SocialDataError("CHOG MATE likes are not ready yet.");
+      }
+      previouslyLikedUserIds = [
+        ...(likes.data ?? []).map((like) => like.to_user_id),
+        ...(superLikes.data ?? []).map((like) => like.to_user_id),
+      ];
+    }
+    const eligibleCandidateUserIds = filterPreviouslyLikedDiscoverCandidates(
+      parsed.data.mode,
+      candidateUserIds,
+      previouslyLikedUserIds,
+    );
+    const ids = eligibleCandidateUserIds.filter((id) => !excluded.has(id));
     const bundles = await loadProfileBundles(ids, { includePrivate: true });
     const ranked: Array<{
       bundle: NonNullable<Awaited<ReturnType<typeof loadProfileBundle>>>;

@@ -28,3 +28,11 @@ description: Product rule for how member identity and Chog NFT details appear in
 **Why:** The user explicitly asked that swiping the last available profile show that no more profiles are available instead of repeating the card.
 
 **How to apply:** Keep this local to Discover; preserve Explore's visibility and prior-interaction rules. Continue pagination when `nextCursor` exists, show the terminal empty state when it does not, and do not weaken Super Like transaction safeguards.
+
+## Previously liked profiles
+
+**Rule:** Do not show a profile again in Discover after the signed-in member has liked or Super Liked it. This must remain true after navigating away or reloading; Explore modes keep their existing prior-interaction behavior.
+
+**Why:** The user explicitly said previously liked users must not return in Discover and repeated this requirement when reporting duplicate profiles.
+
+**How to apply:** Filter persisted outgoing Likes and Super Likes in the authenticated Discover results. Refresh “Liked By Me” after a Like is recorded, and avoid refetching the active deck in a way that skips its next card.

@@ -141,15 +141,20 @@ export function ProfileViewerProvider({ children }: { children: ReactNode }) {
   const block = useBlockProfile();
   const report = useReportProfile();
 
-  const invalidateSocial = useCallback(async () => {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: getDiscoverProfilesQueryKey() }),
+  const invalidateSocial = useCallback(async (refreshDiscover = true) => {
+    const invalidations = [
       queryClient.invalidateQueries({ queryKey: getGetLikeInboxQueryKey() }),
       queryClient.invalidateQueries({ queryKey: getGetSentLikesQueryKey() }),
       queryClient.invalidateQueries({ queryKey: getGetMatchesQueryKey() }),
       queryClient.invalidateQueries({ queryKey: getGetExMatchesQueryKey() }),
       queryClient.invalidateQueries({ queryKey: getGetConversationsQueryKey() }),
-    ]);
+    ];
+    if (refreshDiscover) {
+      invalidations.push(
+        queryClient.invalidateQueries({ queryKey: getDiscoverProfilesQueryKey() }),
+      );
+    }
+    await Promise.all(invalidations);
   }, [queryClient]);
 
   const closeProfile = useCallback(() => {
@@ -201,10 +206,11 @@ export function ProfileViewerProvider({ children }: { children: ReactNode }) {
         data: { targetUserId: profile.userId, action },
       });
       if (!result.recorded) {
+        await invalidateSocial(false);
         setNotice('That response was already recorded. Refresh your connections and try again.');
         return;
       }
-      await invalidateSocial();
+      await invalidateSocial(false);
       setNotice(result.matched
         ? "It's a Match. You can message each other now."
         : action === 'like'
