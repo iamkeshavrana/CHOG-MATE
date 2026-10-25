@@ -791,7 +791,13 @@ export function DiscoverPage() {
         throw new Error('This Super Like was already recorded. Retry saving this same transaction; do not send another payment.');
       }
       if (selected === 'like') {
-        await qc.invalidateQueries({ queryKey: getGetSentLikesQueryKey() });
+        await Promise.all([
+          qc.invalidateQueries({ queryKey: getGetSentLikesQueryKey() }),
+          qc.invalidateQueries({
+            queryKey: getDiscoverProfilesQueryKey(),
+            refetchType: 'none',
+          }),
+        ]);
       }
       await finishSwipeFeedback();
       if (wasRestored) {
@@ -818,6 +824,12 @@ export function DiscoverPage() {
     void qc.invalidateQueries({ queryKey: getGetLikeInboxQueryKey() });
     if (selected === 'like' || selected === 'super_like') {
       await qc.invalidateQueries({ queryKey: getGetSentLikesQueryKey() });
+    }
+    if (selected === 'like') {
+      await qc.invalidateQueries({
+        queryKey: getDiscoverProfilesQueryKey(),
+        refetchType: 'none',
+      });
     }
     if (selected === 'super_like') {
       void qc.invalidateQueries({ queryKey: getGetConversationsQueryKey() });

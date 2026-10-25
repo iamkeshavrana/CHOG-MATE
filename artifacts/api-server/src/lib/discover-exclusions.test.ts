@@ -14,6 +14,15 @@ describe("filterPreviouslyHandledDiscoverCandidates", () => {
     ).toEqual(["new-user"]);
   });
 
+  it("keeps a liked profile hidden until the outgoing Like is withdrawn", () => {
+    expect(
+      filterPreviouslyHandledDiscoverCandidates("discover", ["liked-user"], ["liked-user"]),
+    ).toEqual([]);
+    expect(
+      filterPreviouslyHandledDiscoverCandidates("discover", ["liked-user"], []),
+    ).toEqual(["liked-user"]);
+  });
+
   it("defaults to Discover behavior when the mode is omitted", () => {
     expect(
       filterPreviouslyHandledDiscoverCandidates(undefined, candidates, handledUsers),
