@@ -31,8 +31,8 @@ description: Product rule for how member identity and Chog NFT details appear in
 
 ## Previously handled profiles and Unlike
 
-**Rule:** Keep outgoing Likes and Super Likes out of Discover until the signed-in member withdraws them. Keep active matches out of Discover and do not allow Unlike while a match is active. An ended match stays out of Discover while the member's outgoing Like or Super Like remains; withdrawing it makes that profile eligible for Discover again without deleting Ex Match history.
+**Rule:** Keep outgoing Likes and Super Likes out of Discover until the signed-in member withdraws them. An explicit Like replaces that member's earlier Pass for the same profile. Keep active matches out of Discover and do not allow Unlike while a match is active. An ended match stays out of Discover while the member's outgoing Like or Super Like remains; withdrawing it makes that profile eligible for Discover again without deleting Ex Match history.
 
-**Why:** The user requested an Unlike option on “Liked By Me” and that withdrawn profiles return to Discover, while active matches and match history remain intact.
+**Why:** The user requested an Unlike option on “Liked By Me” and that withdrawn profiles return to Discover, while active matches and match history remain intact. A saved Pass also caused a later explicit Like to be silently rejected, making the card return without appearing in “Liked By Me.”
 
-**How to apply:** Filter persisted outgoing Likes, Super Likes, and active matches from authenticated Discover results. When an unmatched profile's outgoing interaction is withdrawn, refresh the sent-like list and Discover queries; retain the unmatched row for Ex Matches history.
+**How to apply:** Filter persisted outgoing Likes, Super Likes, and active matches from authenticated Discover results. Replace a prior Pass when the member explicitly Likes that profile. When an unmatched profile's outgoing interaction is withdrawn, refresh the sent-like list and Discover queries; retain the unmatched row for Ex Matches history.

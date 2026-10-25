@@ -798,6 +798,7 @@ export function DiscoverPage() {
             refetchType: 'none',
           }),
         ]);
+        setToast('This profile already has a saved Like or Super Like. Your Liked By Me list was refreshed.');
       }
       await finishSwipeFeedback();
       if (wasRestored) {

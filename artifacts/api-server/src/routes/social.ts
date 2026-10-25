@@ -197,6 +197,16 @@ router.post("/swipes", async (req, res): Promise<void> => {
         chog: target.chog,
       },
     );
+    if (parsed.data.action === "like") {
+      const { error: previousPassError } = await admin
+        .from("passes")
+        .delete()
+        .eq("from_user_id", session.userId)
+        .eq("to_user_id", targetId);
+      if (previousPassError) {
+        throw new SocialDataError("The previous Pass could not be replaced with a Like.");
+      }
+    }
     if (parsed.data.action === "super_like") {
       superLikeRecoveryStep = "record_swipe database RPC";
     }
