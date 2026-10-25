@@ -531,7 +531,7 @@ export function SuperLikeDialog({
             role="status"
             data-testid="status-super-match"
           >
-            <h3 className="display text-xl font-extrabold text-[#6246b0]">IT&apos;S A SUPER MATCH! 💜</h3>
+            <h3 className="display text-xl font-extrabold text-[#6246b0]">SUPER MATCH! 💜</h3>
             <p className="text-sm font-semibold text-[#594d64]">100 $CHOG sent successfully.</p>
             <p className="text-sm leading-5 text-[#82778c]">
               You matched with @{profile?.username}. You can message each other now.

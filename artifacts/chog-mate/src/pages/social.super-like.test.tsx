@@ -152,7 +152,7 @@ describe("Super Like recipient verification", () => {
     );
     expect(await screen.findByTestId("status-super-match")).toBeTruthy();
     expect(screen.getByTestId("status-super-match").textContent).toContain(
-      "IT'S A SUPER MATCH! 💜",
+      "SUPER MATCH! 💜",
     );
     expect(screen.getByTestId("status-super-match").textContent).toContain(
       "100 $CHOG sent successfully.",
