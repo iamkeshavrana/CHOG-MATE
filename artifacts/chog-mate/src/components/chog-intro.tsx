@@ -2,9 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'wouter';
 import './chog-intro.css';
 
-const INTRO_SESSION_KEY = 'chog-mate-intro-seen';
-const SCENE_DURATION = 650;
-const FINAL_HOLD_DURATION = 1_200;
+const SCENE_DURATION = 800;
+const FINAL_HOLD_DURATION = 1_400;
 const EXIT_DURATION = 450;
 
 type IntroScene = 'meet' | 'match' | 'chog' | 'final';
@@ -27,16 +26,6 @@ export function ChogIntro() {
 
   useEffect(() => {
     if (location !== '/' || startedRef.current) return;
-
-    try {
-      if (window.sessionStorage.getItem(INTRO_SESSION_KEY)) {
-        startedRef.current = true;
-        return;
-      }
-      window.sessionStorage.setItem(INTRO_SESSION_KEY, '1');
-    } catch {
-      // Storage can be unavailable in privacy modes; the intro remains usable.
-    }
 
     startedRef.current = true;
     setVisible(true);

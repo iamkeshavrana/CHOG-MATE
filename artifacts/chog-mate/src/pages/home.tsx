@@ -24,8 +24,6 @@ import { AppShell, Eyebrow } from '@/components/shared';
 const WalletAuthPanel = lazy(() => import('@/components/wallet-auth'));
 const heroArtwork = `${import.meta.env.BASE_URL}images/chog-mate-hero.webp`;
 const chogGif = `${import.meta.env.BASE_URL}chog-wave-transparent.gif`;
-const secondaryChogGif = `${import.meta.env.BASE_URL}chog-blind-transparent.gif`;
-const secondaryChogGifPage = 'https://tenor.com/view/waweonline-wawe-monad-chog-gmonad-gif-7405421530750396964';
 
 export default function HomePage() {
   const [showWallet, setShowWallet] = useState(false);
@@ -106,9 +104,9 @@ export default function HomePage() {
               className="home-main-heading display text-[53px] font-extrabold leading-[.96] tracking-[-.065em] sm:text-[75px] lg:text-[88px]"
               data-testid="heading-home"
             >
-              YOUR CHOG.
+              YOUR CHOG
               <br />
-              <span>YOUR MATE.</span>
+              <span>YOUR MATE</span>
             </h1>
             <div className="mt-7">
               <p className="display text-[19px] font-extrabold italic tracking-[-.03em] text-[#624490]">
@@ -448,7 +446,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section id="verified-discovery" className="home-visible mx-auto my-5 grid max-w-[1240px] items-center gap-8 overflow-hidden rounded-[30px] border border-[#dacbf3] px-6 py-8 sm:px-10 sm:py-10 md:grid-cols-[minmax(0,1fr)_minmax(260px,360px)]">
+        <section id="verified-discovery" className="home-visible mx-auto my-5 grid max-w-[1240px] items-center gap-8 overflow-hidden rounded-[30px] border border-[#dacbf3] px-6 py-8 sm:px-10 sm:py-10">
           <div className="relative z-[1] max-w-2xl">
             <Eyebrow>Meet the person. See the Chog.</Eyebrow>
             <h2 className="display text-[29px] font-extrabold leading-tight text-[#24133f] sm:text-[36px]">
@@ -460,21 +458,6 @@ export default function HomePage() {
               Chog artwork together on every card.
             </p>
           </div>
-          <figure className="home-visible-visual relative z-[1] flex justify-center">
-            <a
-              href={secondaryChogGifPage}
-              target="_blank"
-              rel="noreferrer"
-              aria-label="View the original animated Chog by Waweonline on Tenor"
-            >
-              <img
-                src={secondaryChogGif}
-                  alt="Animated Chog by Waweonline with a transparent background"
-                loading="eager"
-                decoding="async"
-              />
-            </a>
-          </figure>
         </section>
 
         <section className="home-final-cta mx-auto my-10 max-w-[1240px] rounded-[30px] px-6 py-10 text-center sm:my-14 sm:px-12 sm:py-14">
