@@ -1124,11 +1124,16 @@ export function MatchesPage() {
                           ? 'Super Liked By You · 100 $CHOG sent'
                           : 'Liked By You'}
                   </p>
-                  {item.matchStatus
-                    ? <Link href={item.matchStatus === 'active' ? '/matches' : '/matches#ex-match'} className="button-soft mt-3 inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-xs font-bold text-[#64586b]">
-                        {item.matchStatus === 'active' ? 'View match' : 'View match history'}
+                  {item.matchStatus === 'active'
+                    ? <Link href="/matches" className="button-soft mt-3 inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-xs font-bold text-[#64586b]">
+                        View match
                       </Link>
-                    : <UnlikeAction profile={item.profile} type={item.type} onDone={() => unlikeDone(item.type)} />}
+                    : <>
+                        {item.matchStatus === 'unmatched' && <Link href="/matches#ex-match" className="button-soft mt-3 inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-xs font-bold text-[#64586b]">
+                          View match history
+                        </Link>}
+                        <UnlikeAction profile={item.profile} type={item.type} onDone={() => unlikeDone(item.type)} />
+                      </>}
                 </div>
               </motion.article>)}</AnimatePresence></div>
             : <EmptyState title="You have not liked anyone yet." detail="Like a Chog holder in Discover and they will appear here. Profiles that became matches link to your connections." action={<Link href="/discover" className="button-primary inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-bold" data-testid="link-discover-from-liked-by-you">Discover holders <ArrowRight size={15}/></Link>}/>}

@@ -19,7 +19,10 @@ import {
   calculateProfileCompleteness,
   calculateRecentActivity,
 } from "../lib/discovery-ranking";
-import { filterPreviouslyHandledDiscoverCandidates } from "../lib/discover-exclusions";
+import {
+  filterPreviouslyHandledDiscoverCandidates,
+  getActiveMatchPartnerIds,
+} from "../lib/discover-exclusions";
 import { findDiscoverSearchCandidates } from "../lib/discover-search";
 import {
   CHOG_CONTRACT_ADDRESS,
@@ -461,11 +464,11 @@ router.get("/discover", async (req, res): Promise<void> => {
           .eq("from_user_id", session.userId),
         admin
           .from("matches")
-          .select("user_b")
+          .select("user_b,status")
           .eq("user_a", session.userId),
         admin
           .from("matches")
-          .select("user_a")
+          .select("user_a,status")
           .eq("user_b", session.userId),
       ]);
       if (likes.error || superLikes.error || matchesAsA.error || matchesAsB.error) {
@@ -474,8 +477,11 @@ router.get("/discover", async (req, res): Promise<void> => {
       previouslyHandledUserIds = [
         ...(likes.data ?? []).map((like) => like.to_user_id),
         ...(superLikes.data ?? []).map((like) => like.to_user_id),
-        ...(matchesAsA.data ?? []).map((match) => match.user_b),
-        ...(matchesAsB.data ?? []).map((match) => match.user_a),
+        ...getActiveMatchPartnerIds(
+          session.userId,
+          matchesAsA.data ?? [],
+          matchesAsB.data ?? [],
+        ),
       ];
     }
     const eligibleCandidateUserIds = filterPreviouslyHandledDiscoverCandidates(

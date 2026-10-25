@@ -500,14 +500,14 @@ router.delete("/likes/sent/:targetUserId", async (req, res): Promise<void> => {
     const admin = getSupabaseAdmin();
     const { data: priorMatch, error: matchError } = await admin
       .from("matches")
-      .select("id")
+      .select("id,status")
       .eq("user_a", userA)
       .eq("user_b", userB)
       .maybeSingle();
     if (matchError) throw new SocialDataError("CHOG MATE matching is not ready yet.");
-    if (priorMatch) {
+    if (priorMatch?.status === "active") {
       res.status(409).json({
-        error: "Likes cannot be changed while this relationship is a Match or Ex Match.",
+        error: "Likes cannot be withdrawn while this relationship is an active Match.",
       });
       return;
     }
