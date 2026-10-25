@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect, useState } from 'react';
 import { Link, useLocation } from 'wouter';
-import { BadgeCheck, Compass, Heart, House, Image, MessageCircle, Search, Settings, UserRound, Wallet } from 'lucide-react';
+import { BadgeCheck, Compass, Heart, House, Image, MessageCircle, Search, UserRound, Wallet } from 'lucide-react';
 import type { Chog, Profile } from '@workspace/api-client-react';
 import { getGetAuthSessionQueryKey, useGetAuthSession } from '@workspace/api-client-react';
 import { ChogBalance } from '@/components/chog-balance';
@@ -77,9 +77,8 @@ export function AppShell({ children, displayName }: { children: ReactNode; displ
         </nav>
         <div className="flex items-center gap-2">
           {authenticated ? <>
-            <ChogBalance />
+            <div className="hidden md:block"><ChogBalance /></div>
             <NotificationCenter />
-            <Link href="/settings" className="glass-icon-button grid h-10 w-10 place-items-center rounded-full transition" aria-label="Settings" aria-current={path === '/settings' ? 'page' : undefined} data-testid="link-settings"><Settings size={16}/></Link>
           </> : <button type="button" onClick={() => setWalletDialogOpen(true)} className="button-primary hidden h-10 items-center gap-2 rounded-full px-4 text-xs font-bold md:inline-flex" data-testid="button-nav-connect-wallet"><Wallet size={14}/>Connect Wallet</button>}
         </div>
       </div>
