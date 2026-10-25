@@ -8,3 +8,4 @@
 - [Supabase Realtime topic reuse](supabase-realtime-topic-reuse.md) — channel(topic) returns the existing topic; serialize removal before resubscribing and ignore stale callbacks.
 - [CHOG MATE profile image](chog-mate-profile-image.md) — the selected verified Chog is the only profile image; preserve its aspect ratio and do not add photo uploads or URLs.
 - [CHOG MATE fluid design](chog-mate-fluid-design.md) — sitewide cream background with purple, pink, blue, and red fluids; never a black fluid background.
+- [Node 20 DOM tests](node20-jsdom-vitest.md) — jsdom 30 pulls Undici 8, which fails on this Node 20 runtime; jsdom 26 works.

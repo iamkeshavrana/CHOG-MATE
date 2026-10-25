@@ -162,7 +162,7 @@ const chogTokenAbi = [
   },
 ] as const;
 
-function SuperLikeDialog({
+export function SuperLikeDialog({
   profile,
   walletAddress,
   onOpenChange,
@@ -259,8 +259,9 @@ function SuperLikeDialog({
     setError('');
     if (!profile) return;
     setPhase('Verifying the selected holder’s current wallet…');
-    const freshRecipient = await recipientProfile.refetch();
+    const freshRecipient = await recipientProfile.refetch().catch(() => null);
     const verifiedRecipient =
+      freshRecipient &&
       !freshRecipient.isError &&
       freshRecipient.data?.userId === profile.userId &&
       freshRecipient.data.walletVerified &&

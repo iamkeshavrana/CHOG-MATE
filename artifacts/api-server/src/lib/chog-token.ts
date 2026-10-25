@@ -67,6 +67,47 @@ export class TokenTransferVerificationError extends Error {
   }
 }
 
+type TransferLog = {
+  address: string;
+  data: Hex;
+  topics: readonly Hex[];
+};
+
+export function verifySuperLikeTransferReceipt(
+  logs: readonly TransferLog[],
+  expectedSender: string,
+  expectedRecipient: string,
+  decimals: number,
+): void {
+  const expectedAmount = 100n * 10n ** BigInt(decimals);
+  let receivedAmount = 0n;
+  for (const log of logs) {
+    if (log.address.toLowerCase() !== CHOG_TOKEN_ADDRESS.toLowerCase()) continue;
+    try {
+      const decoded = decodeEventLog({
+        abi: erc20Abi,
+        eventName: "Transfer",
+        data: log.data,
+        topics: log.topics as [Hex, ...Hex[]],
+      });
+      if (
+        decoded.args.from.toLowerCase() === expectedSender.toLowerCase() &&
+        decoded.args.to.toLowerCase() === expectedRecipient.toLowerCase()
+      ) {
+        receivedAmount += decoded.args.value;
+      }
+    } catch {
+      // Ignore unrelated logs emitted by the token contract.
+    }
+  }
+  if (receivedAmount !== expectedAmount) {
+    throw new TokenTransferVerificationError(
+      "The confirmed transfer must send exactly 100 $CHOG to this profile.",
+      422,
+    );
+  }
+}
+
 export async function verifySuperLikeTransfer(
   transactionHash: string,
   expectedSender: string,
@@ -118,31 +159,10 @@ export async function verifySuperLikeTransfer(
   if (decimals > 36) {
     throw new TokenTransferVerificationError("The token decimals are invalid.", 503);
   }
-  const expectedAmount = 100n * 10n ** BigInt(decimals);
-  let receivedAmount = 0n;
-  for (const log of receipt.logs) {
-    if (log.address.toLowerCase() !== CHOG_TOKEN_ADDRESS.toLowerCase()) continue;
-    try {
-      const decoded = decodeEventLog({
-        abi: erc20Abi,
-        eventName: "Transfer",
-        data: log.data,
-        topics: log.topics,
-      });
-      if (
-        decoded.args.from.toLowerCase() === expectedSender.toLowerCase() &&
-        decoded.args.to.toLowerCase() === expectedRecipient.toLowerCase()
-      ) {
-        receivedAmount += decoded.args.value;
-      }
-    } catch {
-      // Ignore unrelated logs emitted by the token contract.
-    }
-  }
-  if (receivedAmount !== expectedAmount) {
-    throw new TokenTransferVerificationError(
-      "The confirmed transfer must send exactly 100 $CHOG to this profile.",
-      422,
-    );
-  }
+  verifySuperLikeTransferReceipt(
+    receipt.logs,
+    expectedSender,
+    expectedRecipient,
+    decimals,
+  );
 }
