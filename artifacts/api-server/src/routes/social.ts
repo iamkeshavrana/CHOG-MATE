@@ -38,7 +38,10 @@ import {
   SocialDataError,
 } from "../lib/social-data";
 import { ensureSuperLikeMatchActive } from "../lib/super-like-match";
-import { isConfirmedSuperLikeMatchResult } from "../lib/super-like-result";
+import {
+  isConfirmedSuperLikeMatchResult,
+  SUPER_LIKE_RECOVERY_FAILED_RESPONSE,
+} from "../lib/super-like-result";
 import { getSupabaseAdmin } from "../lib/supabase";
 import { requireWalletSession, type WalletSession } from "../lib/wallet-auth";
 
@@ -97,6 +100,8 @@ router.post("/swipes", async (req, res): Promise<void> => {
     return;
   }
 
+  let superLikeTransferVerified = false;
+  let superLikeRecoveryStep = "profile eligibility";
   try {
     const current = await requireEligibleProfile(session);
     const targetId = parsed.data.targetUserId;
@@ -165,11 +170,13 @@ router.post("/swipes", async (req, res): Promise<void> => {
       return;
     }
     if (parsed.data.action === "super_like") {
+      superLikeRecoveryStep = "Monad transaction verification";
       await verifySuperLikeTransfer(
         transactionHash!,
         session.walletAddress,
         target.user.wallet_address,
       );
+      superLikeTransferVerified = true;
     }
 
     const compatibility = calculateCompatibility(
@@ -190,6 +197,9 @@ router.post("/swipes", async (req, res): Promise<void> => {
         chog: target.chog,
       },
     );
+    if (parsed.data.action === "super_like") {
+      superLikeRecoveryStep = "record_swipe database RPC";
+    }
     const { data, error } = await admin.rpc("record_swipe", {
       p_from_user_id: session.userId,
       p_to_user_id: targetId,
@@ -197,7 +207,7 @@ router.post("/swipes", async (req, res): Promise<void> => {
       p_compatibility: compatibility.score,
       p_transaction_hash: transactionHash?.toLowerCase() ?? null,
     });
-    if (error) throw new SocialDataError("CHOG MATE matching is not ready yet.");
+    if (error) throw new SocialDataError("CHOG MATE matching is not ready yet.", error);
 
     if (
       parsed.data.action === "super_like" &&
@@ -212,6 +222,9 @@ router.post("/swipes", async (req, res): Promise<void> => {
     const matched = Boolean(result?.matched && result.matchId);
     let match: unknown = null;
     if (matched && result?.matchId) {
+      if (parsed.data.action === "super_like") {
+        superLikeRecoveryStep = "loading the saved match";
+      }
       const { data: matchRow, error: matchError } = await admin
         .from("matches")
         .select("*")
@@ -220,6 +233,7 @@ router.post("/swipes", async (req, res): Promise<void> => {
       if (matchError || !matchRow) throw new SocialDataError("The new match could not be loaded.");
       let row = matchRow as MatchRow;
       if (parsed.data.action === "super_like") {
+        superLikeRecoveryStep = "reactivating the saved match";
         const recovery = await ensureSuperLikeMatchActive(
           admin,
           row,
@@ -227,19 +241,20 @@ router.post("/swipes", async (req, res): Promise<void> => {
           targetId,
         );
         row = recovery.match;
-        if (recovery.reactivated) {
-          const { error: notificationError } = await admin
-            .from("notifications")
-            .insert([
-              { user_id: targetId, actor_id: session.userId, type: "match", related_id: row.id },
-              { user_id: session.userId, actor_id: targetId, type: "match", related_id: row.id },
-            ]);
-          if (notificationError) {
-            req.log.warn(
-              { errorType: notificationError.name ?? "DatabaseError" },
-              "Super Match was reactivated, but match notifications could not be created",
-            );
-          }
+        superLikeRecoveryStep = "ensuring match notifications";
+        const { error: notificationError } = await admin.rpc(
+          "ensure_super_like_match_notifications",
+          {
+            p_match_id: row.id,
+            p_from_user_id: session.userId,
+            p_to_user_id: targetId,
+          },
+        );
+        if (notificationError) {
+          throw new SocialDataError(
+            "Super Match notifications could not be saved.",
+            notificationError,
+          );
         }
       }
       const matchProfile = row.user_a === session.userId ? target : current;
@@ -261,6 +276,14 @@ router.post("/swipes", async (req, res): Promise<void> => {
       }),
     );
   } catch (error) {
+    if (superLikeTransferVerified) {
+      req.log.error(
+        { err: error, operation: superLikeRecoveryStep },
+        "Verified Super Like recovery failed",
+      );
+      res.status(503).json(SUPER_LIKE_RECOVERY_FAILED_RESPONSE);
+      return;
+    }
     sendSocialError(req, res, error);
   }
 });

@@ -281,7 +281,10 @@ describe("Super Like recipient verification", () => {
   it("shows the backend recovery reason without allowing a second payment", async () => {
     const onConfirmed = vi.fn().mockRejectedValue(
       Object.assign(new Error("save failed"), {
-        data: { error: "The Super Match is not active yet." },
+        data: {
+          code: "SUPER_LIKE_RECOVERY_FAILED",
+          error: "The saved match could not be reactivated. Retry with this same transaction.",
+        },
       }),
     );
     renderDialog(onConfirmed);
@@ -289,10 +292,14 @@ describe("Super Like recipient verification", () => {
     fireEvent.click(screen.getByTestId("button-confirm-super-like"));
 
     expect((await screen.findByRole("alert")).textContent).toContain(
-      "The Super Match is not active yet.",
+      "The saved match could not be reactivated. Retry with this same transaction.",
     );
     expect((screen.getByTestId("button-confirm-super-like") as HTMLButtonElement).textContent).toContain(
       "Retry saving Super Like",
+    );
+    fireEvent.click(screen.getByTestId("button-confirm-super-like"));
+    await waitFor(() =>
+      expect(onConfirmed).toHaveBeenNthCalledWith(2, TRANSACTION_HASH),
     );
     expect(mocks.writeContractAsync).toHaveBeenCalledTimes(1);
   });
