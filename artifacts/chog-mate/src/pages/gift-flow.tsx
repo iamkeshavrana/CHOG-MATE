@@ -342,7 +342,7 @@ export function GiftFlowDialog({ match, senderWallet, open, onOpenChange }: {
         </div>
       </details>}
       {savedGift && <div className="rounded-2xl border border-[#d9e6d5] bg-[#f3f8f0] p-4 text-center" role="status" data-testid="gift-success">
-        {animationPlayed && !animationFailed ? <img src={savedAnimationSrc} alt="" className="mx-auto mb-2 h-20 w-20 object-contain" onError={() => setAnimationFailed(true)}/> : <div className="mx-auto mb-2 grid h-10 w-10 place-items-center rounded-full bg-white text-[#547a54]"><Check size={20}/></div>}
+        {animationPlayed && !animationFailed ? <img src={savedAnimationSrc} alt="" className="mx-auto mb-4 h-56 w-56 max-h-[36dvh] max-w-[75vw] object-contain sm:h-64 sm:w-64" onError={() => setAnimationFailed(true)}/> : <div className="mx-auto mb-2 grid h-10 w-10 place-items-center rounded-full bg-white text-[#547a54]"><Check size={20}/></div>}
         <p className="font-semibold text-[#47664a]">Gift confirmed and saved</p><p className="mt-1 text-xs text-[#718273]">{savedGift.amount} $CHOG to {savedGift.recipientName}</p>
         <a href={`https://monadscan.com/tx/${savedGift.transactionHash}`} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-[10px] font-semibold text-[#70438d] underline" data-testid="link-saved-gift-transaction">View confirmed transaction <ExternalLink size={11}/></a>
       </div>}
