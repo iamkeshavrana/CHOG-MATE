@@ -1057,6 +1057,75 @@ export const SendMessageResponse = zod.object({
 
 
 /**
+ * @summary List confirmed $CHOG gifts between the participants in a match
+ */
+export const GetGiftHistoryParams = zod.object({
+  "matchId": zod.coerce.string().uuid()
+})
+
+export const getGiftHistoryResponseAmountMax = 80;
+
+
+export const getGiftHistoryResponseAmountRegExp = new RegExp('^\\d+(?:\\.\\d+)?$');
+export const getGiftHistoryResponseTransactionHashRegExp = new RegExp('^0x[a-fA-F0-9]{64}$');
+
+
+export const GetGiftHistoryResponseItem = zod.object({
+  "id": zod.string().uuid(),
+  "matchId": zod.string().uuid(),
+  "senderId": zod.string().uuid(),
+  "recipientId": zod.string().uuid(),
+  "senderName": zod.string(),
+  "recipientName": zod.string(),
+  "amount": zod.string().max(getGiftHistoryResponseAmountMax).regex(getGiftHistoryResponseAmountRegExp),
+  "transactionHash": zod.string().regex(getGiftHistoryResponseTransactionHashRegExp),
+  "status": zod.enum(['confirmed']),
+  "createdAt": zod.coerce.date()
+})
+export const GetGiftHistoryResponse = zod.array(GetGiftHistoryResponseItem)
+
+
+/**
+ * @summary Verify and save an on-chain $CHOG gift to a match
+ */
+export const SendGiftParams = zod.object({
+  "matchId": zod.coerce.string().uuid()
+})
+
+export const sendGiftBodyAmountMax = 80;
+
+
+export const sendGiftBodyAmountRegExp = new RegExp('^\\d+(?:\\.\\d+)?$');
+export const sendGiftBodyTransactionHashRegExp = new RegExp('^0x[a-fA-F0-9]{64}$');
+
+
+export const SendGiftBody = zod.object({
+  "amount": zod.string().min(1).max(sendGiftBodyAmountMax).regex(sendGiftBodyAmountRegExp),
+  "transactionHash": zod.string().regex(sendGiftBodyTransactionHashRegExp)
+})
+
+export const sendGiftResponseAmountMax = 80;
+
+
+export const sendGiftResponseAmountRegExp = new RegExp('^\\d+(?:\\.\\d+)?$');
+export const sendGiftResponseTransactionHashRegExp = new RegExp('^0x[a-fA-F0-9]{64}$');
+
+
+export const SendGiftResponse = zod.object({
+  "id": zod.string().uuid(),
+  "matchId": zod.string().uuid(),
+  "senderId": zod.string().uuid(),
+  "recipientId": zod.string().uuid(),
+  "senderName": zod.string(),
+  "recipientName": zod.string(),
+  "amount": zod.string().max(sendGiftResponseAmountMax).regex(sendGiftResponseAmountRegExp),
+  "transactionHash": zod.string().regex(sendGiftResponseTransactionHashRegExp),
+  "status": zod.enum(['confirmed']),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
  * @summary Request a one-time upload token for a private chat attachment
  */
 export const RequestMessageAttachmentUploadUrlParams = zod.object({

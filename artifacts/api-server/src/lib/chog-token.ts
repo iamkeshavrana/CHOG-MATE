@@ -3,8 +3,10 @@ import {
   defineChain,
   decodeEventLog,
   getAddress,
+  formatUnits,
   http,
   isAddress,
+  parseUnits,
   type Address,
   type Hex,
 } from "viem";
@@ -80,6 +82,15 @@ export function verifySuperLikeTransferReceipt(
   decimals: number,
 ): void {
   const expectedAmount = 100n * 10n ** BigInt(decimals);
+  verifyChogTransferReceipt(logs, expectedSender, expectedRecipient, expectedAmount);
+}
+
+export function verifyChogTransferReceipt(
+  logs: readonly TransferLog[],
+  expectedSender: string,
+  expectedRecipient: string,
+  expectedAmount: bigint,
+): void {
   let receivedAmount = 0n;
   for (const log of logs) {
     if (log.address.toLowerCase() !== CHOG_TOKEN_ADDRESS.toLowerCase()) continue;
@@ -102,18 +113,18 @@ export function verifySuperLikeTransferReceipt(
   }
   if (receivedAmount !== expectedAmount) {
     throw new TokenTransferVerificationError(
-      "The confirmed transfer must send exactly 100 $CHOG to this profile.",
+      "The confirmed transfer amount or recipient does not match this gift.",
       422,
     );
   }
 }
 
-export async function verifySuperLikeTransfer(
+async function readConfirmedChogTransfer(
   transactionHash: string,
   expectedSender: string,
   expectedRecipient: string,
   client: typeof publicClient = publicClient,
-): Promise<void> {
+): Promise<{ receipt: Awaited<ReturnType<typeof client.getTransactionReceipt>>; decimals: number }> {
   if (!/^0x[a-fA-F0-9]{64}$/.test(transactionHash)) {
     throw new TokenTransferVerificationError("Enter a valid transaction hash.", 400);
   }
@@ -160,10 +171,73 @@ export async function verifySuperLikeTransfer(
   if (decimals > 36) {
     throw new TokenTransferVerificationError("The token decimals are invalid.", 503);
   }
+  return { receipt, decimals };
+}
+
+export async function verifySuperLikeTransfer(
+  transactionHash: string,
+  expectedSender: string,
+  expectedRecipient: string,
+  client: typeof publicClient = publicClient,
+): Promise<void> {
+  const { receipt, decimals } = await readConfirmedChogTransfer(
+    transactionHash,
+    expectedSender,
+    expectedRecipient,
+    client,
+  );
   verifySuperLikeTransferReceipt(
     receipt.logs,
     expectedSender,
     expectedRecipient,
     decimals,
   );
+}
+
+export async function verifyChogTransfer(
+  transactionHash: string,
+  expectedSender: string,
+  expectedRecipient: string,
+  amount: string,
+  client: typeof publicClient = publicClient,
+): Promise<{ amount: string; decimals: number }> {
+  const { receipt, decimals } = await readConfirmedChogTransfer(
+    transactionHash,
+    expectedSender,
+    expectedRecipient,
+    client,
+  );
+  if (decimals > 18) {
+    throw new TokenTransferVerificationError(
+      "This token's precision cannot be safely recorded.",
+      503,
+    );
+  }
+
+  if (!/^\d+(?:\.\d+)?$/.test(amount)) {
+    throw new TokenTransferVerificationError("Enter a valid $CHOG amount.", 400);
+  }
+  let expectedAmount: bigint;
+  try {
+    expectedAmount = parseUnits(amount, decimals);
+  } catch {
+    throw new TokenTransferVerificationError(
+      `Use no more than ${decimals} decimal places for $CHOG.`,
+      400,
+    );
+  }
+  if (expectedAmount <= 0n) {
+    throw new TokenTransferVerificationError("The gift amount must be greater than zero.", 400);
+  }
+  if (expectedAmount >= 10n ** 78n) {
+    throw new TokenTransferVerificationError("The gift amount is too large to record safely.", 400);
+  }
+
+  verifyChogTransferReceipt(
+    receipt.logs,
+    expectedSender,
+    expectedRecipient,
+    expectedAmount,
+  );
+  return { amount: formatUnits(expectedAmount, decimals), decimals };
 }

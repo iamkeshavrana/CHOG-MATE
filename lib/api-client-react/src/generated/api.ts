@@ -39,7 +39,10 @@ import type {
   DiscoverVisibility,
   DiscoverVisibilityInput,
   DiscoveryPage,
+  ErrorResponse,
   GetLiveSalesParams,
+  GiftInput,
+  GiftRecord,
   HealthStatus,
   IncomingCall,
   LikeInboxItem,
@@ -2173,6 +2176,172 @@ export const useSendMessage = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getSendMessageMutationOptions(options));
+    }
+
+export const getGetGiftHistoryUrl = (matchId: string,) => {
+
+
+
+
+  return `/api/matches/${matchId}/gifts`
+}
+
+/**
+ * @summary List confirmed $CHOG gifts between the participants in a match
+ */
+export const getGiftHistory = async (matchId: string, options?: Parameters<typeof customFetch>[1]): Promise<GiftRecord[]> => {
+
+  return customFetch<GiftRecord[]>(getGetGiftHistoryUrl(matchId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetGiftHistoryQueryKey = (matchId: string,) => {
+    return [
+    `/api/matches/${matchId}/gifts`
+    ] as const;
+    }
+
+
+export const getGetGiftHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getGiftHistory>>, TError = ErrorType<ErrorResponse>>(matchId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getGiftHistory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetGiftHistoryQueryKey(matchId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getGiftHistory>>> = ({ signal }) => getGiftHistory(matchId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: matchId !== null && matchId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getGiftHistory>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetGiftHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getGiftHistory>>>
+export type GetGiftHistoryQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary List confirmed $CHOG gifts between the participants in a match
+ */
+
+export function useGetGiftHistory<TData = Awaited<ReturnType<typeof getGiftHistory>>, TError = ErrorType<ErrorResponse>>(
+ matchId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getGiftHistory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetGiftHistoryQueryOptions(matchId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSendGiftUrl = (matchId: string,) => {
+
+
+
+
+  return `/api/matches/${matchId}/gifts`
+}
+
+/**
+ * @summary Verify and save an on-chain $CHOG gift to a match
+ */
+export const sendGift = async (matchId: string,
+    giftInput: GiftInput, options?: Parameters<typeof customFetch>[1]): Promise<GiftRecord> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<GiftRecord>(getSendGiftUrl(matchId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(giftInput)
+  }
+);}
+
+
+
+
+
+export const getSendGiftMutationKey = () => ['sendGift'] as const;
+
+export const getSendGiftMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendGift>>, TError,SendGiftMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof sendGift>>, TError,SendGiftMutationVariables, TContext> => {
+
+const mutationKey = getSendGiftMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof sendGift>>, SendGiftMutationVariables> = (props) => {
+          const {matchId,data} = props ?? {};
+
+          return  sendGift(matchId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SendGiftMutationResult = NonNullable<Awaited<ReturnType<typeof sendGift>>>
+    export type SendGiftMutationBody = BodyType<GiftInput>
+    export type SendGiftMutationError = ErrorType<ErrorResponse>
+    export type SendGiftMutationVariables = {matchId: string;data: BodyType<GiftInput>}
+
+    /**
+ * @summary Verify and save an on-chain $CHOG gift to a match
+ */
+export const useSendGift = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendGift>>, TError,SendGiftMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof sendGift>>,
+        TError,
+        SendGiftMutationVariables,
+        TContext
+      > => {
+      return useMutation(getSendGiftMutationOptions(options));
     }
 
 export const getRequestMessageAttachmentUploadUrlUrl = (matchId: string,) => {

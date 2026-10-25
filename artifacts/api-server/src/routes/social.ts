@@ -5,6 +5,8 @@ import {
   GetBlockedUsersResponse,
   GetConversationsResponse,
   GetExMatchesResponse,
+  GetGiftHistoryParams,
+  GetGiftHistoryResponse,
   GetLikeInboxResponse,
   GetMatchesResponse,
   GetMessagesParams,
@@ -14,6 +16,9 @@ import {
   RequestMessageAttachmentUploadUrlResponse,
   ReportProfileBody,
   RematchProfileParams,
+  SendGiftBody,
+  SendGiftParams,
+  SendGiftResponse,
   SendMessageBody,
   SendMessageParams,
   SendMessageResponse,
@@ -28,9 +33,16 @@ import { getAddress, isAddress } from "viem";
 import { calculateCompatibility } from "../lib/compatibility";
 import { isCurrentChogOwner } from "../lib/chogs";
 import {
+  CHOG_TOKEN_ADDRESS,
   TokenTransferVerificationError,
+  verifyChogTransfer,
   verifySuperLikeTransfer,
 } from "../lib/chog-token";
+import {
+  canonicalGiftAmount,
+  isSameGift,
+  type GiftTransactionRow,
+} from "../lib/gift-record";
 import { toSwipeMatchResponse } from "../lib/swipe-response";
 import {
   loadProfileBundle,
@@ -898,6 +910,210 @@ router.get("/matches/:matchId/messages", async (req, res): Promise<void> => {
   }
 });
 
+router.get("/matches/:matchId/gifts", async (req, res): Promise<void> => {
+  const session = requireWalletSession(req, res);
+  if (!session) return;
+  const params = GetGiftHistoryParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: "That conversation could not be found." });
+    return;
+  }
+
+  try {
+    await requireEligibleProfile(session);
+    const match = await getConversationMatch(params.data.matchId, session.userId);
+    if (!match) {
+      res.status(404).json({ error: "That conversation is no longer available." });
+      return;
+    }
+
+    const otherUserId = match.user_a === session.userId ? match.user_b : match.user_a;
+    const admin = getSupabaseAdmin();
+    const [sent, received] = await Promise.all([
+      admin
+        .from("transactions")
+        .select("*")
+        .eq("transaction_type", "gift")
+        .eq("status", "confirmed")
+        .eq("sender_user_id", session.userId)
+        .eq("recipient_user_id", otherUserId),
+      admin
+        .from("transactions")
+        .select("*")
+        .eq("transaction_type", "gift")
+        .eq("status", "confirmed")
+        .eq("sender_user_id", otherUserId)
+        .eq("recipient_user_id", session.userId),
+    ]);
+    if (sent.error || received.error) {
+      throw new SocialDataError("CHOG MATE gift history is not ready yet.");
+    }
+
+    const rows = [...(sent.data ?? []), ...(received.data ?? [])]
+      .map((row) => row as unknown as GiftTransactionRow)
+      .sort((a, b) => a.created_at.localeCompare(b.created_at));
+    const profiles = await loadProfileBundles([session.userId, otherUserId], {
+      includePrivate: true,
+    });
+    const currentName = displayNameFor(profiles.get(session.userId));
+    const otherName = displayNameFor(profiles.get(otherUserId));
+
+    res.json(GetGiftHistoryResponse.parse(rows.map((row) => ({
+      id: row.id,
+      matchId: match.id,
+      senderId: row.sender_user_id,
+      recipientId: row.recipient_user_id,
+      senderName: row.sender_user_id === session.userId ? currentName : otherName,
+      recipientName: row.recipient_user_id === session.userId ? currentName : otherName,
+      amount: canonicalGiftAmount(String(row.amount)),
+      transactionHash: row.tx_hash,
+      status: "confirmed",
+      createdAt: row.created_at,
+    }))));
+  } catch (error) {
+    sendSocialError(req, res, error);
+  }
+});
+
+router.post("/matches/:matchId/gifts", async (req, res): Promise<void> => {
+  const session = requireWalletSession(req, res);
+  if (!session) return;
+  const params = SendGiftParams.safeParse(req.params);
+  const body = SendGiftBody.safeParse(req.body);
+  if (!params.success || !body.success) {
+    res.status(400).json({ error: "Enter a valid $CHOG amount and confirmed transaction hash." });
+    return;
+  }
+
+  try {
+    const sender = await requireEligibleProfile(session);
+    if (
+      !sender.user.wallet_verified ||
+      sender.user.wallet_address.toLowerCase() !== session.walletAddress.toLowerCase()
+    ) {
+      throw new EligibilityError("Reconnect the wallet verified for this account.", 403);
+    }
+    const match = await getConversationMatch(params.data.matchId, session.userId);
+    if (!match) {
+      res.status(404).json({ error: "That match is no longer available." });
+      return;
+    }
+
+    const recipientId = match.user_a === session.userId ? match.user_b : match.user_a;
+    const recipient = await loadProfileBundle(recipientId);
+    if (
+      !recipient ||
+      !recipient.user.wallet_verified ||
+      !isAddress(recipient.user.wallet_address)
+    ) {
+      throw new EligibilityError("This match does not have a verified recipient wallet.", 409);
+    }
+
+    const hash = body.data.transactionHash.toLowerCase();
+    const admin = getSupabaseAdmin();
+    const { data: existingData, error: existingError } = await admin
+      .from("transactions")
+      .select("*")
+      .ilike("tx_hash", hash)
+      .maybeSingle();
+    if (existingError) {
+      throw new SocialDataError("The gift could not be checked.");
+    }
+
+    if (existingData) {
+      const existing = existingData as unknown as GiftTransactionRow;
+      if (!isSameGift(existing, {
+        match,
+        senderId: session.userId,
+        recipientId,
+        senderWallet: sender.user.wallet_address,
+        recipientWallet: recipient.user.wallet_address,
+            tokenAddress: CHOG_TOKEN_ADDRESS,
+        amount: body.data.amount,
+      })) {
+        throw new TokenTransferVerificationError(
+          "This transaction has already been used for another transfer.",
+          409,
+        );
+      }
+      res.json(SendGiftResponse.parse(await giftRowToApi(existing, match)));
+      return;
+    }
+
+    if (match.status !== "active") {
+      throw new EligibilityError("Gifts can only be sent to an active match.", 409);
+    }
+    const ownsChog = await isCurrentChogOwner(
+      getAddress(recipient.user.wallet_address),
+      recipient.chog.tokenId,
+    );
+    if (ownsChog === null) {
+      throw new EligibilityError("The recipient's Chog ownership could not be checked.", 503);
+    }
+    if (!ownsChog) {
+      throw new EligibilityError("The recipient no longer holds their selected Chog.", 409);
+    }
+
+    const verified = await verifyChogTransfer(
+      hash,
+      session.walletAddress,
+      recipient.user.wallet_address,
+      body.data.amount,
+    );
+    const insertResult = await admin
+      .from("transactions")
+      .insert({
+        tx_hash: hash,
+        sender_user_id: session.userId,
+        recipient_user_id: recipientId,
+        sender_wallet: sender.user.wallet_address,
+        recipient_wallet: recipient.user.wallet_address,
+        token_contract: CHOG_TOKEN_ADDRESS.toLowerCase(),
+        amount: verified.amount,
+        transaction_type: "gift",
+        status: "confirmed",
+        confirmed_at: new Date().toISOString(),
+      })
+      .select("*")
+      .single();
+
+    if (insertResult.error || !insertResult.data) {
+      if (insertResult.error?.code === "23505") {
+        const { data: racedData, error: racedError } = await admin
+          .from("transactions")
+          .select("*")
+          .ilike("tx_hash", hash)
+          .maybeSingle();
+        if (!racedError && racedData) {
+          const raced = racedData as unknown as GiftTransactionRow;
+          if (isSameGift(raced, {
+            match,
+            senderId: session.userId,
+            recipientId,
+            senderWallet: sender.user.wallet_address,
+            recipientWallet: recipient.user.wallet_address,
+            tokenAddress: CHOG_TOKEN_ADDRESS,
+            amount: verified.amount,
+          })) {
+            res.json(SendGiftResponse.parse(await giftRowToApi(raced, match)));
+            return;
+          }
+          throw new TokenTransferVerificationError(
+            "This transaction has already been used for another transfer.",
+            409,
+          );
+        }
+      }
+      throw new SocialDataError("The confirmed gift could not be saved.");
+    }
+
+    const inserted = insertResult.data as unknown as GiftTransactionRow;
+    res.json(SendGiftResponse.parse(await giftRowToApi(inserted, match)));
+  } catch (error) {
+    sendSocialError(req, res, error);
+  }
+});
+
 router.post("/matches/:matchId/attachments/upload-url", async (req, res): Promise<void> => {
   const session = requireWalletSession(req, res);
   if (!session) return;
@@ -1256,6 +1472,35 @@ async function requireEligibleProfile(session: WalletSession) {
     throw new EligibilityError("Your wallet must currently hold the selected Chog Genesis NFT.", 403);
   }
   return bundle;
+}
+
+function displayNameFor(bundle: Parameters<typeof profileToApi>[0] | undefined): string {
+  if (!bundle) return "CHOG MATE";
+  const profile = profileToApi(bundle);
+  return profile.displayName || profile.username || "CHOG MATE";
+}
+
+async function giftRowToApi(row: GiftTransactionRow, match: MatchRow) {
+  const [sender, recipient] = await Promise.all([
+    loadProfileBundle(row.sender_user_id),
+    loadProfileBundle(row.recipient_user_id),
+  ]);
+  const amount = canonicalGiftAmount(String(row.amount));
+  if (!amount || !/^0x[a-fA-F0-9]{64}$/.test(row.tx_hash)) {
+    throw new SocialDataError("The saved gift record is invalid.");
+  }
+  return {
+    id: row.id,
+    matchId: match.id,
+    senderId: row.sender_user_id,
+    recipientId: row.recipient_user_id,
+    senderName: displayNameFor(sender ?? undefined),
+    recipientName: displayNameFor(recipient ?? undefined),
+    amount,
+    transactionHash: row.tx_hash,
+    status: "confirmed",
+    createdAt: row.created_at,
+  };
 }
 
 async function getActiveMatch(matchId: string, userId: string): Promise<MatchRow | null> {

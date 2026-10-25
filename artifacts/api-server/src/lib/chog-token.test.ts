@@ -1,8 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
-import { encodeAbiParameters, encodeEventTopics, type Address } from "viem";
+import { encodeAbiParameters, encodeEventTopics, parseUnits, type Address } from "viem";
 import {
   CHOG_TOKEN_ADDRESS,
   TokenTransferVerificationError,
+  verifyChogTransfer,
   verifySuperLikeTransfer,
   verifySuperLikeTransferReceipt,
 } from "./chog-token";
@@ -26,7 +27,7 @@ const transferEventAbi = [
   },
 ] as const;
 
-function transferLog(to: string) {
+function transferLog(to: string, amount = TRANSFER_AMOUNT) {
   const [eventSignature] = encodeEventTopics({
     abi: transferEventAbi,
     eventName: "Transfer",
@@ -38,7 +39,7 @@ function transferLog(to: string) {
       encodeAbiParameters([{ type: "address" }], [SENDER as Address]),
       encodeAbiParameters([{ type: "address" }], [to as Address]),
     ],
-    data: encodeAbiParameters([{ type: "uint256" }], [TRANSFER_AMOUNT]),
+    data: encodeAbiParameters([{ type: "uint256" }], [amount]),
   };
 }
 
@@ -203,5 +204,73 @@ describe("Super Like on-chain verification", () => {
         }),
       ),
     ).rejects.toMatchObject({ status: 409 });
+  });
+});
+
+describe("$CHOG gift on-chain verification", () => {
+  it("verifies the exact dynamic amount and returns its canonical decimal value", async () => {
+    const amount = parseUnits("12.5", CHOG_DECIMALS);
+    const client = verifierClient({
+      getTransactionReceipt: vi.fn().mockResolvedValue({
+        status: "success",
+        logs: [transferLog(RECIPIENT, amount)],
+      }),
+    });
+
+    await expect(
+      verifyChogTransfer(TRANSACTION_HASH, SENDER, RECIPIENT, "12.500", client),
+    ).resolves.toEqual({ amount: "12.5", decimals: CHOG_DECIMALS });
+  });
+
+  it("rejects a mismatched amount or recipient", async () => {
+    const amount = parseUnits("3", CHOG_DECIMALS);
+    const wrongAmount = verifierClient({
+      getTransactionReceipt: vi.fn().mockResolvedValue({
+        status: "success",
+        logs: [transferLog(RECIPIENT, amount - 1n)],
+      }),
+    });
+    await expect(
+      verifyChogTransfer(TRANSACTION_HASH, SENDER, RECIPIENT, "3", wrongAmount),
+    ).rejects.toMatchObject({ status: 422 });
+
+    const wrongRecipient = verifierClient({
+      getTransactionReceipt: vi.fn().mockResolvedValue({
+        status: "success",
+        logs: [transferLog(OTHER_RECIPIENT, amount)],
+      }),
+    });
+    await expect(
+      verifyChogTransfer(TRANSACTION_HASH, SENDER, RECIPIENT, "3", wrongRecipient),
+    ).rejects.toMatchObject({ status: 422 });
+  });
+
+  it("rejects zero amounts and amounts with more precision than the token supports", async () => {
+    await expect(
+      verifyChogTransfer(TRANSACTION_HASH, SENDER, RECIPIENT, "0", verifierClient()),
+    ).rejects.toMatchObject({ status: 400 });
+    await expect(
+      verifyChogTransfer(
+        TRANSACTION_HASH,
+        SENDER,
+        RECIPIENT,
+        "0.0000000000000000001",
+        verifierClient(),
+      ),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+
+  it("rejects token precision that the database cannot represent", async () => {
+    await expect(
+      verifyChogTransfer(
+        TRANSACTION_HASH,
+        SENDER,
+        RECIPIENT,
+        "1",
+        verifierClient({
+          readContract: vi.fn().mockResolvedValue(19),
+        }),
+      ),
+    ).rejects.toMatchObject({ status: 503 });
   });
 });

@@ -600,6 +600,75 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Message"
+  /matches/{matchId}/gifts:
+    get:
+      operationId: getGiftHistory
+      tags: [matching]
+      summary: List confirmed $CHOG gifts between the participants in a match
+      parameters:
+        - name: matchId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Confirmed gift history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GiftRecord"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: sendGift
+      tags: [matching]
+      summary: Verify and save an on-chain $CHOG gift to a match
+      parameters:
+        - name: matchId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GiftInput"
+      responses:
+        "200":
+          description: Confirmed gift saved (idempotent for the same transaction)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GiftRecord"
+        "400":
+          description: Invalid gift details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Transaction is not yet confirmed or is already assigned elsewhere
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /matches/{matchId}/attachments/upload-url:
     post:
       operationId: requestMessageAttachmentUploadUrl
@@ -1138,6 +1207,31 @@ components:
         attachmentName: { type: string, maxLength: 180 }
         attachmentContentType: { type: string, maxLength: 120 }
         attachmentSize: { type: integer, minimum: 1, maximum: 15728640 }
+    GiftRecord:
+      type: object
+      required: [id, matchId, senderId, recipientId, senderName, recipientName, amount, transactionHash, status, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        matchId: { type: string, format: uuid }
+        senderId: { type: string, format: uuid }
+        recipientId: { type: string, format: uuid }
+        senderName: { type: string }
+        recipientName: { type: string }
+        amount: { type: string, pattern: '^\d+(?:\.\d+)?$', maxLength: 80 }
+        transactionHash: { type: string, pattern: '^0x[a-fA-F0-9]{64}$' }
+        status: { type: string, enum: [confirmed] }
+        createdAt: { type: string, format: date-time }
+    GiftInput:
+      type: object
+      required: [amount, transactionHash]
+      properties:
+        amount: { type: string, pattern: '^\d+(?:\.\d+)?$', minLength: 1, maxLength: 80 }
+        transactionHash: { type: string, pattern: '^0x[a-fA-F0-9]{64}$' }
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string }
     MessageAttachmentUploadInput:
       type: object
       required: [fileName, contentType, size, messageType]

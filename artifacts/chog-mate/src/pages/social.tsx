@@ -1,7 +1,7 @@
 import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, ArrowRight, BadgeCheck, FileText, Heart, Image as ImageIcon, MessageCircle, Mic, MoreHorizontal, Paperclip, Phone, Send, Sparkles, Undo2, Video, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BadgeCheck, FileText, Gift, Heart, Image as ImageIcon, MessageCircle, Mic, MoreHorizontal, Paperclip, Phone, Send, Sparkles, Undo2, Video, X } from 'lucide-react';
 import { Link } from 'wouter';
 import {
   getGetAuthSessionQueryKey,
@@ -24,6 +24,7 @@ import { appConfig } from '@/lib/config';
 import { monadNetwork } from '@/lib/appkit';
 import { supabase } from '@/lib/supabase';
 import { useCallControls } from '@/components/call-provider';
+import { GiftFlowDialog, GiftHistory } from './gift-flow';
 
 function ReportControl({
   profile,
@@ -1023,6 +1024,7 @@ export function MatchesPage() {
   });
   const [walletDialogOpen, setWalletDialogOpen] = useState(true);
   const [socialNotice, setSocialNotice] = useState('');
+  const [giftMatch, setGiftMatch] = useState<Match | null>(null);
   const [section, setSection] = useState<'matches' | 'ex-match' | 'liked-you' | 'liked-by-you'>(() =>
     typeof window !== 'undefined' && window.location.hash === '#likes'
       ? 'liked-you'
@@ -1168,7 +1170,10 @@ export function MatchesPage() {
             <div className="flex items-start justify-between gap-2"><div className="min-w-0"><ProfileOpenButton profile={match.profile} options={{ source: 'matched', matchId: match.id }} className="block text-left" label={`Open ${match.profile.displayName}'s full profile`}><h2 className="display break-words text-lg font-extrabold text-[#24133f]">{match.profile.displayName}{match.profile.age !== null ? `, ${match.profile.age}` : ''}</h2><p className="mt-1 break-all text-xs text-[#82778c]">@{match.profile.username}</p></ProfileOpenButton></div><span className="shrink-0 rounded-full bg-[#f2ecff] px-2.5 py-1 text-[10px] font-bold text-[#6246b0]">{match.compatibility}%</span></div>
             <p className="mt-2 text-[11px] font-semibold text-[#705b83]">Chog #{match.profile.chog.tokenId} · {match.profile.chog.tier || 'Tier unlisted'}</p>
             <p className="mt-2 text-[10px] text-[#887c90]">Matched {new Date(match.createdAt).toLocaleDateString()}</p>
-            <Link href={`/messages?match=${encodeURIComponent(match.id)}`} className="button-primary mt-3 inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-xs font-bold" data-testid={`link-message-${match.id}`}><MessageCircle size={15}/>Message</Link>
+             <div className="mt-3 flex flex-wrap gap-2">
+               <Link href={`/messages?match=${encodeURIComponent(match.id)}`} className="button-primary inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-xs font-bold" data-testid={`link-message-${match.id}`}><MessageCircle size={15}/>Message</Link>
+               {match.status === 'active' && <button type="button" onClick={() => setGiftMatch(match)} className="button-soft inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-xs font-bold" data-testid={`button-gift-${match.id}`}><Gift size={15}/>Send gift</button>}
+             </div>
           <MatchActions matchId={match.id} username={match.profile.username} onDone={() => void refreshSocialLists()}/>
           </div>
         </motion.article>)}</AnimatePresence></div> : <EmptyState mark="cm" title="Your first match is out there." detail="When someone you like likes you back, you’ll find your mutual connection here." action={<Link href="/discover" className="button-primary inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-bold" data-testid="link-discover-from-matches">Meet people <ArrowRight size={15}/></Link>} />}
@@ -1199,6 +1204,7 @@ export function MatchesPage() {
           : <EmptyState title="No Ex Matches." detail="People from a previous Match will appear here after either person ends the relationship. Only the person who ended it can Rematch." />}
       </QueryState>
     </section>}
+    <GiftFlowDialog match={giftMatch} senderWallet={me.data.walletAddress} open={Boolean(giftMatch)} onOpenChange={open => { if (!open) setGiftMatch(null); }}/>
   </div></AppShell>;
 }
 
@@ -1748,6 +1754,7 @@ export function MessagesPage() {
            </header>}
          {match?.status === 'unmatched' && <p className="border-b border-[#24133f12] bg-[#fffaf0] px-5 py-3 text-xs leading-5 text-[#806b47]" role="status">You are no longer matched, but this conversation remains available until either person blocks the other.</p>}
          <div className="messages-chat-transcript flex flex-1 flex-col gap-3 overflow-y-auto bg-[radial-gradient(ellipse_at_top,#f7f2ff_0,transparent_68%)] p-5">
+           {match && <GiftHistory matchId={match.id} currentUserId={currentUserId}/>}
            {callHistory.data?.length ? (
              <section className="mb-1 space-y-2" aria-label="Call history" data-testid="call-history">
                <h3 className="text-[10px] font-bold uppercase tracking-[.16em] text-[#8b8091]">Recent calls</h3>

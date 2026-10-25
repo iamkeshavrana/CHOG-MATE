@@ -9,4 +9,5 @@ interface ImportMetaEnv {
   readonly VITE_SUPABASE_ANON_KEY?: string;
   readonly VITE_NFT_METADATA_API?: string;
   readonly VITE_NFT_INDEXER_API?: string;
+  readonly VITE_GIFT_ANIMATION_URL?: string;
 }

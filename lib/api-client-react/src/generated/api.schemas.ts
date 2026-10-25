@@ -485,6 +485,46 @@ export interface MessageInput {
   attachmentSize?: number;
 }
 
+export type GiftRecordStatus = typeof GiftRecordStatus[keyof typeof GiftRecordStatus];
+
+
+export const GiftRecordStatus = {
+  confirmed: 'confirmed',
+} as const;
+
+export interface GiftRecord {
+  id: string;
+  matchId: string;
+  senderId: string;
+  recipientId: string;
+  senderName: string;
+  recipientName: string;
+  /**
+     * @maxLength 80
+     * @pattern ^\d+(?:\.\d+)?$
+     */
+  amount: string;
+  /** @pattern ^0x[a-fA-F0-9]{64}$ */
+  transactionHash: string;
+  status: GiftRecordStatus;
+  createdAt: string;
+}
+
+export interface GiftInput {
+  /**
+     * @minLength 1
+     * @maxLength 80
+     * @pattern ^\d+(?:\.\d+)?$
+     */
+  amount: string;
+  /** @pattern ^0x[a-fA-F0-9]{64}$ */
+  transactionHash: string;
+}
+
+export interface ErrorResponse {
+  error: string;
+}
+
 export type MessageAttachmentUploadInputMessageType = typeof MessageAttachmentUploadInputMessageType[keyof typeof MessageAttachmentUploadInputMessageType];
 
 
